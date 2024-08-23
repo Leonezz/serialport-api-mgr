@@ -1,80 +1,86 @@
 import {
-  convertPortTypeToString,
   emitToRustBus,
   OpenSerialPortReq,
-  SerialPortInfo,
 } from "@/bridge/call_rust";
 import usePortStatus from "@/hooks/store/usePortStatus";
 import { Autocomplete, AutocompleteItem, Button } from "@nextui-org/react";
 import { useToast } from "../shadcn/use-toast";
 import useRequestState from "@/hooks/commands.ts/useRequestState";
+import { convertPortTypeToString } from "@/bridge/types";
 
 type PortSelectorProps = {
-  selectedPort: SerialPortInfo;
-  setSelectedPort: (port: SerialPortInfo) => void;
+  setSelectedPortName: (port: string) => void;
   refreshAvaliablePorts: () => void;
   serialPortConfig: OpenSerialPortReq;
 };
 
 const PortSelector = ({
-  selectedPort,
-  setSelectedPort,
+  setSelectedPortName,
   refreshAvaliablePorts,
   serialPortConfig,
 }: PortSelectorProps) => {
+  const selectedPortName = serialPortConfig.portName;
   const { loading: portOpening, runRequest: openPort } = useRequestState({
     action: () =>
       emitToRustBus("open_port", {
         ...serialPortConfig,
-        portName: selectedPort.port_name,
+        portName: selectedPortName,
       }),
     onError: (err) =>
       toastError({
-        description: `Opening port ${selectedPort.port_name} failed: ${err?.msg}`,
+        description: `Opening port ${selectedPortName} failed: ${err?.msg}`,
       }),
     onSuccess: () =>
       toastSuccess({
-        description: `${selectedPort.port_name} opened`,
+        description: `${selectedPortName} opened`,
       }),
   });
 
   const { toastError, toastSuccess } = useToast();
   const { loading: portClosing, runRequest: closePort } = useRequestState({
     action: () =>
-      emitToRustBus("close_port", { portName: selectedPort.port_name }),
+      emitToRustBus("close_port", { portName: selectedPortName }),
     onError: (err) =>
       toastError({
-        description: `Closing port ${selectedPort.port_name} failed: ${err?.msg}`,
+        description: `Closing port ${selectedPortName} failed: ${err?.msg}`,
       }),
     onSuccess: () =>
       toastSuccess({
-        description: `${selectedPort.port_name} closed`,
+        description: `${selectedPortName} closed`,
       }),
   });
 
-  const { data: portStatus, getOpenedPorts } = usePortStatus();
-  const openedPorts = getOpenedPorts();
-
-  const isPortOpened = openedPorts.includes(selectedPort.port_name);
+  const { data: portStatus, getPortOpened, getPortStatusByName } = usePortStatus();
+  const portOpened = getPortOpened({port_name: selectedPortName});
+  const selectedPortStatus = getPortStatusByName({port_name: selectedPortName});
 
   return (
     <div className="flex flex-row sm:flex-nowrap flex-wrap gap-2 items-center z-50">
+      {portOpened ? <div className="flex flex-col gap-1 text-xs font-mono">
+        <p color="success" className="w-max text-primary">RX: {selectedPortStatus?.bytes_read || 0} bytes</p>
+        <p color="warning" className="w-max text-success">TX: {selectedPortStatus?.bytes_write || 0} bytes</p>
+      </div> : null}
       <Autocomplete
         allowsCustomValue={false}
         label={<p className="text-md min-w-max">Port to Open</p>}
         placeholder="Select a port by name"
         size="sm"
         className="min-w-60"
-        value={selectedPort?.port_name}
-        onSelectionChange={(key) => {
-          console.log(key);
-          console.log(portStatus);
-          if (!key) return;
-          const port = portStatus.get(key.toString().split("-")[0]);
+        value={selectedPortName}
+        onValueChange={(value) => {
+          const port = portStatus.get(value);
           if (!port) {
             return;
           }
-          setSelectedPort(port.info);
+          setSelectedPortName(value);
+        }}
+        onSelectionChange={(key) => {
+          if (!key) return;
+          const port = portStatus.get(key.toString());
+          if (!port) {
+            return;
+          }
+          setSelectedPortName(key.toString());
         }}
         items={portStatus}
       >
@@ -83,7 +89,7 @@ const PortSelector = ({
             <div>
               <p className="text-md">
                 {key}
-                {openedPorts.includes(key) ? "  (Opened)" : ""}
+                {getPortOpened({port_name: key}) ? "  (Opened)" : ""}
               </p>
               <p className="text-sm">
                 {convertPortTypeToString(info.info.port_type)}
@@ -101,11 +107,11 @@ const PortSelector = ({
       </Button>
       <Button
         color="danger"
-        onClick={isPortOpened ? closePort : openPort}
+        onClick={portOpened ? closePort : openPort}
         isLoading={portOpening || portClosing}
-        isDisabled={selectedPort.port_name.length === 0}
+        isDisabled={selectedPortName.length === 0}
       >
-        {isPortOpened ? "Close" : "Open"}
+        {portOpened ? "Close" : "Open"}
       </Button>
     </div>
   );

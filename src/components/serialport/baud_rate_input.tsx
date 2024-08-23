@@ -1,12 +1,14 @@
-import { SERIALPORT } from "@/bridge/call_rust";
+import { OpenedPortStatus, SERIALPORT, SerialPortInfo } from "@/bridge/types";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
 
 type BaudRateInputProps = {
   value: number;
+  portStatus?: SerialPortInfo["port_status"],
   setValue: (value: number) => void;
-  readonly: boolean;
 };
-const BaudRateInput = ({ value, setValue, readonly }: BaudRateInputProps) => {
+const BaudRateInput = ({ value, setValue, portStatus }: BaudRateInputProps) => {
+  const readonly = !!portStatus && (portStatus !== "Closed");
+  const defauleValue = (readonly ? (portStatus as OpenedPortStatus).Opened.baud_rate : value).toString();
   return (
     <Autocomplete
       isReadOnly={readonly}
@@ -17,12 +19,21 @@ const BaudRateInput = ({ value, setValue, readonly }: BaudRateInputProps) => {
           Baud Rate
         </p>
       }
+      isClearable={false}
       labelPlacement="outside"
       placeholder="Set a baud rate"
       size="sm"
-      value={value}
+      value={defauleValue}
+      defaultInputValue={defauleValue}
       onValueChange={(value) => {
         setValue(Number(value));
+      }}
+      onSelectionChange={(key) => {
+        if (key === null) {
+          return;
+        }
+        const value = Number(key.toString());
+        setValue(value);
       }}
     >
       {SERIALPORT.CommonlyUsedBaudRates.map((v) => (

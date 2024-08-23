@@ -1,23 +1,11 @@
-use serialport5::{ SerialPortInfo, SerialPortType, UsbPortInfo };
+use std::{default, time::Duration};
 
-#[derive(serde::Serialize, Debug)]
-pub struct SerialPortInfoForSerilize {
-    /// The short name of the serial port
-    pub port_name: String,
-    /// The hardware device type that exposes this port
-    pub port_type: SerialPortTypeForSerilize,
-}
+use serde::{de::value::Error, Serialize};
+use serialport5::{ DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortType, StopBits, UsbPortInfo };
 
-impl From<SerialPortInfo> for SerialPortInfoForSerilize {
-    fn from(value: SerialPortInfo) -> Self {
-        SerialPortInfoForSerilize {
-            port_name: value.port_name,
-            port_type: value.port_type.into(),
-        }
-    }
-}
 
-#[derive(serde::Serialize, Debug)]
+
+#[derive(serde::Serialize, Debug, Clone)]
 pub enum SerialPortTypeForSerilize {
     /// The serial port is connected via USB
     UsbPort(UsbPortInfoForSerilize),
@@ -40,7 +28,7 @@ impl From<SerialPortType> for SerialPortTypeForSerilize {
     }
 }
 
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, Clone)]
 pub struct UsbPortInfoForSerilize {
     /// Vendor ID
     pub vid: u16,
@@ -64,4 +52,122 @@ impl From<UsbPortInfo> for UsbPortInfoForSerilize {
             product: value.product,
         }
     }
+}
+
+#[derive(Debug, Serialize, Clone, Copy, Default)]
+pub enum FlowControlForSerialize {
+    #[default]
+    None,
+    Software,
+    Hardware,
+}
+
+impl From<FlowControl> for FlowControlForSerialize {
+    fn from(value: FlowControl) -> Self {
+        match value{
+            FlowControl::None => FlowControlForSerialize::None,
+            FlowControl::Software => FlowControlForSerialize::Software,
+            FlowControl::Hardware => FlowControlForSerialize::Hardware
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Clone, Copy, Default)]
+pub enum DataBitsForSerialize {
+    Five,
+    Six,
+    Seven,
+    #[default]
+    Eight
+}
+
+impl From<DataBits> for DataBitsForSerialize {
+    fn from(value: DataBits) -> Self {
+        match value {
+            DataBits::Five => DataBitsForSerialize::Five,
+            DataBits::Six => DataBitsForSerialize::Six,
+            DataBits::Seven => DataBitsForSerialize::Seven,
+            DataBits::Eight => DataBitsForSerialize::Eight
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Clone, Copy, Default)]
+pub enum ParityForSerialize {
+    #[default]
+    None,
+    Even,
+    Odd
+}
+
+impl From<Parity> for ParityForSerialize {
+    fn from(value: Parity) -> Self {
+        match value {
+            Parity::None => ParityForSerialize::None,
+            Parity::Even => ParityForSerialize::Even,
+            Parity::Odd => ParityForSerialize::Odd
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Clone, Copy, Default)]
+pub enum StopBitsForSerialize {
+    #[default]
+    One,
+    Two
+}
+
+impl From<StopBits> for StopBitsForSerialize {
+    fn from(value: StopBits) -> Self {
+        match value {
+            StopBits::One => StopBitsForSerialize::One,
+            StopBits::Two => StopBitsForSerialize::Two
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Clone, Copy, Default)]
+pub struct OpenedPortProfile {
+    baud_rate: u32,
+    flow_control: FlowControlForSerialize,
+    data_bits: DataBitsForSerialize,
+    parity: ParityForSerialize,
+    stop_bits: StopBitsForSerialize,
+    carrier_detect: bool,
+    clear_to_send: bool,
+    data_set_ready: bool,
+    ring_indicator: bool,
+    read_timeout: u128,
+    write_timeout: u128,
+}
+
+impl OpenedPortProfile {
+    pub fn update_from_port(&mut self, port: &mut SerialPort) -> Result<(), serialport5::Error> {
+        self.baud_rate = port.baud_rate()?;
+        self.flow_control = port.flow_control()?.into();
+        self.data_bits = port.data_bits()?.into();
+        self.parity = port.parity()?.into();
+        self.stop_bits = port.stop_bits()?.into();
+        self.carrier_detect = port.read_carrier_detect()?;
+        self.data_set_ready = port.read_data_set_ready()?;
+        self.ring_indicator = port.read_ring_indicator()?;
+        self.read_timeout = port.read_timeout().unwrap_or_default().as_nanos();
+        self.write_timeout = port.write_timeout().unwrap_or_default().as_nanos();
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Debug, Clone, Copy)]
+pub enum PortStatusType {
+    Opened(OpenedPortProfile),
+    Closed
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct PortInfo {
+    pub port_name: String,
+    pub port_type: SerialPortTypeForSerilize,
+    pub port_status: PortStatusType,
+    pub bytes_read: u128,
+    pub bytes_write: u128,
 }

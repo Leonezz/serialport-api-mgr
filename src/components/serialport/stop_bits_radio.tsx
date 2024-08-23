@@ -1,8 +1,8 @@
 import RadioBuilder, { SerialConfigRadioProps } from "./radio_builder";
 
-type StopBitsRadioProps = SerialConfigRadioProps<"StopBits">;
+type StopBitsRadioProps = SerialConfigRadioProps<"stop_bits">;
 const StopBitsRadio = (props: StopBitsRadioProps) => {
-  const Component = RadioBuilder("StopBits");
+  const Component = RadioBuilder("stop_bits");
   return <Component {...props} />;
 };
 export default StopBitsRadio;

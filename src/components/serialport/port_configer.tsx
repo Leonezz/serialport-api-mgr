@@ -1,10 +1,5 @@
-import { Accordion, AccordionItem } from "@nextui-org/react";
+import { Accordion, AccordionItem, Chip, Divider } from "@nextui-org/react";
 import { useEffect, useState } from "react";
-import {
-  emitToRustBus,
-  OpenSerialPortReq,
-  SerialPortInfo,
-} from "../../bridge/call_rust";
 import useAvaliablePorts from "@/hooks/use_avaliable_ports";
 import PortSelector from "./port_selector";
 import BaudRateInput from "./baud_rate_input";
@@ -13,23 +8,26 @@ import DataBitsRadio from "./data_bits_radio";
 import ParityRadio from "./parity_radio";
 import StopBitsRadio from "./stop_bits_radio";
 import { LucideSettings } from "lucide-react";
+import usePortStatus from "@/hooks/store/usePortStatus";
+import { useDebounceEffect } from "ahooks";
+import { OpenSerialPortReq } from "@/bridge/call_rust";
+import SerialPortMiscIndicators from "./port_misc_state_indicator";
+import PortConfigGroups from "./port_config_groups";
 
 const SerialPortOpener = ({
   serialConfig,
   setSerialConfig,
-  portOpened,
 }: {
-  portOpened: boolean;
   serialConfig: OpenSerialPortReq;
   setSerialConfig: React.Dispatch<React.SetStateAction<OpenSerialPortReq>>;
 }) => {
   const { debouncedReloadPortList: reloadPortList } = useAvaliablePorts();
-
-  const [selectedPort, setSelectedPort] = useState<SerialPortInfo>({
-    port_name: "",
-    port_type: "Unknown",
-  });
   useEffect(reloadPortList, []);
+
+  const portName = serialConfig.portName;
+  const { getPortStatusByName, getPortOpened } = usePortStatus();
+  const portDeviceStatus = getPortStatusByName({ port_name: portName });
+  const portOpened = getPortOpened({ port_name: serialConfig.portName });
 
   return (
     <Accordion
@@ -45,20 +43,20 @@ const SerialPortOpener = ({
             <LucideSettings size={40} className="stroke-primary" />
             <div className="flex flex-col">
               <p className="text-lg font-bold text-start">Config Port</p>
-              <p className="text-sm text-start text-neutral-400">opened</p>
+              <Chip className="font-mono text-sm" variant="flat" color={portOpened?"success" : "default"}>{portOpened ? "Opened" : "Closed"}</Chip>
             </div>
           </div>
         }
         title={
           <div className="flex justify-end flex-wrap">
             <PortSelector
-              selectedPort={selectedPort}
-              setSelectedPort={(port) => {
-                console.log(port);
-                setSelectedPort(port);
+              setSelectedPortName={(portName) => {
+                if (portOpened) {
+                  return;
+                }
                 setSerialConfig((prev) => ({
                   ...prev,
-                  portName: port.port_name,
+                  portName: portName,
                 }));
               }}
               refreshAvaliablePorts={reloadPortList}
@@ -67,57 +65,14 @@ const SerialPortOpener = ({
           </div>
         }
       >
-        <div className="gap-2 pt-2">
-          <BaudRateInput
-            readonly={portOpened}
-            value={serialConfig.baudRate}
-            setValue={(v) =>
-              setSerialConfig((prev) => ({
-                ...prev,
-                baudRate: v,
-              }))
-            }
+        <div className="flex flex-row space-x-2 w-full justify-stretch">
+          <PortConfigGroups
+            serialConfig={serialConfig}
+            setSerialConfig={setSerialConfig}
+            portDeviceStatus={portDeviceStatus}
           />
-          <DataBitsRadio
-            readonly={portOpened}
-            value={serialConfig.dataBits}
-            setValue={(v) =>
-              setSerialConfig((prev) => ({
-                ...prev,
-                dataBits: v,
-              }))
-            }
-          />
-          <FlowControlRadio
-            readonly={portOpened}
-            value={serialConfig.flowControl}
-            setValue={(v) =>
-              setSerialConfig((prev) => ({
-                ...prev,
-                flowControl: v,
-              }))
-            }
-          />
-          <ParityRadio
-            readonly={portOpened}
-            value={serialConfig.parity}
-            setValue={(v) =>
-              setSerialConfig((prev) => ({
-                ...prev,
-                parity: v,
-              }))
-            }
-          />
-          <StopBitsRadio
-            readonly={portOpened}
-            value={serialConfig.stopBits}
-            setValue={(v) =>
-              setSerialConfig((prev) => ({
-                ...prev,
-                stopBits: v,
-              }))
-            }
-          />
+          <Divider orientation="vertical" className="border-x-5 w-1 border-neutral-800 my-2" />
+          <SerialPortMiscIndicators value={portDeviceStatus?.port_status} />
         </div>
       </AccordionItem>
     </Accordion>

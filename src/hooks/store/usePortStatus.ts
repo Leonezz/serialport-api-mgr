@@ -1,4 +1,4 @@
-import { SerialPortInfo } from "@/bridge/call_rust";
+import { SerialPortInfo } from "@/bridge/types";
 import { create } from "zustand";
 export type MessageType = {
   sender: "Local" | "Remote";
@@ -11,7 +11,6 @@ type PortStatus = {
     string,
     {
       info: SerialPortInfo;
-      opened: boolean;
       messages: MessageType[];
     }
   >;
@@ -19,6 +18,7 @@ type PortStatus = {
 
 type PortStatusActions = {
   updateAvaliablePorts: (props: { ports: SerialPortInfo[] }) => void;
+  getPortStatusByName: (props: { port_name: string }) => SerialPortInfo | undefined;
   sendMessage: (props: { port_name: string; data: Buffer }) => void;
   reviceMessage: (props: { port_name: string; data: Buffer }) => void;
   getPortMessageList: (props: { port_name: string }) => MessageType[];
@@ -34,17 +34,18 @@ const usePortStatus = create<PortStatus & PortStatusActions>((set, get) => ({
   updateAvaliablePorts: ({ ports }) =>
     set((prev) => {
       for (const info of ports) {
-        if (prev.data.has(info.port_name)) {
-          continue;
-        }
+        const prevInfo = prev.data.get(info.port_name);
         prev.data.set(info.port_name, {
           info: info,
-          opened: false,
-          messages: [],
+          messages: prevInfo?.messages || [],
         });
       }
       return { data: prev.data };
     }),
+  getPortStatusByName: ({port_name}): SerialPortInfo | undefined => {
+    const res = get().data.get(port_name);
+    return res?.info;
+  },
   sendMessage: ({ port_name, data }) =>
     set((prev) => {
       console.log(`${port_name} - ${data}`);
@@ -93,7 +94,21 @@ const usePortStatus = create<PortStatus & PortStatusActions>((set, get) => ({
       if (!currentState) {
         return { data: prev.data };
       }
-      currentState.opened = true;
+      currentState.info.port_status = {
+        Opened: {
+          baud_rate: 0,
+          flow_control: "None",
+          data_bits: "Eight",
+          stop_bits: "One",
+          parity: "None",
+          carrire_detect: false,
+          clear_to_send: false,
+          data_set_ready: false,
+          ring_indicator: false,
+          read_timeout: 0,
+          write_timeout: 0
+        }
+      };
       prev.data.set(portName, currentState);
       return {
         data: prev.data,
@@ -105,7 +120,7 @@ const usePortStatus = create<PortStatus & PortStatusActions>((set, get) => ({
       if (!currentState) {
         return { data: prev.data };
       }
-      currentState.opened = false;
+      currentState.info.port_status = "Closed";
       prev.data.set(portName, currentState);
       return {
         data: prev.data,
@@ -117,12 +132,12 @@ const usePortStatus = create<PortStatus & PortStatusActions>((set, get) => ({
     if (!portState) {
       return false;
     }
-    return portState.opened;
+    return portState.info.port_status !== "Closed";
   },
   getOpenedPorts: () => {
     const state = get().data;
     return [...state.entries()]
-      .filter(([_, info]) => info.opened)
+      .filter(([_, info]) => info.info.port_status !== "Closed")
       .map(([portName, _]) => portName);
   },
 }));

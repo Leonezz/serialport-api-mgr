@@ -6,7 +6,7 @@ mod error;
 mod serial_mgr;
 mod util;
 
-use tauri::{ self, Manager };
+use tauri::{ self };
 use tauri_plugin_log::{ self, Target, TargetKind, TimezoneStrategy };
 use crate::bridge::{
     hello,

@@ -4,8 +4,8 @@ use async_std::task::sleep;
 use tauri::AppHandle;
 
 use crate::error::{ CmdError, CmdErrorCode, CmdResult };
+use crate::serial_mgr::types::PortInfo;
 use crate::serial_mgr::{ self, SerialMgr };
-use crate::serial_mgr::types::SerialPortInfoForSerilize;
 use crate::util::{ parse_data_bits, parse_flow_control, parse_parity, parse_stop_bits };
 
 use logcall::logcall;
@@ -18,15 +18,10 @@ pub fn hello(param: &str) -> String {
 
 #[tauri::command(async)]
 #[logcall(ok = "trace", err = "error")]
-pub async fn get_all_port_info() -> CmdResult<Vec<SerialPortInfoForSerilize>> {
+pub async fn get_all_port_info() -> CmdResult<Vec<PortInfo>> {
     SerialMgr::update_avaliable_ports()
         .and_then(|res|
-            Ok(
-                res
-                    .iter()
-                    .map(|entry| SerialPortInfoForSerilize::from(entry.clone()))
-                    .collect()
-            )
+            Ok(res)
         )
         .or_else(|err| Err(err.into()))
 }

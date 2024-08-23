@@ -1,8 +1,8 @@
 import RadioBuilder, { SerialConfigRadioProps } from "./radio_builder";
 
-type ParityRadioProps = SerialConfigRadioProps<"Parity">;
+type ParityRadioProps = SerialConfigRadioProps<"parity">;
 const ParityRadio = (props: ParityRadioProps) => {
-  const Component = RadioBuilder("Parity");
+  const Component = RadioBuilder("parity");
   return <Component {...props} />;
 };
 

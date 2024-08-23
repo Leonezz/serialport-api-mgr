@@ -15,6 +15,8 @@ const SerialDialog = () => {
     flowControl: "None",
     stopBits: "One",
     parity: "None",
+    readTimeout: 0,
+    writeTimeout: 0,
   });
   const [viewMode, setViewMode] = useState<ViewModeType>("Text");
   const [crlf, setCrlf] = useState<CRLFOptionsType>("CRLF");
@@ -40,13 +42,11 @@ const SerialDialog = () => {
 
   const { getPortMessageList, getPortOpened } = usePortStatus();
   const messages = getPortMessageList({ port_name: config.portName });
-  const portOpened = getPortOpened({ port_name: config.portName });
   return (
     <div className="h-full relative gap-2 flex flex-col">
       {/* <ResizablePanelGroup direction="vertical" className="w-full gap-2"> */}
       {/* <ResizablePanel defaultSize={75}> */}
       <SerialPortOpener
-        portOpened={portOpened}
         serialConfig={config}
         setSerialConfig={setConfig}
       />
@@ -59,7 +59,7 @@ const SerialDialog = () => {
       <ResizableHandle withHandle />
       <ResizablePanel className="min-h-36"> */}
       <MessageInput
-        portOpened={portOpened}
+        portOpened={getPortOpened({port_name: config.portName})}
         portName={config.portName}
         viewMode={viewMode}
         setViewMode={setViewMode}

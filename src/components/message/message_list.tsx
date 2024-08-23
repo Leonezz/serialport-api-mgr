@@ -13,10 +13,11 @@ const MessageList = ({
   viewMode,
   textEncoding,
 }: MessageListProps) => {
+  messages = messages.sort((a, b) => b.time.getTime() - a.time.getTime());
   return (
     <ScrollShadow
       visibility="none"
-      className="flex gap-1 px-2 flex-col-reverse"
+      className="flex gap-1 px-3 flex-col-reverse"
     >
       {messages.map((message) => (
         <Message {...message} viewMode={viewMode} textEncoding={textEncoding} />

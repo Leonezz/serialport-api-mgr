@@ -1,13 +1,14 @@
 pub mod types;
 mod serial_events;
 use std::io::{ Read, Write };
+use std::ops::AddAssign;
 use std::thread::sleep;
 use std::sync::OnceLock;
 use std::thread::{ self, sleep_ms };
 use std::time::Duration;
 use std::{ collections::hash_map::HashMap, sync::RwLock };
 
-use log::trace;
+use log::{error, trace};
 use serialport5::{
     self,
     DataBits,
@@ -20,6 +21,7 @@ use serialport5::{
 };
 use tauri::async_runtime::block_on;
 use tauri::{ AppHandle, Emitter };
+use types::{OpenedPortProfile, PortInfo, PortStatusType};
 use crate::error::{ InnerError, InnerResult, ErrorType, RustErrorType };
 
 enum InterThreadSignals {
@@ -49,7 +51,7 @@ pub struct PortHandles {
 
 #[derive(Default)]
 pub struct SerialMgr {
-    pub avaliable_ports: RwLock<Vec<SerialPortInfo>>,
+    pub port_profiles: RwLock<HashMap<String, PortInfo>>,
     // open_ports: RwLock<Box<Vec<dyn SerialPort>>>,
     pub open_ports: RwLock<HashMap<String, PortHandles>>,
     // read_handles: HashMap<String, RwLock<ReadPortHandle>>,
@@ -69,7 +71,7 @@ impl Drop for SerialMgr {
                 });
             }
         });
-        self.avaliable_ports.write().unwrap().clear();
+        self.port_profiles.write().unwrap().clear();
     }
 }
 
@@ -77,18 +79,36 @@ impl SerialMgr {
     pub fn global() -> &'static SerialMgr {
         static SERIAL_MGR: OnceLock<SerialMgr> = OnceLock::new();
         SERIAL_MGR.get_or_init(|| SerialMgr {
-            avaliable_ports: RwLock::new(vec![]),
+            port_profiles: RwLock::new(HashMap::new()),
             open_ports: RwLock::new(HashMap::new()),
         })
     }
-    pub fn update_avaliable_ports() -> InnerResult<Vec<SerialPortInfo>> {
+    pub fn update_avaliable_ports() -> InnerResult<Vec<PortInfo>> {
         let system_ports_res = serialport5::available_ports();
 
         match system_ports_res {
             Ok(ports) => {
-                trace!("get all avaliable ports success, cnt: {}", ports.len());
-                *SerialMgr::global().avaliable_ports.write().unwrap() = ports.clone();
-                Ok(ports)
+                trace!("get all avaliable ports from system success, cnt: {}", ports.len());
+                let mut current_ports = SerialMgr::global().port_profiles.write().or_else(|_| Err(InnerError{
+                    code: ErrorType::Rust(RustErrorType::HashMapError),
+                    msg: "error acquire write lock for new ports checking and appending".to_string()
+                }))?;
+                let current_port_names: Vec<String> = current_ports.keys().map(|k| k.clone()).collect();
+                for port in ports.iter() {
+                    if current_port_names.contains(&port.port_name) {
+                        continue;
+                    }
+
+                    trace!("found new port: {}", port.port_name);
+                    current_ports.insert(port.port_name.clone(), PortInfo {
+                        port_name: port.port_name.clone(),
+                        port_type: port.port_type.clone().into(),
+                        port_status: PortStatusType::Closed,
+                        bytes_read: 0,
+                        bytes_write: 0,
+                    });
+                }
+                Ok(current_ports.values().map(|v| v.clone()).collect())
             }
             Err(err) => Err(err.into()),
         }
@@ -121,6 +141,17 @@ impl SerialMgr {
             log::error!(target: port_name.as_str(), "send term signal to async task failed: {err:?}");
         }
 
+        SerialMgr::global().port_profiles.write().and_then(|mut port_profiles| {
+            port_profiles.get_mut(&port_name).unwrap().port_status = PortStatusType::Closed;
+            Ok(())
+        }).or_else(|_| {
+            let err = InnerError {
+                code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
+                msg: "error acquire write lock of port_profiles for status update".to_string()
+            };
+            error!(target: port_name.as_str(), "{}", err.msg);
+            Err(err)
+        })?;
         let _ = app.emit("port_closed", serial_events::SerialEventPayload {
             event: serial_events::SerialEventType::PortCloseSuccess,
             port_name: port_name,
@@ -137,7 +168,7 @@ impl SerialMgr {
         parity: Parity,
         stop_bits: StopBits
     ) -> InnerResult<()> {
-        let result = serialport5::SerialPortBuilder
+        let mut result = serialport5::SerialPortBuilder
             ::new()
             .baud_rate(baud_rate)
             .data_bits(data_bits)
@@ -162,7 +193,7 @@ impl SerialMgr {
         });
         log::info!(target: port_name.as_str(), "async task for port created");
 
-        SerialMgr::global()
+        let open_res = SerialMgr::global()
             .open_ports.write()
             .or_else(|_|
                 Err(InnerError {
@@ -172,7 +203,7 @@ impl SerialMgr {
             )
             .and_then(|mut open_ports| {
                 open_ports.insert(port_name.clone(), PortHandles {
-                    port: result,
+                    port: result.try_clone().unwrap(),
                     thread_handle: handle,
                     terminate_sender: terminate_tx.clone(),
                     write_bytes_sender: write_bytes_tx,
@@ -189,7 +220,22 @@ impl SerialMgr {
                     log::error!(target: port_name.as_str(), "failed to notify the async task to start, err: {err}");
                 }
                 Ok(())
+            });
+
+            if open_res.is_err() {
+                return open_res;
+            }
+
+            SerialMgr::global().port_profiles.write().or_else(|_| Err(InnerError{
+                code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
+                msg: "error acquire write lock for profile update".to_string(),
+            })).and_then(|mut profiles| {
+                let mut default_profile = OpenedPortProfile::default();
+                default_profile.update_from_port(&mut result);
+                profiles.get_mut(&port_name).unwrap().port_status = PortStatusType::Opened(default_profile);
+                Ok(())
             })
+
     }
 
     pub fn write_dtr(port_name: String, dtr: bool) -> InnerResult<()> {
@@ -340,11 +386,33 @@ impl SerialMgr {
                 }
             };
 
+            if let Ok(mut profiles) = SerialMgr::global().port_profiles.write() {
+                if let Some(mut profile) = profiles.get_mut(&port_name) {
+                    let mut new_profile = OpenedPortProfile::default();
+                    new_profile.update_from_port(&mut port);
+                    profile.port_status = PortStatusType::Opened(new_profile);
+                } else {
+                    error!(target: port_name.as_str(), "error query profiles of port");
+                }
+            } else {
+                error!(target: port_name.as_str(), "error acquire write lock of port_profiles for status update");
+            }
+
             use async_std::channel;
             match write_bytes_rx.try_recv() {
                 Ok(buf) => {
                     let _ = port.write_all(&buf);
                     log::debug!(target: port_name.as_str(), "{} bytes data wrote", buf.len());
+
+                    if let Ok(mut port_profiles) = SerialMgr::global().port_profiles.write() {
+                        if let Some(mut profile) = port_profiles.get_mut(&port_name) {
+                            profile.bytes_write += buf.len() as u128;
+                        } else {
+                            error!(target: port_name.as_str(), "error query port_profiles for byte_write accumulate");
+                        }
+                    } else {
+                        error!(target: port_name.as_str(), "error acquire write lock of port_profiles for byte_write accumulate");
+                    }
 
                     let paylod = serial_events::SerialEventPayload {
                         event: serial_events::SerialEventType::WriteFinished(buf),
@@ -393,6 +461,17 @@ impl SerialMgr {
                     } else {
                         log::warn!(target: port_name.as_str(), "expect {len} bytes from port, but {actual_len} bytes received");
                     }
+
+                    if let Ok(mut port_profiles) = SerialMgr::global().port_profiles.write() {
+                        if let Some(mut profile) = port_profiles.get_mut(&port_name) {
+                            profile.bytes_read += actual_len as u128;
+                        } else {
+                            error!(target: port_name.as_str(), "error query port_profiles for byte_read accumulate");
+                        }
+                    } else {
+                        error!(target: port_name.as_str(), "error acquire write lock of port_profiles for byte_read accumulate");
+                    }
+
                     let _ = app.emit("port_read", serial_events::SerialEventPayload {
                         event: serial_events::SerialEventType::ReadFinished(buf),
                         port_name: port_name.clone(),
