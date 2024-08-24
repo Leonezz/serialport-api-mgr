@@ -37,7 +37,7 @@ const SerialPortMiscIndicators = ({value}: SerialPortMiscIndicatorsProps) => {
         <p className="text-nowrap text-center text-2xl text-neutral-400 font-mono">Port Not Opened</p></div>
     }
     return <div className="w-full pt-2 flex flex-col gap-2">
-        <p className="text-md font-bold align-top align-text-top">Port Status</p>
+        <p className="text-md font-bold align-top">Port Status</p>
         <CarrireDetectIndicator value={!!(value?.Opened.carrire_detect)} />
         <ClearToSendIndicator value={!!(value?.Opened.clear_to_send)} />
         <DataSetReadyIndicator value={!!(value?.Opened.data_set_ready)} />

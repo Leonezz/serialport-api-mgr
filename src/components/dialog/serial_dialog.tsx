@@ -54,6 +54,7 @@ const SerialDialog = () => {
         messages={messages}
         viewMode={viewMode}
         textEncoding={textEncoding}
+        crlf={crlf}
       />
       {/* </ResizablePanel>
       <ResizableHandle withHandle />

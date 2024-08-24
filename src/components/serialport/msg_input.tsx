@@ -5,7 +5,8 @@ import { Buffer } from "buffer";
 import useRequestState from "@/hooks/commands.ts/useRequestState";
 import { useToast } from "../shadcn/use-toast";
 import { chunk } from "es-toolkit";
-import MsgInputToolBar, { MsgInputToolBarProps } from "./msg_input_toolbar";
+import MsgInputToolBar, { CRLFCode, MsgInputToolBarProps } from "./msg_input_toolbar";
+import { useDebounceEffect } from "ahooks";
 
 const verifyHexStr = (str: string) => {
   const bytes = chunk(str.split(""), 2);
@@ -69,15 +70,15 @@ const MessageInput = ({
   const [messageError, setMessageError] = useState<string | undefined>(
     undefined
   );
-  useEffect(() => {
+  useDebounceEffect(() => {
     if (viewMode === "Text") {
       setMessageData(visibleMessage);
     } else {
       setMessageData(visibleMessage.replace(/ /g, "").replace(/0x/g, ""));
     }
-  }, [visibleMessage, viewMode]);
+  }, [visibleMessage, viewMode], {wait: 10});
 
-  useEffect(() => {
+  useDebounceEffect(() => {
     if (viewMode === "Hex" && !verifyHexStr(messageData)) {
       setMessageError("Invalid Hex Data");
     } else if (viewMode === "Bin" && !verifyBinStr(messageData)) {
@@ -85,7 +86,7 @@ const MessageInput = ({
     } else {
       setMessageError(undefined);
     }
-  }, [messageData, viewMode]);
+  }, [messageData, viewMode], {wait: 10});
 
   const encodeMessage = (text: string) => {
     if (viewMode === "Hex") {
@@ -103,7 +104,7 @@ const MessageInput = ({
     action: () =>
       emitToRustBus("write_port", {
         portName: portName,
-        data: encodeMessage(messageData),
+        data: [...encodeMessage(messageData), ...CRLFCode[crlfMode]],
       }),
     onError: (err) =>
       toastError({
@@ -133,7 +134,7 @@ const MessageInput = ({
           input: "resize-none min-h-[40px]",
         }}
       />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <MsgInputToolBar
           portName={portName}
           viewMode={viewMode}
@@ -144,11 +145,12 @@ const MessageInput = ({
           setTextEncoding={setTextEncoding}
         />
         <Button
-          isDisabled={!portOpened || messageError !== undefined}
+          isDisabled={!portOpened || messageError !== undefined || messageData.length === 0}
           isLoading={writingPort}
           size="sm"
           color="primary"
           onClick={writePort}
+          className="h-full"
         >
           Send Message
         </Button>

@@ -101,7 +101,7 @@ const PortConfigGroups = ({
   portDeviceStatus,
 }: PortConfigGroupsProps) => {
   return (
-    <div className="gap-3 pt-2 w-full">
+    <div className=" space-y-2 pt-2 w-full">
       <div className="flex flex-row gap-1">
         <BaudRateInput
           value={serialConfig.baudRate}

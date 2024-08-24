@@ -1,6 +1,11 @@
 import { emitToRustBus } from "@/bridge/call_rust";
 import useRequestState from "@/hooks/commands.ts/useRequestState";
-import { Autocomplete, AutocompleteItem, Checkbox } from "@nextui-org/react";
+import {
+  Autocomplete,
+  AutocompleteItem,
+  Checkbox,
+  CheckboxGroup,
+} from "@nextui-org/react";
 import { useState } from "react";
 import { useToast } from "../shadcn/use-toast";
 import { TextEncodingOptions, TextEncodingType } from "../message/util";
@@ -9,6 +14,18 @@ const ViewModeOptions = ["Text", "Hex", "Bin"] as const;
 export type ViewModeType = (typeof ViewModeOptions)[number];
 const CRLFOptions = ["None", "CR", "LF", "CRLF"] as const;
 export type CRLFOptionsType = (typeof CRLFOptions)[number];
+export const CRLFCode = {
+  CR: [0x0d] as const,
+  LF: [0x0a] as const,
+  CRLF: [0x0d, 0x0a] as const,
+  None: [] as const,
+} as const;
+export const CRLFString = {
+  CR: "\r" as const,
+  LF: "\n" as const,
+  CRLF: "\r\n" as const,
+  None: "" as const,
+};
 
 export type MsgInputToolBarProps = {
   portName: string;
@@ -52,48 +69,25 @@ const MsgInputToolBar = ({
   });
 
   return (
-    <div className="flex flex-row gap-2">
-      <Autocomplete
-        label={<p className="text-xs font-bold font-mono w-max">View Mode</p>}
-        labelPlacement="outside-left"
-        allowsCustomValue={false}
-        defaultSelectedKey={"Text"}
-        onEmptied={() => {
-          setViewMode("Text");
-        }}
-        value={viewMode}
-        onSelectionChange={(key) => {
-          setViewMode(key?.toString() as ViewModeType);
-        }}
-        size="sm"
-        className="w-40 text-xs font-mono"
-        isClearable={false}
-      >
-        {ViewModeOptions.map((option) => (
-          <AutocompleteItem
-            key={option}
-            textValue={option}
-            className="text-xs font-mono"
-          >
-            {option}
-          </AutocompleteItem>
-        ))}
-      </Autocomplete>
-      {viewMode === "Text" ? (
+    <div className="justify-between w-full flex flex-row">
+      <div className="flex flex-row gap-2">
         <Autocomplete
-          label={<p className="text-xs font-bold font-mono w-max">Encoding</p>}
+          label={<p className="text-xs font-bold font-mono w-max">View Mode</p>}
           labelPlacement="outside-left"
-          defaultSelectedKey={textEncoding}
           allowsCustomValue={false}
-          onEmptied={() => setTextEncoding("utf-8")}
-          value={textEncoding}
-          onSelectionChange={(key) =>
-            setTextEncoding((key?.toString() || "utf-8") as TextEncodingType)
-          }
-          className="w-96 text-xs font-mono"
+          defaultSelectedKey={"Text"}
+          onEmptied={() => {
+            setViewMode("Text");
+          }}
+          value={viewMode}
+          onSelectionChange={(key) => {
+            setViewMode(key?.toString() as ViewModeType);
+          }}
+          size="sm"
+          className="w-40 text-xs font-mono"
           isClearable={false}
         >
-          {TextEncodingOptions.map((option) => (
+          {ViewModeOptions.map((option) => (
             <AutocompleteItem
               key={option}
               textValue={option}
@@ -103,54 +97,83 @@ const MsgInputToolBar = ({
             </AutocompleteItem>
           ))}
         </Autocomplete>
-      ) : null}
-      <Autocomplete
-        label={<p className="text-xs font-bold font-mono w-max">CRLF</p>}
-        labelPlacement="outside-left"
-        defaultSelectedKey={"CRLF"}
-        allowsCustomValue={false}
-        onEmptied={() => {
-          setCrlfMode("CRLF");
-        }}
-        value={crlfMode}
-        onSelectionChange={(key) =>
-          setCrlfMode((key?.toString() || "CRLF") as CRLFOptionsType)
-        }
-        className="w-32 text-xs font-mono"
-        isClearable={false}
-      >
-        {CRLFOptions.map((option) => (
-          <AutocompleteItem
-            key={option}
-            textValue={option}
-            className="text-xs font-mono"
+        {viewMode === "Text" ? (
+          <Autocomplete
+            label={
+              <p className="text-xs font-bold font-mono w-max">Encoding</p>
+            }
+            labelPlacement="outside-left"
+            defaultSelectedKey={textEncoding}
+            allowsCustomValue={false}
+            onEmptied={() => setTextEncoding("utf-8")}
+            value={textEncoding}
+            onSelectionChange={(key) =>
+              setTextEncoding((key?.toString() || "utf-8") as TextEncodingType)
+            }
+            className="w-fit text-xs font-mono"
+            isClearable={false}
           >
-            {option}
-          </AutocompleteItem>
-        ))}
-      </Autocomplete>
-      <Checkbox
-        className="text-xs font-mono"
-        size="md"
-        isSelected={dtr}
-        onValueChange={(value) => {
-          setDtr(value);
-          writeDtr();
-        }}
-      >
-        DTR
-      </Checkbox>
-      <Checkbox
-        className="text-xs font-mono"
-        size="md"
-        isSelected={rts}
-        onValueChange={(value) => {
-          setRts(value);
-          writeRts();
-        }}
-      >
-        RTS
-      </Checkbox>
+            {TextEncodingOptions.map((option) => (
+              <AutocompleteItem
+                key={option}
+                textValue={option}
+                className="text-xs font-mono"
+              >
+                {option}
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+        ) : null}
+        <Autocomplete
+          label={<p className="text-xs font-bold font-mono w-max">CRLF</p>}
+          labelPlacement="outside-left"
+          defaultSelectedKey={"CRLF"}
+          allowsCustomValue={false}
+          onEmptied={() => {
+            setCrlfMode("CRLF");
+          }}
+          value={crlfMode}
+          onSelectionChange={(key) =>
+            setCrlfMode((key?.toString() || "CRLF") as CRLFOptionsType)
+          }
+          className="w-32 text-xs font-mono"
+          isClearable={false}
+        >
+          {CRLFOptions.map((option) => (
+            <AutocompleteItem
+              key={option}
+              textValue={option}
+              className="text-xs font-mono"
+            >
+              {option}
+            </AutocompleteItem>
+          ))}
+        </Autocomplete>
+      </div>
+      <div className="flex flex-col">
+        <Checkbox
+          className="text-xs font-mono"
+          size="sm"
+          isSelected={dtr}
+          onValueChange={(value) => {
+            setDtr(value);
+            writeDtr();
+          }}
+        >
+          DTR
+        </Checkbox>
+        <Checkbox
+          className="text-xs font-mono"
+          size="sm"
+          isSelected={rts}
+          onValueChange={(value) => {
+            setRts(value);
+            writeRts();
+          }}
+        >
+          RTS
+        </Checkbox>
+      </div>
     </div>
   );
 };

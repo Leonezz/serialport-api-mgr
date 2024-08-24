@@ -37,7 +37,7 @@ const SerialPortOpener = ({
             <LucideSettings size={40} className="stroke-primary" />
             <div className="flex flex-col">
               <p className="text-lg font-bold text-start">Config Port</p>
-              <Chip className="font-mono text-sm" variant="flat" color={portOpened?"success" : "default"}>{portOpened ? "Opened" : "Closed"}</Chip>
+              <Chip className="font-mono text-sm" size="sm" variant="flat" color={portOpened?"success" : "default"}>{portOpened ? "Opened" : "Closed"}</Chip>
             </div>
           </div>
         }
