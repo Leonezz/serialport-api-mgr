@@ -10,6 +10,7 @@ import {
 import PortConfigGroups from "./port_config_groups";
 import { SerialPortConfig } from "@/types/serialport/serialport_config";
 import usePortStatus from "@/hooks/store/usePortStatus";
+import singleKeySetter from "@/util/util";
 
 const SerialPortOpener = ({
   serialPortConfig,
@@ -60,13 +61,7 @@ const SerialPortOpener = ({
                 if (portOpened) {
                   return;
                 }
-                setSerialPortConfig(
-                  (prev) =>
-                    ({
-                      ...prev,
-                      port_name: portName,
-                    } satisfies SerialPortConfig)
-                );
+                singleKeySetter(setSerialPortConfig, "port_name")(portName);
               }}
               refreshAvaliablePorts={reloadPortList}
               serialPortConfig={serialPortConfig}

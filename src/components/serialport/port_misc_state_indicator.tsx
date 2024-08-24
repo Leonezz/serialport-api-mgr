@@ -45,6 +45,7 @@ const SerialPortTypeCard = ({
     return Title;
   }
   const { UsbPort: usbProps } = type as { UsbPort: USBPortInfo };
+  // TODO: TBD
   return (
     <div>
       {Title}

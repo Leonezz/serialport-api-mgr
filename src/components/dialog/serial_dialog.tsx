@@ -7,14 +7,11 @@ import { ViewModeType } from "@/types/message/view_mode";
 import { CRLFOptionsType } from "@/types/message/crlf";
 import { TextEncodingType } from "@/types/message/encoding";
 import { SerialPortConfig } from "@/types/serialport/serialport_config";
+import { MessageMetaType } from "@/types/message/message_meta";
 
 type SerialPortDialogProps = {
   serial_port: SerialPortConfig;
-  message_meta: {
-    viewMode: ViewModeType;
-    crlf: CRLFOptionsType;
-    textEncoding: TextEncodingType;
-  };
+  message_meta: MessageMetaType;
 };
 const SerialPortDialog = ({
   serial_port,

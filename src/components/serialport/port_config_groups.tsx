@@ -6,8 +6,12 @@ import StopBitsRadio from "./stop_bits_radio";
 import React, { SetStateAction, useState } from "react";
 import { startCase } from "es-toolkit";
 import { Input } from "@nextui-org/react";
-import { OpenedPortStatus, SerialPortStatus } from "@/types/serialport/serialport_status";
+import {
+  OpenedPortStatus,
+  SerialPortStatus,
+} from "@/types/serialport/serialport_status";
 import { SerialPortConfig } from "@/types/serialport/serialport_config";
+import singleKeySetter from "@/util/util";
 
 const TimeUnitsOptions = ["s", "ms", "us", "ns"] as const;
 export type TimeUnits = (typeof TimeUnitsOptions)[number];
@@ -67,11 +71,13 @@ const ReadWriteTimeoutInput = <T1 extends "read_timeout" | "write_timeout">(
               className="outline-none border-0 bg-transparent w-min text-small font-mono"
               defaultValue={timeUnit}
               onChange={(select) => {
-                setTimeUnit(select.target.value as TimeUnits)
+                setTimeUnit(select.target.value as TimeUnits);
               }}
             >
               {TimeUnitsOptions.map((option) => (
-                <option value={option} key={option}>{option}</option>
+                <option value={option} key={option}>
+                  {option}
+                </option>
               ))}
             </select>
           </div>
@@ -106,73 +112,38 @@ const PortConfigGroups = ({
         <BaudRateInput
           value={serialConfig.baud_rate}
           portStatus={portDeviceStatus?.port_status}
-          setValue={(v) =>
-            setSerialConfig((prev) => ({
-              ...prev,
-              baud_rate: v,
-            } satisfies SerialPortConfig))
-          }
+          setValue={singleKeySetter(setSerialConfig, "baud_rate")}
         />
         <ReadTimeoutInput
           value={serialConfig.read_timeout}
           portInfo={portDeviceStatus}
-          setValue={(v) =>
-            setSerialConfig((prev) => ({
-              ...prev,
-              read_timeout: v,
-            } satisfies SerialPortConfig))
-          }
+          setValue={singleKeySetter(setSerialConfig, "read_timeout")}
         />
         <WriteTimeoutInput
           value={serialConfig.write_timeout}
           portInfo={portDeviceStatus}
-          setValue={(v) =>
-            setSerialConfig((prev) => ({
-              ...prev,
-              write_timeout: v,
-            } satisfies SerialPortConfig))
-          }
+          setValue={singleKeySetter(setSerialConfig, "write_timeout")}
         />
       </div>
       <DataBitsRadio
         value={serialConfig.data_bits}
         portStatus={portDeviceStatus?.port_status}
-        setValue={(v) =>
-          setSerialConfig((prev) => ({
-            ...prev,
-            data_bits: v,
-          } satisfies SerialPortConfig))
-        }
+        setValue={singleKeySetter(setSerialConfig, "data_bits")}
       />
       <FlowControlRadio
         value={serialConfig.flow_control}
         portStatus={portDeviceStatus?.port_status}
-        setValue={(v) =>
-          setSerialConfig((prev) => ({
-            ...prev,
-            flow_control: v,
-          } satisfies SerialPortConfig))
-        }
+        setValue={singleKeySetter(setSerialConfig, "flow_control")}
       />
       <ParityRadio
         value={serialConfig.parity}
         portStatus={portDeviceStatus?.port_status}
-        setValue={(v) =>
-          setSerialConfig((prev) => ({
-            ...prev,
-            parity: v,
-          } satisfies SerialPortConfig))
-        }
+        setValue={singleKeySetter(setSerialConfig, "parity")}
       />
       <StopBitsRadio
         value={serialConfig.stop_bits}
         portStatus={portDeviceStatus?.port_status}
-        setValue={(v) =>
-          setSerialConfig((prev) => ({
-            ...prev,
-            stop_bits: v,
-          } satisfies SerialPortConfig))
-        }
+        setValue={singleKeySetter(setSerialConfig, "stop_bits")}
       />
     </div>
   );
