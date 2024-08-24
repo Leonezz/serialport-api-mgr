@@ -71,23 +71,31 @@ const MessageInput = ({
   const [messageError, setMessageError] = useState<string | undefined>(
     undefined
   );
-  useDebounceEffect(() => {
-    if (viewMode === "Text") {
-      setMessageData(visibleMessage);
-    } else {
-      setMessageData(visibleMessage.replace(/ /g, "").replace(/0x/g, ""));
-    }
-  }, [visibleMessage, viewMode], {wait: 10});
+  useDebounceEffect(
+    () => {
+      if (viewMode === "Text") {
+        setMessageData(visibleMessage);
+      } else {
+        setMessageData(visibleMessage.replace(/ /g, "").replace(/0x/g, ""));
+      }
+    },
+    [visibleMessage, viewMode],
+    { wait: 10 }
+  );
 
-  useDebounceEffect(() => {
-    if (viewMode === "Hex" && !verifyHexStr(messageData)) {
-      setMessageError("Invalid Hex Data");
-    } else if (viewMode === "Bin" && !verifyBinStr(messageData)) {
-      setMessageError("Invalid Binary Data");
-    } else {
-      setMessageError(undefined);
-    }
-  }, [messageData, viewMode], {wait: 10});
+  useDebounceEffect(
+    () => {
+      if (viewMode === "Hex" && !verifyHexStr(messageData)) {
+        setMessageError("Invalid Hex Data");
+      } else if (viewMode === "Bin" && !verifyBinStr(messageData)) {
+        setMessageError("Invalid Binary Data");
+      } else {
+        setMessageError(undefined);
+      }
+    },
+    [messageData, viewMode],
+    { wait: 10 }
+  );
 
   const encodeMessage = (text: string) => {
     if (viewMode === "Hex") {
@@ -144,9 +152,14 @@ const MessageInput = ({
           setCrlfMode={setCrlfMode}
           textEncoding={textEncoding}
           setTextEncoding={setTextEncoding}
+          portOpened={portOpened}
         />
         <Button
-          isDisabled={!portOpened || messageError !== undefined || messageData.length === 0}
+          isDisabled={
+            !portOpened ||
+            messageError !== undefined ||
+            messageData.length === 0
+          }
           isLoading={writingPort}
           size="sm"
           color="primary"

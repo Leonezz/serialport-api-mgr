@@ -3,13 +3,18 @@ import useRequestState from "@/hooks/commands.ts/useRequestState";
 import {
   Autocomplete,
   AutocompleteItem,
+  Button,
+  ButtonGroup,
   Checkbox,
 } from "@nextui-org/react";
 import { useState } from "react";
 import { useToast } from "../shadcn/use-toast";
 import { ViewModeOptions, ViewModeType } from "@/types/message/view_mode";
 import { CRLFOptions, CRLFOptionsType } from "@/types/message/crlf";
-import { TextEncodingOptions, TextEncodingType } from "@/types/message/encoding";
+import {
+  TextEncodingOptions,
+  TextEncodingType,
+} from "@/types/message/encoding";
 
 export type MsgInputToolBarProps = {
   portName: string;
@@ -19,6 +24,7 @@ export type MsgInputToolBarProps = {
   setCrlfMode: (mode: CRLFOptionsType) => void;
   textEncoding: TextEncodingType;
   setTextEncoding: (mode: TextEncodingType) => void;
+  portOpened: boolean
 };
 
 const MsgInputToolBar = ({
@@ -29,25 +35,25 @@ const MsgInputToolBar = ({
   setCrlfMode,
   textEncoding,
   setTextEncoding,
+  portOpened
 }: MsgInputToolBarProps) => {
-  const [dtr, setDtr] = useState(false);
-  const [rts, setRts] = useState(false);
   const { toastError } = useToast();
   const { runRequest: writeDtr } = useRequestState({
-    action: () => emitToRustBus("write_dtr", { port_name: portName, dtr: dtr }),
+    action: (dtr: boolean) =>
+      emitToRustBus("write_dtr", { port_name: portName, dtr: dtr }),
     onError: (err) => {
-      setDtr(!dtr);
       toastError({
-        description: `write dtr to ${portName} failed: ${err}`,
+        description: `write dtr to ${portName} failed: ${err?.msg}`,
       });
     },
   });
   const { runRequest: writeRts } = useRequestState({
-    action: () => emitToRustBus("write_rts", { port_name: portName, rts: rts }),
+    action: (rts: boolean) =>
+      emitToRustBus("write_rts", { port_name: portName, rts: rts }),
     onError: (err) => {
-      setRts(!rts);
+      console.log(err)
       toastError({
-        description: `write rts to ${portName} failed: ${err}`,
+        description: `write rts to ${portName} failed: ${err?.msg}`,
       });
     },
   });
@@ -134,29 +140,53 @@ const MsgInputToolBar = ({
           ))}
         </Autocomplete>
       </div>
-      <div className="flex flex-col">
-        <Checkbox
-          className="text-xs font-mono"
-          size="sm"
-          isSelected={dtr}
-          onValueChange={(value) => {
-            setDtr(value);
-            writeDtr();
-          }}
-        >
-          DTR
-        </Checkbox>
-        <Checkbox
-          className="text-xs font-mono"
-          size="sm"
-          isSelected={rts}
-          onValueChange={(value) => {
-            setRts(value);
-            writeRts();
-          }}
-        >
-          RTS
-        </Checkbox>
+      <div className="flex flex-col gap-0">
+        <div className="flex flex-row items-center gap-2">
+          <label htmlFor="dtr" className="text-sm font-mono">
+            DTR
+          </label>
+          <ButtonGroup size="sm" id="dtr" isDisabled={!portOpened}>
+            <Button
+              variant="solid"
+              color="success"
+              className="h-fit w-fit rounded-none"
+              onClick={() => writeDtr(true)}
+            >
+              HIGH
+            </Button>
+            <Button
+              variant="flat"
+              color="danger"
+              className="h-fit w-fit rounded-none"
+              onClick={() => writeDtr(false)}
+            >
+              LOW
+            </Button>
+          </ButtonGroup>
+        </div>
+        <div className="flex flex-row items-center gap-2">
+          <label htmlFor="rts" className="text-sm font-mono">
+            RTS
+          </label>
+          <ButtonGroup size="sm" id="rts" isDisabled={!portOpened}>
+            <Button
+              variant="solid"
+              color="success"
+              className="h-fit w-fit rounded-none"
+              onClick={() => writeRts(true)}
+            >
+              HIGH
+            </Button>
+            <Button
+              variant="flat"
+              color="danger"
+              className="h-fit w-fit rounded-none"
+              onClick={() => writeRts(false)}
+            >
+              LOW
+            </Button>
+          </ButtonGroup>
+        </div>
       </div>
     </div>
   );
