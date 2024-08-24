@@ -1,5 +1,9 @@
-import { SerialPortStatus } from "@/types/serialport/serialport_status";
-import { Checkbox } from "@nextui-org/react";
+import {
+  convertPortTypeToString,
+  SerialPortStatus,
+  USBPortInfo,
+} from "@/types/serialport/serialport_status";
+import { Checkbox, Snippet } from "@nextui-org/react";
 import { startCase } from "es-toolkit";
 type OnOffIndicatorProps = {
   value: boolean;
@@ -16,7 +20,7 @@ const OnOffIndicatorBuilder = <
   const name = startCase(indicatorFor);
   return ({ value }: OnOffIndicatorProps) => {
     return (
-      <Checkbox checked={value} isReadOnly>
+      <Checkbox checked={value} isReadOnly className="w-max">
         {name}
       </Checkbox>
     );
@@ -28,20 +32,67 @@ const ClearToSendIndicator = OnOffIndicatorBuilder("clear_to_send");
 const DataSetReadyIndicator = OnOffIndicatorBuilder("data_set_ready");
 const RingIndicator = OnOffIndicatorBuilder("ring_indicator");
 
-type SerialPortMiscIndicatorsProps = {
-    value?: SerialPortStatus["port_status"]
-}
-const SerialPortMiscIndicators = ({value}: SerialPortMiscIndicatorsProps) => {
-    if (value === undefined || value === "Closed") {
-        return <div className="w-full items-center justify-center flex">
-        <p className="text-nowrap text-center text-2xl text-neutral-400 font-mono">Port Not Opened</p></div>
-    }
-    return <div className="w-full pt-2 flex flex-col gap-2">
-        <p className="text-md font-bold align-top">Port Status</p>
-        <CarrireDetectIndicator value={!!(value?.Opened.carrire_detect)} />
-        <ClearToSendIndicator value={!!(value?.Opened.clear_to_send)} />
-        <DataSetReadyIndicator value={!!(value?.Opened.data_set_ready)} />
-        <RingIndicator value={!!(value?.Opened.ring_indicator)} />
+const SerialPortTypeCard = ({
+  type,
+}: {
+  type: SerialPortStatus["port_type"];
+}) => {
+  const portType = convertPortTypeToString(type);
+  const Title = <p className="w-max text-md font-bold align-top">Port Type: {portType}</p>;
+  if (portType !== "USB") {
+    return Title;
+  }
+  const { UsbPort: usbProps } = type as { UsbPort: USBPortInfo };
+  return (
+    <div>
+      {Title}
+      <Snippet>
+        <code>{usbProps.product}</code>
+      </Snippet>
+      <Snippet>
+        <code>{usbProps.manufacturer}</code>
+      </Snippet>
+      <Snippet>
+        <code>{usbProps.serial_number}</code>
+      </Snippet>
+      <Snippet>
+        <code>{usbProps.vid.toString(16)}</code>
+      </Snippet>
+      <Snippet>
+        <code>{usbProps.pid.toString(16)}</code>
+      </Snippet>
     </div>
-}
+  );
+};
+
+type SerialPortMiscIndicatorsProps = {
+  status?: SerialPortStatus["port_status"];
+  type: SerialPortStatus["port_type"];
+};
+const SerialPortMiscIndicators = ({
+  status,
+  type,
+}: SerialPortMiscIndicatorsProps) => {
+  if (status === undefined || status === "Closed") {
+    return (
+      <div className="items-center justify-center flex">
+        <p className="w-max text-nowrap text-center text-2xl text-neutral-400 font-mono">
+          Port Not Opened
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-row justify-evenly gap-5">
+      <div className="flex flex-col gap-2">
+        <p className="w-max text-md font-bold align-top">Port Status</p>
+        <CarrireDetectIndicator value={!!status?.Opened.carrire_detect} />
+        <ClearToSendIndicator value={!!status?.Opened.clear_to_send} />
+        <DataSetReadyIndicator value={!!status?.Opened.data_set_ready} />
+        <RingIndicator value={!!status?.Opened.ring_indicator} />
+      </div>
+      <SerialPortTypeCard type={type} />
+    </div>
+  );
+};
 export default SerialPortMiscIndicators;

@@ -31,11 +31,11 @@ export type SerialPortStatus = {
   bytes_write: number;
 };
 
-export const isUsbPort = (info: SerialPortStatus): boolean => {
+export const isUsbPort = (info: SerialPortStatus["port_type"]): boolean => {
   return !(
-    info.port_type === "Unknown" ||
-    info.port_type === "BluetoothPort" ||
-    info.port_type === "PciPort"
+    info === "Unknown" ||
+    info === "BluetoothPort" ||
+    info === "PciPort"
   );
 };
 
