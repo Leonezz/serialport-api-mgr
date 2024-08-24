@@ -166,7 +166,9 @@ impl SerialMgr {
         data_bits: DataBits,
         flow_control: FlowControl,
         parity: Parity,
-        stop_bits: StopBits
+        stop_bits: StopBits,
+        read_timeout: u32,
+        write_timeout: u32
     ) -> InnerResult<()> {
         let mut result = serialport5::SerialPortBuilder
             ::new()
@@ -175,6 +177,8 @@ impl SerialMgr {
             .flow_control(flow_control)
             .parity(parity)
             .stop_bits(stop_bits)
+            .read_timeout(read_timeout)
+            .write_timeout(write_timeout)
             .open(&port_name)?;
         log::info!(target: port_name.as_str(), "serial port {result:?} opened");
 

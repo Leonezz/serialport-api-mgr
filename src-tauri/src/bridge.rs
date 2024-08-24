@@ -39,7 +39,9 @@ pub async fn open_port(
     data_bits: String,
     flow_control: String,
     parity: String,
-    stop_bits: String
+    stop_bits: String,
+    read_timeout: u32,
+    write_timeout: u32
 ) -> CmdResult<()> {
     let data_bits = parse_data_bits(&data_bits)?;
     let flow_control = parse_flow_control(&flow_control)?;
@@ -55,7 +57,9 @@ pub async fn open_port(
                 data_bits,
                 flow_control,
                 parity,
-                stop_bits
+                stop_bits,
+                read_timeout,
+                write_timeout
             )
         }).await
         .or_else(|_| {
