@@ -1,15 +1,9 @@
 import { Accordion, AccordionItem, Chip, Divider } from "@nextui-org/react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import useAvaliablePorts from "@/hooks/use_avaliable_ports";
 import PortSelector from "./port_selector";
-import BaudRateInput from "./baud_rate_input";
-import FlowControlRadio from "./flow_control_radio";
-import DataBitsRadio from "./data_bits_radio";
-import ParityRadio from "./parity_radio";
-import StopBitsRadio from "./stop_bits_radio";
 import { LucideSettings } from "lucide-react";
 import usePortStatus from "@/hooks/store/usePortStatus";
-import { useDebounceEffect } from "ahooks";
 import { OpenSerialPortReq } from "@/bridge/call_rust";
 import SerialPortMiscIndicators from "./port_misc_state_indicator";
 import PortConfigGroups from "./port_config_groups";

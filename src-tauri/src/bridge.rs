@@ -40,8 +40,8 @@ pub async fn open_port(
     flow_control: String,
     parity: String,
     stop_bits: String,
-    read_timeout: u32,
-    write_timeout: u32
+    read_timeout: u64,
+    write_timeout: u64
 ) -> CmdResult<()> {
     let data_bits = parse_data_bits(&data_bits)?;
     let flow_control = parse_flow_control(&flow_control)?;

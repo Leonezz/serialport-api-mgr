@@ -4,10 +4,26 @@ import DataBitsRadio from "./data_bits_radio";
 import FlowControlRadio from "./flow_control_radio";
 import ParityRadio from "./parity_radio";
 import StopBitsRadio from "./stop_bits_radio";
-import React, { SetStateAction } from "react";
+import React, { SetStateAction, useState } from "react";
 import { OpenedPortStatus, SerialPortInfo } from "@/bridge/types";
 import { startCase } from "es-toolkit";
-import { Input } from "@nextui-org/react";
+import { Input, TimeInputProps } from "@nextui-org/react";
+
+const TimeUnitsOptions = ["s", "ms", "us", "ns"] as const;
+export type TimeUnits = (typeof TimeUnitsOptions)[number];
+
+const convertTimeUnit = (value: number, from: TimeUnits, to: TimeUnits) => {
+  const fromIdx = TimeUnitsOptions.indexOf(from);
+  const toIdx = TimeUnitsOptions.indexOf(to);
+  const diff = toIdx - fromIdx;
+  if (diff > 0) {
+    return value * Math.pow(1000, diff);
+  }
+  if (diff < 0) {
+    return value / Math.pow(1000, -diff);
+  }
+  return value;
+};
 
 type ReadWriteTimeoutInputProps = {
   value: number;
@@ -22,10 +38,14 @@ const ReadWriteTimeoutInput = <T1 extends "read_timeout" | "write_timeout">(
     const portOpened = !!(
       portInfo?.port_status && portInfo.port_status !== "Closed"
     );
-    const defaultValue = (
+    const [timeUnit, setTimeUnit] = useState<TimeUnits>("ms");
+
+    const defaultValue = convertTimeUnit(
       portOpened
         ? (portInfo.port_status as OpenedPortStatus).Opened[inputFor]
-        : value
+        : value,
+      "ns",
+      timeUnit
     ).toString();
     return (
       <Input
@@ -36,12 +56,33 @@ const ReadWriteTimeoutInput = <T1 extends "read_timeout" | "write_timeout">(
         }
         labelPlacement="outside"
         size="sm"
-        endContent={"ms"}
+        endContent={
+          <div className="flex items-center">
+            <label className="sr-only" htmlFor="timeunit">
+              Time Unit
+            </label>
+            <select
+              id="timeunit"
+              name="timeunit"
+              className="outline-none border-0 bg-transparent w-min text-small font-mono"
+              defaultValue={timeUnit}
+              onChange={(select) => {
+                setTimeUnit(select.target.value as TimeUnits)
+              }}
+            >
+              {TimeUnitsOptions.map((option) => (
+                <option value={option} key={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+        }
         type="number"
         isReadOnly={portOpened}
         defaultValue={defaultValue}
         value={defaultValue}
-        onValueChange={(v) => setValue(Number(v))}
+        onValueChange={(v) => {
+          setValue(convertTimeUnit(Number(v), timeUnit, "ns"));
+        }}
       />
     );
   };

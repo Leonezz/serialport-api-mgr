@@ -1,28 +1,21 @@
-pub mod types;
 mod serial_events;
-use std::io::{ Read, Write };
+pub mod types;
+use std::io::{Read, Write};
 use std::ops::AddAssign;
-use std::thread::sleep;
 use std::sync::OnceLock;
-use std::thread::{ self, sleep_ms };
+use std::thread::sleep;
+use std::thread::{self, sleep_ms};
 use std::time::Duration;
-use std::{ collections::hash_map::HashMap, sync::RwLock };
+use std::{collections::hash_map::HashMap, sync::RwLock};
 
+use crate::error::{ErrorType, InnerError, InnerResult, RustErrorType};
 use log::{error, trace};
 use serialport5::{
-    self,
-    DataBits,
-    ErrorKind,
-    FlowControl,
-    Parity,
-    SerialPort,
-    SerialPortInfo,
-    StopBits,
+    self, DataBits, ErrorKind, FlowControl, Parity, SerialPort, SerialPortInfo, StopBits,
 };
 use tauri::async_runtime::block_on;
-use tauri::{ AppHandle, Emitter };
+use tauri::{AppHandle, Emitter};
 use types::{OpenedPortProfile, PortInfo, PortStatusType};
-use crate::error::{ InnerError, InnerResult, ErrorType, RustErrorType };
 
 enum InterThreadSignals {
     Term,
@@ -65,7 +58,9 @@ impl Drop for SerialMgr {
         keys.iter().for_each(|key| {
             let port_handles = handles.remove(key);
             if let Some(port_handles) = port_handles {
-                let _ = port_handles.terminate_sender.send_blocking(InterThreadSignals::Term);
+                let _ = port_handles
+                    .terminate_sender
+                    .send_blocking(InterThreadSignals::Term);
                 block_on(async {
                     let _ = port_handles.thread_handle.cancel().await.unwrap();
                 });
@@ -88,25 +83,36 @@ impl SerialMgr {
 
         match system_ports_res {
             Ok(ports) => {
-                trace!("get all avaliable ports from system success, cnt: {}", ports.len());
-                let mut current_ports = SerialMgr::global().port_profiles.write().or_else(|_| Err(InnerError{
-                    code: ErrorType::Rust(RustErrorType::HashMapError),
-                    msg: "error acquire write lock for new ports checking and appending".to_string()
-                }))?;
-                let current_port_names: Vec<String> = current_ports.keys().map(|k| k.clone()).collect();
+                trace!(
+                    "get all avaliable ports from system success, cnt: {}",
+                    ports.len()
+                );
+                let mut current_ports =
+                    SerialMgr::global().port_profiles.write().or_else(|_| {
+                        Err(InnerError {
+                            code: ErrorType::Rust(RustErrorType::HashMapError),
+                            msg: "error acquire write lock for new ports checking and appending"
+                                .to_string(),
+                        })
+                    })?;
+                let current_port_names: Vec<String> =
+                    current_ports.keys().map(|k| k.clone()).collect();
                 for port in ports.iter() {
                     if current_port_names.contains(&port.port_name) {
                         continue;
                     }
 
                     trace!("found new port: {}", port.port_name);
-                    current_ports.insert(port.port_name.clone(), PortInfo {
-                        port_name: port.port_name.clone(),
-                        port_type: port.port_type.clone().into(),
-                        port_status: PortStatusType::Closed,
-                        bytes_read: 0,
-                        bytes_write: 0,
-                    });
+                    current_ports.insert(
+                        port.port_name.clone(),
+                        PortInfo {
+                            port_name: port.port_name.clone(),
+                            port_type: port.port_type.clone().into(),
+                            port_status: PortStatusType::Closed,
+                            bytes_read: 0,
+                            bytes_write: 0,
+                        },
+                    );
                 }
                 Ok(current_ports.values().map(|v| v.clone()).collect())
             }
@@ -116,13 +122,14 @@ impl SerialMgr {
     pub fn close_port(app: AppHandle, port_name: String) -> InnerResult<()> {
         log::info!(target: port_name.as_str(), "closing port");
         let port_handle = SerialMgr::global()
-            .open_ports.write()
-            .or_else(|_|
+            .open_ports
+            .write()
+            .or_else(|_| {
                 Err(InnerError {
                     code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
                     msg: "error acquire write lock for openports".to_string(),
                 })
-            )?
+            })?
             .remove(&port_name);
         log::debug!(target: port_name.as_str(), "got SerialMgr write lock");
         if port_handle.is_none() {
@@ -141,21 +148,28 @@ impl SerialMgr {
             log::error!(target: port_name.as_str(), "send term signal to async task failed: {err:?}");
         }
 
-        SerialMgr::global().port_profiles.write().and_then(|mut port_profiles| {
-            port_profiles.get_mut(&port_name).unwrap().port_status = PortStatusType::Closed;
-            Ok(())
-        }).or_else(|_| {
-            let err = InnerError {
-                code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
-                msg: "error acquire write lock of port_profiles for status update".to_string()
-            };
-            error!(target: port_name.as_str(), "{}", err.msg);
-            Err(err)
-        })?;
-        let _ = app.emit("port_closed", serial_events::SerialEventPayload {
-            event: serial_events::SerialEventType::PortCloseSuccess,
-            port_name: port_name,
-        });
+        SerialMgr::global()
+            .port_profiles
+            .write()
+            .and_then(|mut port_profiles| {
+                port_profiles.get_mut(&port_name).unwrap().port_status = PortStatusType::Closed;
+                Ok(())
+            })
+            .or_else(|_| {
+                let err = InnerError {
+                    code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
+                    msg: "error acquire write lock of port_profiles for status update".to_string(),
+                };
+                error!(target: port_name.as_str(), "{}", err.msg);
+                Err(err)
+            })?;
+        let _ = app.emit(
+            "port_closed",
+            serial_events::SerialEventPayload {
+                event: serial_events::SerialEventType::PortCloseSuccess,
+                port_name: port_name,
+            },
+        );
         Ok(())
     }
 
@@ -167,18 +181,23 @@ impl SerialMgr {
         flow_control: FlowControl,
         parity: Parity,
         stop_bits: StopBits,
-        read_timeout: u32,
-        write_timeout: u32
+        read_timeout: u64,
+        write_timeout: u64,
     ) -> InnerResult<()> {
-        let mut result = serialport5::SerialPortBuilder
-            ::new()
+        let mut result = serialport5::SerialPortBuilder::new()
             .baud_rate(baud_rate)
             .data_bits(data_bits)
             .flow_control(flow_control)
             .parity(parity)
             .stop_bits(stop_bits)
-            .read_timeout(read_timeout)
-            .write_timeout(write_timeout)
+            .read_timeout(match read_timeout {
+                0 => None,
+                _ => Some(Duration::from_nanos(read_timeout)),
+            })
+            .write_timeout(match write_timeout {
+                0 => None,
+                _ => Some(Duration::from_nanos(write_timeout)),
+            })
             .open(&port_name)?;
         log::info!(target: port_name.as_str(), "serial port {result:?} opened");
 
@@ -188,12 +207,8 @@ impl SerialMgr {
         let port_name_clone = port_name.clone();
         let app_clone = app.clone();
         let handle = async_std::task::spawn(async {
-            SerialMgr::serial_rw_thread(
-                app_clone,
-                port_name_clone,
-                terminate_rx,
-                write_bytes_rx
-            ).await
+            SerialMgr::serial_rw_thread(app_clone, port_name_clone, terminate_rx, write_bytes_rx)
+                .await
         });
         log::info!(target: port_name.as_str(), "async task for port created");
 
@@ -226,37 +241,40 @@ impl SerialMgr {
                 Ok(())
             });
 
-            if open_res.is_err() {
-                return open_res;
-            }
+        if open_res.is_err() {
+            return open_res;
+        }
 
-            SerialMgr::global().port_profiles.write().or_else(|_| Err(InnerError{
-                code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
-                msg: "error acquire write lock for profile update".to_string(),
-            })).and_then(|mut profiles| {
+        SerialMgr::global()
+            .port_profiles
+            .write()
+            .or_else(|_| {
+                Err(InnerError {
+                    code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
+                    msg: "error acquire write lock for profile update".to_string(),
+                })
+            })
+            .and_then(|mut profiles| {
                 let mut default_profile = OpenedPortProfile::default();
                 default_profile.update_from_port(&mut result);
-                profiles.get_mut(&port_name).unwrap().port_status = PortStatusType::Opened(default_profile);
+                profiles.get_mut(&port_name).unwrap().port_status =
+                    PortStatusType::Opened(default_profile);
                 Ok(())
             })
-
     }
 
     pub fn write_dtr(port_name: String, dtr: bool) -> InnerResult<()> {
-        let mut mgr = SerialMgr::global()
-            .open_ports.write()
-            .or_else(|_|
-                Err(InnerError {
-                    code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
-                    msg: "error acquire read lock for open ports".to_string(),
-                })
-            )?;
+        let mut mgr = SerialMgr::global().open_ports.write().or_else(|_| {
+            Err(InnerError {
+                code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
+                msg: "error acquire read lock for open ports".to_string(),
+            })
+        })?;
         match mgr.get_mut(&port_name) {
-            None =>
-                Err(InnerError {
-                    code: ErrorType::Rust(RustErrorType::HashMapError),
-                    msg: "no such port opened".to_string(),
-                }),
+            None => Err(InnerError {
+                code: ErrorType::Rust(RustErrorType::HashMapError),
+                msg: "no such port opened".to_string(),
+            }),
             Some(port_handles) => {
                 if let Err(err) = port_handles.port.write_data_terminal_ready(dtr) {
                     return Err(InnerError {
@@ -270,20 +288,17 @@ impl SerialMgr {
     }
 
     pub fn write_rts(port_name: String, rts: bool) -> InnerResult<()> {
-        let mut mgr = SerialMgr::global()
-            .open_ports.write()
-            .or_else(|_|
-                Err(InnerError {
-                    code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
-                    msg: "error acquire read lock for open ports".to_string(),
-                })
-            )?;
+        let mut mgr = SerialMgr::global().open_ports.write().or_else(|_| {
+            Err(InnerError {
+                code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
+                msg: "error acquire read lock for open ports".to_string(),
+            })
+        })?;
         match mgr.get_mut(&port_name) {
-            None =>
-                Err(InnerError {
-                    code: ErrorType::Rust(RustErrorType::HashMapError),
-                    msg: "no such port opened".to_string(),
-                }),
+            None => Err(InnerError {
+                code: ErrorType::Rust(RustErrorType::HashMapError),
+                msg: "no such port opened".to_string(),
+            }),
             Some(port_handles) => {
                 if let Err(err) = port_handles.port.write_request_to_send(rts) {
                     return Err(InnerError {
@@ -297,31 +312,28 @@ impl SerialMgr {
     }
 
     pub fn write_port(port_name: String, data: Vec<u8>) -> InnerResult<()> {
-        let mgr = SerialMgr::global()
-            .open_ports.read()
-            .or_else(|_| {
-                Err(InnerError {
-                    code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
-                    msg: "error acquire read lock for open ports".to_string(),
-                })
-            })?;
+        let mgr = SerialMgr::global().open_ports.read().or_else(|_| {
+            Err(InnerError {
+                code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
+                msg: "error acquire read lock for open ports".to_string(),
+            })
+        })?;
 
         match mgr.get(&port_name) {
-            None =>
-                Err(InnerError {
-                    code: ErrorType::Rust(RustErrorType::HashMapError),
-                    msg: "no such port opened".to_string(),
+            None => Err(InnerError {
+                code: ErrorType::Rust(RustErrorType::HashMapError),
+                msg: "no such port opened".to_string(),
+            }),
+            Some(port_handles) => port_handles
+                .write_bytes_sender
+                .send_blocking(data)
+                .and_then(|_| Ok(()))
+                .or_else(|_| {
+                    Err(InnerError {
+                        code: ErrorType::Rust(RustErrorType::ChannelDisconnected),
+                        msg: "send to serialport thread failed, channel closed".to_string(),
+                    })
                 }),
-            Some(port_handles) =>
-                port_handles.write_bytes_sender
-                    .send_blocking(data)
-                    .and_then(|_| Ok(()))
-                    .or_else(|_|
-                        Err(InnerError {
-                            code: ErrorType::Rust(RustErrorType::ChannelDisconnected),
-                            msg: "send to serialport thread failed, channel closed".to_string(),
-                        })
-                    ),
         }
     }
 
@@ -329,7 +341,7 @@ impl SerialMgr {
         app: AppHandle,
         port_name: String,
         terminate_rx: async_std::channel::Receiver<InterThreadSignals>,
-        write_bytes_rx: async_std::channel::Receiver<Vec<u8>>
+        write_bytes_rx: async_std::channel::Receiver<Vec<u8>>,
     ) -> InnerResult<()> {
         log::info!(target: port_name.as_str(), "port async task running, waiting to start");
         match terminate_rx.recv_blocking() {
@@ -352,20 +364,16 @@ impl SerialMgr {
                 Err(_) => {}
             }
 
-            let mut port = match
-                SerialMgr::global()
-                    .open_ports.read()
-                    .or_else(|err| {
-                        let err = InnerError {
-                            code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
-                            msg: format!(
-                                "error acquire read lock for serial {port_name} rw thread: err: {err:?}"
-                            ),
-                        };
-                        log::error!(target: port_name.as_str(), "{}", err.msg);
-                        Err(err)
-                    })?
-            {
+            let mut port = match SerialMgr::global().open_ports.read().or_else(|err| {
+                let err = InnerError {
+                    code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
+                    msg: format!(
+                        "error acquire read lock for serial {port_name} rw thread: err: {err:?}"
+                    ),
+                };
+                log::error!(target: port_name.as_str(), "{}", err.msg);
+                Err(err)
+            })? {
                 handles => {
                     if let Some(port_handles) = handles.get(&port_name) {
                         port_handles.port.try_clone().or_else(|err| {
@@ -382,7 +390,10 @@ impl SerialMgr {
                     } else {
                         let err = InnerError {
                             code: ErrorType::Rust(RustErrorType::HashMapError),
-                            msg: format!("no such port found: {}, maybe it got unpluged", port_name),
+                            msg: format!(
+                                "no such port found: {}, maybe it got unpluged",
+                                port_name
+                            ),
                         };
                         log::error!(target: port_name.as_str(), "{}", err.msg);
                         return Err(err);
@@ -428,7 +439,9 @@ impl SerialMgr {
                 Err(channel::TryRecvError::Closed) => {
                     let err = InnerError {
                         code: ErrorType::Rust(RustErrorType::ChannelDisconnected),
-                        msg: "the channel rx of which the writing thread is waiting on disconnected".to_string(),
+                        msg:
+                            "the channel rx of which the writing thread is waiting on disconnected"
+                                .to_string(),
                     };
                     log::error!(target: port_name.as_str(), "{}", err.msg);
                     return Err(err);
@@ -436,12 +449,12 @@ impl SerialMgr {
                 Err(_) => {}
             }
 
-            let len = port.bytes_to_read().or_else(|err|
+            let len = port.bytes_to_read().or_else(|err| {
                 Err(InnerError {
                     code: ErrorType::Serial(err.kind),
                     msg: err.description,
                 })
-            )?;
+            })?;
             match len {
                 len if len > 0 => {
                     let mut buf: Vec<u8> = Vec::new();
@@ -450,14 +463,17 @@ impl SerialMgr {
                     let actual_len = read_res.or_else(|_| {
                         let err = InnerError {
                             code: ErrorType::Serial(ErrorKind::Unknown),
-                            msg: format!("unknown error when reading data from port: {}", port_name),
+                            msg: format!(
+                                "unknown error when reading data from port: {}",
+                                port_name
+                            ),
                         };
                         log::error!(target: port_name.as_str(), "{}", err.msg);
                         Err(err)
                     })?;
                     if actual_len == (len as usize) {
                         log::trace!(
-                            target: port_name.as_str(), 
+                            target: port_name.as_str(),
                             "successfully read {} bytes of data from port: {}",
                             actual_len,
                             port_name
@@ -476,10 +492,13 @@ impl SerialMgr {
                         error!(target: port_name.as_str(), "error acquire write lock of port_profiles for byte_read accumulate");
                     }
 
-                    let _ = app.emit("port_read", serial_events::SerialEventPayload {
-                        event: serial_events::SerialEventType::ReadFinished(buf),
-                        port_name: port_name.clone(),
-                    });
+                    let _ = app.emit(
+                        "port_read",
+                        serial_events::SerialEventPayload {
+                            event: serial_events::SerialEventType::ReadFinished(buf),
+                            port_name: port_name.clone(),
+                        },
+                    );
                     log::trace!(target: port_name.as_str(), "serial read finished signal emitted to web");
                 }
                 _ => {}
