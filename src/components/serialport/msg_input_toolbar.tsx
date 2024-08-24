@@ -4,28 +4,12 @@ import {
   Autocomplete,
   AutocompleteItem,
   Checkbox,
-  CheckboxGroup,
 } from "@nextui-org/react";
 import { useState } from "react";
 import { useToast } from "../shadcn/use-toast";
-import { TextEncodingOptions, TextEncodingType } from "../message/util";
-
-const ViewModeOptions = ["Text", "Hex", "Bin"] as const;
-export type ViewModeType = (typeof ViewModeOptions)[number];
-const CRLFOptions = ["None", "CR", "LF", "CRLF"] as const;
-export type CRLFOptionsType = (typeof CRLFOptions)[number];
-export const CRLFCode = {
-  CR: [0x0d] as const,
-  LF: [0x0a] as const,
-  CRLF: [0x0d, 0x0a] as const,
-  None: [] as const,
-} as const;
-export const CRLFString = {
-  CR: "\r" as const,
-  LF: "\n" as const,
-  CRLF: "\r\n" as const,
-  None: "" as const,
-};
+import { ViewModeOptions, ViewModeType } from "@/types/message/view_mode";
+import { CRLFOptions, CRLFOptionsType } from "@/types/message/crlf";
+import { TextEncodingOptions, TextEncodingType } from "@/types/message/encoding";
 
 export type MsgInputToolBarProps = {
   portName: string;
@@ -50,7 +34,7 @@ const MsgInputToolBar = ({
   const [rts, setRts] = useState(false);
   const { toastError } = useToast();
   const { runRequest: writeDtr } = useRequestState({
-    action: () => emitToRustBus("write_dtr", { portName: portName, dtr: dtr }),
+    action: () => emitToRustBus("write_dtr", { port_name: portName, dtr: dtr }),
     onError: (err) => {
       setDtr(!dtr);
       toastError({
@@ -59,7 +43,7 @@ const MsgInputToolBar = ({
     },
   });
   const { runRequest: writeRts } = useRequestState({
-    action: () => emitToRustBus("write_rts", { portName: portName, rts: rts }),
+    action: () => emitToRustBus("write_rts", { port_name: portName, rts: rts }),
     onError: (err) => {
       setRts(!rts);
       toastError({

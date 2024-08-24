@@ -1,9 +1,10 @@
-import { OpenedPortStatus, SERIALPORT, SerialPortInfo } from "@/bridge/types";
+import { SERIALPORT } from "@/types/serialport/base";
+import { OpenedPortStatus, SerialPortStatus } from "@/types/serialport/serialport_status";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
 
 type BaudRateInputProps = {
   value: number;
-  portStatus?: SerialPortInfo["port_status"],
+  portStatus?: SerialPortStatus["port_status"],
   setValue: (value: number) => void;
 };
 const BaudRateInput = ({ value, setValue, portStatus }: BaudRateInputProps) => {

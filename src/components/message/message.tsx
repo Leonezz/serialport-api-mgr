@@ -1,12 +1,10 @@
 import { MessageType } from "@/hooks/store/usePortStatus";
 import { Chip, ChipProps, Snippet } from "@nextui-org/react";
-import {
-  CRLFOptionsType,
-  CRLFString,
-  ViewModeType,
-} from "../serialport/msg_input_toolbar";
-import decodeSerialData, { TextEncodingType } from "./util";
+import decodeSerialData from "./util";
 import { Fragment } from "react/jsx-runtime";
+import { CRLFOptionsType, CRLFString } from "@/types/message/crlf";
+import { ViewModeType } from "@/types/message/view_mode";
+import { TextEncodingType } from "@/types/message/encoding";
 
 const MessageWithCRLF = ({
   message,

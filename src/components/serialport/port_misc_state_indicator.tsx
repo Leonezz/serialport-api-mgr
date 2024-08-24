@@ -1,4 +1,4 @@
-import { OpenedPortStatus } from "@/bridge/types";
+import { SerialPortStatus } from "@/types/serialport/serialport_status";
 import { Checkbox } from "@nextui-org/react";
 import { startCase } from "es-toolkit";
 type OnOffIndicatorProps = {
@@ -29,7 +29,7 @@ const DataSetReadyIndicator = OnOffIndicatorBuilder("data_set_ready");
 const RingIndicator = OnOffIndicatorBuilder("ring_indicator");
 
 type SerialPortMiscIndicatorsProps = {
-    value?: OpenedPortStatus | "Closed"
+    value?: SerialPortStatus["port_status"]
 }
 const SerialPortMiscIndicators = ({value}: SerialPortMiscIndicatorsProps) => {
     if (value === undefined || value === "Closed") {

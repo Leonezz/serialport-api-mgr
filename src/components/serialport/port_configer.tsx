@@ -4,24 +4,24 @@ import useAvaliablePorts from "@/hooks/use_avaliable_ports";
 import PortSelector from "./port_selector";
 import { LucideSettings } from "lucide-react";
 import usePortStatus from "@/hooks/store/usePortStatus";
-import { OpenSerialPortReq } from "@/bridge/call_rust";
 import SerialPortMiscIndicators from "./port_misc_state_indicator";
 import PortConfigGroups from "./port_config_groups";
+import { SerialPortConfig } from "@/types/serialport/serialport_config";
 
 const SerialPortOpener = ({
   serialConfig,
   setSerialConfig,
 }: {
-  serialConfig: OpenSerialPortReq;
-  setSerialConfig: React.Dispatch<React.SetStateAction<OpenSerialPortReq>>;
+  serialConfig: SerialPortConfig;
+  setSerialConfig: React.Dispatch<React.SetStateAction<SerialPortConfig>>;
 }) => {
   const { debouncedReloadPortList: reloadPortList } = useAvaliablePorts();
   useEffect(reloadPortList, []);
 
-  const portName = serialConfig.portName;
+  const portName = serialConfig.port_name;
   const { getPortStatusByName, getPortOpened } = usePortStatus();
   const portDeviceStatus = getPortStatusByName({ port_name: portName });
-  const portOpened = getPortOpened({ port_name: serialConfig.portName });
+  const portOpened = getPortOpened({ port_name: serialConfig.port_name });
 
   return (
     <Accordion
@@ -50,8 +50,8 @@ const SerialPortOpener = ({
                 }
                 setSerialConfig((prev) => ({
                   ...prev,
-                  portName: portName,
-                }));
+                  port_name: portName,
+                } satisfies SerialPortConfig));
               }}
               refreshAvaliablePorts={reloadPortList}
               serialPortConfig={serialConfig}

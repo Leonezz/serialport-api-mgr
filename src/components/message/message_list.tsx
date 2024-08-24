@@ -1,7 +1,8 @@
 import { ScrollShadow } from "@nextui-org/react";
 import Message, { MessageProps } from "./message";
-import { CRLFOptionsType, ViewModeType } from "../serialport/msg_input_toolbar";
-import { TextEncodingType } from "./util";
+import { ViewModeType } from "@/types/message/view_mode";
+import { CRLFOptionsType } from "@/types/message/crlf";
+import { TextEncodingType } from "@/types/message/encoding";
 
 type MessageListProps = {
   messages: MessageProps[];

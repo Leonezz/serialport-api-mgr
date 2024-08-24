@@ -1,4 +1,4 @@
-import { SerialPortInfo } from "@/bridge/types";
+import { SerialPortStatus } from "@/types/serialport/serialport_status";
 import { create } from "zustand";
 export type MessageType = {
   sender: "Local" | "Remote";
@@ -10,15 +10,15 @@ type PortStatus = {
   data: Map<
     string,
     {
-      info: SerialPortInfo;
+      info: SerialPortStatus;
       messages: MessageType[];
     }
   >;
 };
 
 type PortStatusActions = {
-  updateAvaliablePorts: (props: { ports: SerialPortInfo[] }) => void;
-  getPortStatusByName: (props: { port_name: string }) => SerialPortInfo | undefined;
+  updateAvaliablePorts: (props: { ports: SerialPortStatus[] }) => void;
+  getPortStatusByName: (props: { port_name: string }) => SerialPortStatus | undefined;
   sendMessage: (props: { port_name: string; data: Buffer }) => void;
   reviceMessage: (props: { port_name: string; data: Buffer }) => void;
   getPortMessageList: (props: { port_name: string }) => MessageType[];
@@ -42,7 +42,7 @@ const usePortStatus = create<PortStatus & PortStatusActions>((set, get) => ({
       }
       return { data: prev.data };
     }),
-  getPortStatusByName: ({port_name}): SerialPortInfo | undefined => {
+  getPortStatusByName: ({port_name}): SerialPortStatus | undefined => {
     const res = get().data.get(port_name);
     return res?.info;
   },

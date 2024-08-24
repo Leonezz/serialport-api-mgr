@@ -1,17 +1,17 @@
 import {
   emitToRustBus,
-  OpenSerialPortReq,
 } from "@/bridge/call_rust";
 import usePortStatus from "@/hooks/store/usePortStatus";
 import { Autocomplete, AutocompleteItem, Button } from "@nextui-org/react";
 import { useToast } from "../shadcn/use-toast";
 import useRequestState from "@/hooks/commands.ts/useRequestState";
-import { convertPortTypeToString } from "@/bridge/types";
+import { SerialPortConfig } from "@/types/serialport/serialport_config";
+import { convertPortTypeToString } from "@/types/serialport/serialport_status";
 
 type PortSelectorProps = {
   setSelectedPortName: (port: string) => void;
   refreshAvaliablePorts: () => void;
-  serialPortConfig: OpenSerialPortReq;
+  serialPortConfig: SerialPortConfig;
 };
 
 const PortSelector = ({
@@ -19,12 +19,12 @@ const PortSelector = ({
   refreshAvaliablePorts,
   serialPortConfig,
 }: PortSelectorProps) => {
-  const selectedPortName = serialPortConfig.portName;
+  const selectedPortName = serialPortConfig.port_name;
   const { loading: portOpening, runRequest: openPort } = useRequestState({
     action: () =>
       emitToRustBus("open_port", {
         ...serialPortConfig,
-        portName: selectedPortName,
+        port_name: selectedPortName,
       }),
     onError: (err) =>
       toastError({
@@ -39,7 +39,7 @@ const PortSelector = ({
   const { toastError, toastSuccess } = useToast();
   const { loading: portClosing, runRequest: closePort } = useRequestState({
     action: () =>
-      emitToRustBus("close_port", { portName: selectedPortName }),
+      emitToRustBus("close_port", { port_name: selectedPortName }),
     onError: (err) =>
       toastError({
         description: `Closing port ${selectedPortName} failed: ${err?.msg}`,

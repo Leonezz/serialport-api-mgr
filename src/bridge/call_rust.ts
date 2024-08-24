@@ -1,21 +1,13 @@
+import { SerialPortConfig } from "@/types/serialport/serialport_config";
+import { SerialPortStatus } from "@/types/serialport/serialport_status";
 import { invoke } from "@tauri-apps/api/core";
-import { SERIALPORT, SerialPortInfo } from "./types";
 
 export type RustBusError = {
   code: string;
   msg: string;
 };
 
-export type OpenSerialPortReq = {
-  portName: string;
-  baudRate: number;
-  dataBits: SERIALPORT.ConfigTypes<"data_bits">;
-  flowControl: SERIALPORT.ConfigTypes<"flow_control">;
-  parity: SERIALPORT.ConfigTypes<"parity">;
-  stopBits: SERIALPORT.ConfigTypes<"stop_bits">;
-  readTimeout: number,
-  writeTimeout: number
-};
+type CommandArgBase = { port_name: string };
 
 export type RustBus = {
   hello: {
@@ -24,14 +16,14 @@ export type RustBus = {
   };
   get_all_port_info: {
     args: undefined;
-    returns: SerialPortInfo[];
+    returns: SerialPortStatus[];
   };
   open_port: {
-    args: OpenSerialPortReq;
+    args: SerialPortConfig;
     returns: void;
   };
   close_port: {
-    args: { portName: string };
+    args: CommandArgBase;
     returns: void;
   };
   test_async: {
@@ -39,15 +31,15 @@ export type RustBus = {
     returns: any;
   };
   write_port: {
-    args: { portName: string; data: number[] };
+    args: CommandArgBase & { data: number[] };
     returns: void;
   };
   write_dtr: {
-    args: { portName: string; dtr: boolean };
+    args: CommandArgBase & { dtr: boolean };
     returns: void;
   };
   write_rts: {
-    args: { portName: string; rts: boolean };
+    args: CommandArgBase & { rts: boolean };
     returns: void;
   };
 };

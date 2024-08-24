@@ -1,12 +1,14 @@
-import { OpenedPortStatus, SERIALPORT, SerialPortInfo } from "@/bridge/types";
+import { SERIALPORT } from "@/types/serialport/base";
+import { OpenedPortStatus, SerialPortStatus } from "@/types/serialport/serialport_status";
 import { Radio, RadioGroup } from "@nextui-org/react";
+import { startCase } from "es-toolkit";
 
 export type SerialConfigRadioProps<
   T1 extends keyof typeof SERIALPORT.ConfigOptions,
   Type = SERIALPORT.ConfigTypes<T1>
 > = {
   value: Type;
-  portStatus?: SerialPortInfo["port_status"];
+  portStatus?: SerialPortStatus["port_status"];
   setValue: (v: Type) => void;
 };
 
@@ -16,14 +18,7 @@ const RadioBuilder = <
   radioFor: T1
 ) => {
   const options = SERIALPORT.ConfigOptions[radioFor];
-  const name =
-    radioFor === "data_bits"
-      ? "Data Bits"
-      : radioFor === "flow_control"
-      ? "Flow Control"
-      : radioFor === "parity"
-      ? "Parity"
-      : "Stop Bits";
+  const name = startCase(radioFor);
   type OptionType = SERIALPORT.ConfigTypes<T1>;
   type Props = SerialConfigRadioProps<T1>;
   const component = ({ value, portStatus, setValue }: Props) => {

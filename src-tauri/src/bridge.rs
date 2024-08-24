@@ -10,13 +10,13 @@ use crate::util::{ parse_data_bits, parse_flow_control, parse_parity, parse_stop
 
 use logcall::logcall;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn hello(param: &str) -> String {
     println!("got param: {param}");
     format!("hello {param}")
 }
 
-#[tauri::command(async)]
+#[tauri::command(async, rename_all = "snake_case")]
 #[logcall(ok = "trace", err = "error")]
 pub async fn get_all_port_info() -> CmdResult<Vec<PortInfo>> {
     SerialMgr::update_avaliable_ports()
@@ -26,7 +26,7 @@ pub async fn get_all_port_info() -> CmdResult<Vec<PortInfo>> {
         .or_else(|err| Err(err.into()))
 }
 
-#[tauri::command(async)]
+#[tauri::command(async, rename_all = "snake_case")]
 #[logcall(
     ok = "trace",
     err = "error",
@@ -71,7 +71,7 @@ pub async fn open_port(
         .and_then(|res| res.or_else(|err| Err(err.into())))
 }
 
-#[tauri::command(async)]
+#[tauri::command(async, rename_all = "snake_case")]
 #[logcall(ok = "trace", err = "error", input = "port_name: {port_name}")]
 pub async fn close_port(app: AppHandle, port_name: String) -> CmdResult<()> {
     async_std::future
@@ -87,7 +87,7 @@ pub async fn close_port(app: AppHandle, port_name: String) -> CmdResult<()> {
         .and_then(|res| res.or_else(|err| Err(err.into())))
 }
 
-#[tauri::command(async)]
+#[tauri::command(async, rename_all = "snake_case")]
 #[logcall(ok = "trace", err = "error")]
 pub async fn write_dtr(port_name: String, dtr: bool) -> CmdResult<()> {
     async_std::future
@@ -103,7 +103,7 @@ pub async fn write_dtr(port_name: String, dtr: bool) -> CmdResult<()> {
         .and_then(|res| res.or_else(|err| Err(err.into())))
 }
 
-#[tauri::command(async)]
+#[tauri::command(async, rename_all = "snake_case")]
 #[logcall(ok = "trace", err = "error")]
 pub async fn write_rts(port_name: String, rts: bool) -> CmdResult<()> {
     async_std::future
@@ -119,7 +119,7 @@ pub async fn write_rts(port_name: String, rts: bool) -> CmdResult<()> {
         .and_then(|res| res.or_else(|err| Err(err.into())))
 }
 
-#[tauri::command(async)]
+#[tauri::command(async, rename_all = "snake_case")]
 #[logcall(ok = "trace", err = "error")]
 pub async fn write_port(port_name: String, data: Vec<u8>) -> CmdResult<()> {
     async_std::future
@@ -135,7 +135,7 @@ pub async fn write_port(port_name: String, data: Vec<u8>) -> CmdResult<()> {
         .and_then(|res| res.or_else(|err| Err(err.into())))
 }
 
-#[tauri::command(async)]
+#[tauri::command(async, rename_all = "snake_case")]
 #[logcall(ok = "trace", err = "error")]
 pub async fn test_async() -> CmdResult<()> {
     async_std::future

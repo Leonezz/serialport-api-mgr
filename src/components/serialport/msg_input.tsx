@@ -1,12 +1,13 @@
 import { emitToRustBus } from "@/bridge/call_rust";
 import { Button, Textarea } from "@nextui-org/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Buffer } from "buffer";
 import useRequestState from "@/hooks/commands.ts/useRequestState";
 import { useToast } from "../shadcn/use-toast";
 import { chunk } from "es-toolkit";
-import MsgInputToolBar, { CRLFCode, MsgInputToolBarProps } from "./msg_input_toolbar";
+import MsgInputToolBar, { MsgInputToolBarProps } from "./msg_input_toolbar";
 import { useDebounceEffect } from "ahooks";
+import { CRLFCode } from "@/types/message/crlf";
 
 const verifyHexStr = (str: string) => {
   const bytes = chunk(str.split(""), 2);
@@ -103,7 +104,7 @@ const MessageInput = ({
   const { loading: writingPort, runRequest: writePort } = useRequestState({
     action: () =>
       emitToRustBus("write_port", {
-        portName: portName,
+        port_name: portName,
         data: [...encodeMessage(messageData), ...CRLFCode[crlfMode]],
       }),
     onError: (err) =>
