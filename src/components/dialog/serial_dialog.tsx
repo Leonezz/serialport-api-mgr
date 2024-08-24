@@ -8,28 +8,33 @@ import { CRLFOptionsType } from "@/types/message/crlf";
 import { TextEncodingType } from "@/types/message/encoding";
 import { SerialPortConfig } from "@/types/serialport/serialport_config";
 
-const SerialDialog = () => {
-  const [config, setConfig] = useState<SerialPortConfig>({
-    port_name: "",
-    baud_rate: 1,
-    data_bits: "Eight",
-    flow_control: "None",
-    stop_bits: "One",
-    parity: "None",
-    read_timeout: 0,
-    write_timeout: 0,
-  });
-  const [viewMode, setViewMode] = useState<ViewModeType>("Text");
-  const [crlf, setCrlf] = useState<CRLFOptionsType>("CRLF");
-  const [textEncoding, setTextEncoding] = useState<TextEncodingType>("utf-8");
+type SerialPortDialogProps = {
+  serial_port: SerialPortConfig;
+  message_meta: {
+    viewMode: ViewModeType;
+    crlf: CRLFOptionsType;
+    textEncoding: TextEncodingType;
+  };
+};
+const SerialPortDialog = ({
+  serial_port,
+  message_meta,
+}: SerialPortDialogProps) => {
+  const [config, setConfig] = useState<SerialPortConfig>(serial_port);
+  const [viewMode, setViewMode] = useState<ViewModeType>(message_meta.viewMode);
+  const [crlf, setCrlf] = useState<CRLFOptionsType>(message_meta.crlf);
+  const [textEncoding, setTextEncoding] = useState<TextEncodingType>(
+    message_meta.textEncoding
+  );
 
   const { getPortMessageList, getPortOpened } = usePortStatus();
   const messages = getPortMessageList({ port_name: config.port_name });
+  const portOpened = getPortOpened({ port_name: config.port_name });
   return (
     <div className="h-full relative gap-2 flex flex-col">
       <SerialPortOpener
-        serialConfig={config}
-        setSerialConfig={setConfig}
+        serialPortConfig={config}
+        setSerialPortConfig={setConfig}
       />
       <MessageList
         messages={messages}
@@ -38,7 +43,7 @@ const SerialDialog = () => {
         crlf={crlf}
       />
       <MessageInput
-        portOpened={getPortOpened({port_name: config.port_name})}
+        portOpened={portOpened}
         portName={config.port_name}
         viewMode={viewMode}
         setViewMode={setViewMode}
@@ -51,4 +56,4 @@ const SerialDialog = () => {
   );
 };
 
-export default SerialDialog;
+export default SerialPortDialog;

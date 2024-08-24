@@ -3,26 +3,29 @@ import { useEffect } from "react";
 import useAvaliablePorts from "@/hooks/use_avaliable_ports";
 import PortSelector from "./port_selector";
 import { LucideSettings } from "lucide-react";
-import usePortStatus from "@/hooks/store/usePortStatus";
 import SerialPortMiscIndicators from "./port_misc_state_indicator";
 import PortConfigGroups from "./port_config_groups";
 import { SerialPortConfig } from "@/types/serialport/serialport_config";
+import { SerialPortStatus } from "@/types/serialport/serialport_status";
+import usePortStatus from "@/hooks/store/usePortStatus";
 
 const SerialPortOpener = ({
-  serialConfig,
-  setSerialConfig,
+  serialPortConfig,
+  setSerialPortConfig,
 }: {
-  serialConfig: SerialPortConfig;
-  setSerialConfig: React.Dispatch<React.SetStateAction<SerialPortConfig>>;
+  serialPortConfig: SerialPortConfig;
+  setSerialPortConfig: React.Dispatch<React.SetStateAction<SerialPortConfig>>;
 }) => {
   const { debouncedReloadPortList: reloadPortList } = useAvaliablePorts();
   useEffect(reloadPortList, []);
 
-  const portName = serialConfig.port_name;
-  const { getPortStatusByName, getPortOpened } = usePortStatus();
-  const portDeviceStatus = getPortStatusByName({ port_name: portName });
-  const portOpened = getPortOpened({ port_name: serialConfig.port_name });
-
+  const { getPortStatusByName } = usePortStatus();
+  const serialPortDeviceStatus = getPortStatusByName({
+    port_name: serialPortConfig.port_name,
+  });
+  const portOpened =
+    serialPortDeviceStatus !== undefined &&
+    serialPortDeviceStatus.port_status !== "Closed";
   return (
     <Accordion
       variant="splitted"
@@ -37,7 +40,14 @@ const SerialPortOpener = ({
             <LucideSettings size={40} className="stroke-primary" />
             <div className="flex flex-col">
               <p className="text-lg font-bold text-start">Config Port</p>
-              <Chip className="font-mono text-sm" size="sm" variant="flat" color={portOpened?"success" : "default"}>{portOpened ? "Opened" : "Closed"}</Chip>
+              <Chip
+                className="font-mono text-sm"
+                size="sm"
+                variant="flat"
+                color={portOpened ? "success" : "default"}
+              >
+                {portOpened ? "Opened" : "Closed"}
+              </Chip>
             </div>
           </div>
         }
@@ -48,25 +58,33 @@ const SerialPortOpener = ({
                 if (portOpened) {
                   return;
                 }
-                setSerialConfig((prev) => ({
-                  ...prev,
-                  port_name: portName,
-                } satisfies SerialPortConfig));
+                setSerialPortConfig(
+                  (prev) =>
+                    ({
+                      ...prev,
+                      port_name: portName,
+                    } satisfies SerialPortConfig)
+                );
               }}
               refreshAvaliablePorts={reloadPortList}
-              serialPortConfig={serialConfig}
+              serialPortConfig={serialPortConfig}
             />
           </div>
         }
       >
         <div className="flex flex-row space-x-2 w-full justify-stretch">
           <PortConfigGroups
-            serialConfig={serialConfig}
-            setSerialConfig={setSerialConfig}
-            portDeviceStatus={portDeviceStatus}
+            serialConfig={serialPortConfig}
+            setSerialConfig={setSerialPortConfig}
+            portDeviceStatus={serialPortDeviceStatus}
           />
-          <Divider orientation="vertical" className="border-x-5 w-1 border-neutral-800 my-2" />
-          <SerialPortMiscIndicators value={portDeviceStatus?.port_status} />
+          <Divider
+            orientation="vertical"
+            className="border-x-5 w-1 border-neutral-800 my-2"
+          />
+          <SerialPortMiscIndicators
+            value={serialPortDeviceStatus?.port_status}
+          />
         </div>
       </AccordionItem>
     </Accordion>
