@@ -38,7 +38,9 @@ const SerialPortTypeCard = ({
   type: SerialPortStatus["port_type"];
 }) => {
   const portType = convertPortTypeToString(type);
-  const Title = <p className="w-max text-md font-bold align-top">Port Type: {portType}</p>;
+  const Title = (
+    <p className="w-max text-md font-bold align-top">Port Type: {portType}</p>
+  );
   if (portType !== "USB") {
     return Title;
   }
@@ -67,11 +69,9 @@ const SerialPortTypeCard = ({
 
 type SerialPortMiscIndicatorsProps = {
   status?: SerialPortStatus["port_status"];
-  type: SerialPortStatus["port_type"];
 };
 const SerialPortMiscIndicators = ({
   status,
-  type,
 }: SerialPortMiscIndicatorsProps) => {
   if (status === undefined || status === "Closed") {
     return (
@@ -83,16 +83,13 @@ const SerialPortMiscIndicators = ({
     );
   }
   return (
-    <div className="flex flex-row justify-evenly gap-5">
-      <div className="flex flex-col gap-2">
-        <p className="w-max text-md font-bold align-top">Port Status</p>
-        <CarrireDetectIndicator value={!!status?.Opened.carrire_detect} />
-        <ClearToSendIndicator value={!!status?.Opened.clear_to_send} />
-        <DataSetReadyIndicator value={!!status?.Opened.data_set_ready} />
-        <RingIndicator value={!!status?.Opened.ring_indicator} />
-      </div>
-      <SerialPortTypeCard type={type} />
+    <div className="flex flex-col gap-2">
+      <p className="w-max text-md font-bold align-top">Port Status</p>
+      <CarrireDetectIndicator value={!!status?.Opened.carrire_detect} />
+      <ClearToSendIndicator value={!!status?.Opened.clear_to_send} />
+      <DataSetReadyIndicator value={!!status?.Opened.data_set_ready} />
+      <RingIndicator value={!!status?.Opened.ring_indicator} />
     </div>
   );
 };
-export default SerialPortMiscIndicators;
+export { SerialPortMiscIndicators, SerialPortTypeCard };

@@ -3,7 +3,10 @@ import { useEffect } from "react";
 import useAvaliablePorts from "@/hooks/use_avaliable_ports";
 import PortSelector from "./port_selector";
 import { LucideSettings } from "lucide-react";
-import SerialPortMiscIndicators from "./port_misc_state_indicator";
+import {
+  SerialPortMiscIndicators,
+  SerialPortTypeCard,
+} from "./port_misc_state_indicator";
 import PortConfigGroups from "./port_config_groups";
 import { SerialPortConfig } from "@/types/serialport/serialport_config";
 import usePortStatus from "@/hooks/store/usePortStatus";
@@ -81,10 +84,12 @@ const SerialPortOpener = ({
             orientation="vertical"
             className="border-x-5 w-1 border-neutral-800 my-2"
           />
-          <SerialPortMiscIndicators
-            status={serialPortDeviceStatus?.port_status}
-            type={serialPortDeviceStatus?.port_type || "Unknown"}
-          />
+          <div className="flex flex-row justify-evenly gap-5">
+            <SerialPortTypeCard type={serialPortDeviceStatus?.port_type || "Unknown"} />
+            <SerialPortMiscIndicators
+              status={serialPortDeviceStatus?.port_status}
+            />
+          </div>
         </div>
       </AccordionItem>
     </Accordion>
