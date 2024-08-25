@@ -1,12 +1,9 @@
-import { emitToRustBus } from "@/bridge/call_rust";
 import { Button, Textarea } from "@nextui-org/react";
 import { useState } from "react";
 import { Buffer } from "buffer";
-import useRequestState from "@/hooks/commands.ts/useRequestState";
 import { useToast } from "../shadcn/use-toast";
 import MsgInputToolBar, { MsgInputToolBarProps } from "./msg_input_toolbar";
 import { useDebounceEffect } from "ahooks";
-import { CRLFCode } from "@/types/message/crlf";
 import {
   binStrToVisible,
   encodeBinToBuffer,
@@ -15,7 +12,7 @@ import {
   verifyBinStr,
   verifyHexStr,
 } from "@/util/message";
-import { checkSumMessage } from "@/util/checksum";
+import useSendMessage from "@/hooks/message/use_send_message";
 
 type MessageInputProps = {
   portName: string;
@@ -76,15 +73,9 @@ const MessageInput = ({
   };
 
   const { toastError } = useToast();
-  const { loading: writingPort, runRequest: writePort } = useRequestState({
-    action: () =>
-      emitToRustBus("write_port", {
-        port_name: portName,
-        data: checkSumMessage({
-          message: [...encodeMessage(messageData), ...CRLFCode[crlfMode]],
-          checkSum: checkSum,
-        }),
-      }),
+  const { sending, sendMessageToSerialPort } = useSendMessage({
+    crlf: crlfMode,
+    checkSum: checkSum,
     onError: (err) =>
       toastError({
         description: `write ${messageData} to port ${portName} failed: ${err}`,
@@ -132,10 +123,15 @@ const MessageInput = ({
             messageError !== undefined ||
             messageData.length === 0
           }
-          isLoading={writingPort}
+          isLoading={sending}
           size="sm"
           color="primary"
-          onClick={writePort}
+          onClick={() =>
+            sendMessageToSerialPort({
+              port_name: portName,
+              data: encodeMessage(messageData),
+            })
+          }
           className="h-full"
         >
           Send Message

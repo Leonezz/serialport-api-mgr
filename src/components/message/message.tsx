@@ -3,10 +3,10 @@ import { Chip, ChipProps, Snippet } from "@nextui-org/react";
 import decodeSerialData from "./util";
 import { Buffer } from "buffer";
 import { MessageMetaType } from "@/types/message/message_meta";
-import { splitMessageByCRLF } from "@/types/message/crlf";
 import { checkSumVerifyMessage } from "@/util/checksum";
 import { getCrcBytes } from "@/types/message/checksum";
 import { dropRight } from "es-toolkit";
+import { splitMessageByCRLF } from "@/util/crlf";
 
 const ReadableMessage = ({
   data,

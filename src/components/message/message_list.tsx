@@ -16,7 +16,7 @@ const MessageList = ({ messages, ...messageMetaProps }: MessageListProps) => {
         <Message
           {...message}
           {...messageMetaProps}
-          key={message.time.toString()}
+          key={message.time.getTime().toString()}
         />
       ))}
     </ScrollShadow>

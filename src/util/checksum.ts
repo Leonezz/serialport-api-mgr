@@ -23,16 +23,17 @@ export const checkSumVerifyMessage = ({
   return messageHex.endsWith(realCheckSum);
 };
 
-export const checkSumMessage = ({
-  message,
+const crcNone = (_: Buffer) => [];
+
+export const getSumCheckSigner = ({
   checkSum,
 }: {
-  message: number[];
   checkSum: MessageMetaType["checkSum"];
-}): number[] => {
-  if (checkSum === "None") {
-    return message;
-  }
-  const checkSumStr = crc[checkSum](Buffer.from(message)).toString(16);
-  return [...message, ...encodeHexToBuffer(checkSumStr)];
+}) => {
+  const crcFunc = checkSum === "None" ? crcNone : crc[checkSum];
+  return (data: number[]) => [
+    ...data,
+    ...encodeHexToBuffer(crcFunc(Buffer.from(data)).toString(16)),
+  ];
 };
+
