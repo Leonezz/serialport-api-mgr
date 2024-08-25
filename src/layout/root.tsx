@@ -7,33 +7,26 @@ import {
 } from "@/components/shadcn/resizable";
 import "@/index.css";
 import { useState } from "react";
-import { LucideSatelliteDish, LucideScale } from "lucide-react";
 import { Toaster } from "@/components/shadcn/toaster";
 
 export default function RootLayout({
   children,
+  links,
+  activeLink,
+  setActiveLink,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}> & {
+  links: NavProps["links"];
+  activeLink: string;
+  setActiveLink: (link: string) => void;
+}) {
   const [isCollapsed, setCollapsed] = useState(false);
   const panelMinWidth = 15;
-  const links: NavProps["links"] = [
-    {
-      title: "nav1",
-      label: "nav1",
-      icon: LucideSatelliteDish,
-      variant: "default",
-    },
-    {
-      title: "nav2",
-      label: "nav2",
-      icon: LucideScale,
-      variant: "ghost",
-    },
-  ];
+
   return (
     <Providers>
-      <body className="h-screen min-h-96 overflow-hidden">
+      <div className="h-screen min-h-96 overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="p-2 h-full">
           <ResizablePanel
             collapsible
@@ -45,7 +38,12 @@ export default function RootLayout({
             onCollapse={() => setCollapsed(true)}
             onExpand={() => setCollapsed(false)}
           >
-            <Nav isCollapsed={isCollapsed} links={links} />
+            <Nav
+              isCollapsed={isCollapsed}
+              links={links}
+              activeLink={activeLink}
+              setActiveLink={setActiveLink}
+            />
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel minSize={panelMinWidth} className="p-2">
@@ -53,7 +51,7 @@ export default function RootLayout({
           </ResizablePanel>
         </ResizablePanelGroup>
         <Toaster />
-      </body>
+      </div>
     </Providers>
   );
 }

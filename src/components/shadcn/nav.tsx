@@ -1,64 +1,70 @@
 "use client";
 
-import { createLucideIcon, LucideIcon } from "lucide-react";
-import { Tooltip, Link, cn, Button, Image } from "@nextui-org/react";
-import { Fragment } from "react/jsx-runtime";
+import { LucideIcon } from "lucide-react";
+import { Tooltip, Button } from "@nextui-org/react";
 
 export interface NavProps {
   isCollapsed: boolean;
   links: {
     title: string;
-    label?: string;
+    id: string;
+    description?: string;
     icon: LucideIcon;
     variant: "default" | "ghost";
+    page: () => JSX.Element;
   }[];
 }
 
-export function Nav({ links, isCollapsed }: NavProps) {
+export function Nav({
+  links,
+  isCollapsed,
+  activeLink,
+  setActiveLink,
+}: NavProps & { activeLink: string; setActiveLink: (link: string) => void }) {
   return (
     <div
       data-collapsed={isCollapsed}
       className="group flex flex-col gap-4 py-2 data-[collapsed=true]:py-2"
     >
       <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
-        {links.map((link, index) => {
+        {links.map((l) => {
           const toolTipContent = (
-            <Fragment>
-              {link.title}
-              {link.label && (
-                <span className="ml-auto text-muted-foreground">
-                  {link.label}
-                </span>
-              )}
-            </Fragment>
+            <span className="ml-auto text-muted-foreground">
+              {l.description || l.title}
+            </span>
           );
           return isCollapsed ? (
-            <Tooltip key={index} delay={0} content={toolTipContent}>
-              <Button isIconOnly variant="ghost" color="secondary">
-                <link.icon />
+            <Tooltip key={l.id} delay={1000} content={toolTipContent}>
+              <Button
+                isIconOnly
+                onClick={() => {
+                  if (activeLink === l.id) {
+                    return;
+                  }
+                  setActiveLink(l.id);
+                }}
+                variant={l.id === activeLink ? "solid" : "ghost"}
+                color="secondary"
+                className="w-5/6"
+              >
+                <l.icon />
               </Button>
             </Tooltip>
           ) : (
             <Button
-              key={index}
+              key={l.id}
+              onClick={() => {
+                if (activeLink === l.id) {
+                  return;
+                }
+                setActiveLink(l.id);
+              }}
               color="secondary"
-              variant="flat"
-              startContent={<link.icon className="mr-2 h-4 w-4" />}
-              endContent={
-                link.label && (
-                  <span
-                    className={cn(
-                      "ml-auto",
-                      link.variant === "default" &&
-                        "text-background dark:text-white"
-                    )}
-                  >
-                    {link.label}
-                  </span>
-                )
-              }
+              variant={l.id === activeLink ? "solid" : "light"}
+              startContent={<l.icon className="h-4 w-4" />}
+              className="w-full justify-start"
             >
-              {link.title}
+              {l.title}
             </Button>
           );
         })}

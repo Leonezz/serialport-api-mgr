@@ -13,6 +13,13 @@ export type MessageMetaType = {
   checkSum: MessageConfigType<"checkSum">;
 };
 
+export const DEFAULTMessageConfig: MessageMetaType = {
+  viewMode: "Text",
+  crlf: "CRLF",
+  textEncoding: "utf-8",
+  checkSum: "None",
+};
+
 export const MessageMetaOptions = {
   viewMode: ViewModeOptions,
   crlf: CRLFOptions,
