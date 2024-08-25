@@ -4,53 +4,18 @@ import { useState } from "react";
 import { Buffer } from "buffer";
 import useRequestState from "@/hooks/commands.ts/useRequestState";
 import { useToast } from "../shadcn/use-toast";
-import { chunk } from "es-toolkit";
 import MsgInputToolBar, { MsgInputToolBarProps } from "./msg_input_toolbar";
 import { useDebounceEffect } from "ahooks";
 import { CRLFCode } from "@/types/message/crlf";
-
-const verifyHexStr = (str: string) => {
-  const bytes = chunk(str.split(""), 2);
-  return (
-    bytes.every((byte) => byte.length === 2) &&
-    bytes.every((byte) => /[0-9a-fA-F]{2}/g.test(byte.join("")))
-  );
-};
-
-const verifyBinStr = (str: string) => {
-  const bytes = chunk(str.split(""), 8);
-  return bytes.every(
-    (byte) => byte.length === 8 && /[01]{8}/g.test(byte.join(""))
-  );
-};
-
-const encodeBinToBuffer = (str: string) => {
-  const bytes = chunk(str.split(""), 8);
-  return bytes.reduce(
-    (buf: number[], byte) => [...buf, parseInt(byte.join(""), 2)],
-    []
-  );
-};
-
-const encodeHexToBuffer = (str: string) => {
-  const bytes = chunk(str.split(""), 2);
-  return bytes.reduce(
-    (buf: number[], byte) => [...buf, parseInt(byte.join(""), 16)],
-    []
-  );
-};
-
-const hexStrToVisible = (str: string) => {
-  return chunk(str.replace(/ /g, "").replace(/0x/g, "").split(""), 2)
-    .map((b) => b.join(""))
-    .join(" ");
-};
-
-const binStrToVisible = (str: string) => {
-  return chunk(str.replace(/ /g, "").split(""), 8)
-    .map((b) => b.join(""))
-    .join(" ");
-};
+import {
+  binStrToVisible,
+  encodeBinToBuffer,
+  encodeHexToBuffer,
+  hexStrToVisible,
+  verifyBinStr,
+  verifyHexStr,
+} from "@/util/message";
+import { checkSumMessage } from "@/util/checksum";
 
 type MessageInputProps = {
   portName: string;
@@ -65,6 +30,8 @@ const MessageInput = ({
   portOpened,
   textEncoding,
   setTextEncoding,
+  checkSum,
+  setCheckSum,
 }: MessageInputProps) => {
   const [messageData, setMessageData] = useState("");
   const [visibleMessage, setVisibleMessage] = useState(messageData);
@@ -113,7 +80,10 @@ const MessageInput = ({
     action: () =>
       emitToRustBus("write_port", {
         port_name: portName,
-        data: [...encodeMessage(messageData), ...CRLFCode[crlfMode]],
+        data: checkSumMessage({
+          message: [...encodeMessage(messageData), ...CRLFCode[crlfMode]],
+          checkSum: checkSum,
+        }),
       }),
     onError: (err) =>
       toastError({
@@ -153,6 +123,8 @@ const MessageInput = ({
           textEncoding={textEncoding}
           setTextEncoding={setTextEncoding}
           portOpened={portOpened}
+          checkSum={checkSum}
+          setCheckSum={setCheckSum}
         />
         <Button
           isDisabled={

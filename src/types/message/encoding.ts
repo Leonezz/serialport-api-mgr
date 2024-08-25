@@ -44,4 +44,3 @@ export const TextEncodingOptions = [
     "x-mac-cyrillic",
   ] as const;
   
-  export type TextEncodingType = (typeof TextEncodingOptions)[number];

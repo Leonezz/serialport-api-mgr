@@ -14,6 +14,7 @@ const App = () => {
           viewMode: "Text",
           crlf: "CRLF",
           textEncoding: "utf-8",
+          checkSum: "None"
         }}
       />
     </RootLayout>

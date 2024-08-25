@@ -1,53 +1,49 @@
 import { MessageType } from "@/hooks/store/usePortStatus";
 import { Chip, ChipProps, Snippet } from "@nextui-org/react";
 import decodeSerialData from "./util";
-import { Fragment } from "react/jsx-runtime";
-import { CRLFOptionsType, CRLFString } from "@/types/message/crlf";
-import { ViewModeType } from "@/types/message/view_mode";
-import { TextEncodingType } from "@/types/message/encoding";
+import { Buffer } from "buffer";
+import { MessageMetaType } from "@/types/message/message_meta";
+import { splitMessageByCRLF } from "@/types/message/crlf";
+import { checkSumVerifyMessage } from "@/util/checksum";
+import { getCrcBytes } from "@/types/message/checksum";
+import { dropRight } from "es-toolkit";
 
-const MessageWithCRLF = ({
-  message,
+const ReadableMessage = ({
+  data,
   crlf,
   viewMode,
+  textEncoding,
   ...props
 }: {
-  message: string;
-  crlf: CRLFOptionsType;
-  viewMode: ViewModeType;
-} & ChipProps) => {
-  if (crlf === "None" || viewMode !== "Text") {
-    return <p className="max-w-full break-word text-wrap">{message}</p>;
-  }
+  data: Buffer;
+} & Omit<MessageMetaType, "checkSum"> &
+  ChipProps) => {
+  const message = decodeSerialData(viewMode, textEncoding, data);
+  const lines = splitMessageByCRLF({ message: message, crlfMode: crlf });
+  const lineBreak = viewMode === "Text" ? "break-all" : "break-word";
 
-  const spliter = CRLFString[crlf];
-  const lines: React.ReactNode[] = [];
-  for (let idx = 0; idx < message.length; ) {
-    const endIdx = message.indexOf(spliter, idx);
-    if (endIdx === -1) {
-      lines.push(message.substring(idx));
-      break;
-    }
-    lines.push(
-      <Fragment>
-        <p className="h-full">{message.substring(idx, endIdx)}</p>
-        <Chip
-          size="sm"
-          variant="solid"
-          radius="sm"
-          className="text-xs font-mono p-0.5 h-fit ml-1"
-          color={props.color}
+  return (
+    <div className="flex flex-row items-center">
+      {lines.map((line) => (
+        <p
+          className={`flex flex-row max-w-full text-wrap ${lineBreak} items-center align-middle`}
         >
-          {crlf}
-        </Chip>
-      </Fragment>
-    );
-    idx = endIdx + spliter.length;
-  }
-
-  return lines.map((line) => (
-    <p className="flex flex-row max-w-full text-wrap break-all items-center align-middle">{line}</p>
-  ));
+          <p className="h-full">{line}</p>
+          {crlf !== "None" && viewMode === "Text" ? (
+            <Chip
+              size="sm"
+              variant="solid"
+              radius="sm"
+              className="text-xs font-mono p-0.5 h-fit ml-1"
+              color={props.color}
+            >
+              {crlf}
+            </Chip>
+          ) : null}
+        </p>
+      ))}
+    </div>
+  );
 };
 
 export type MessageProps = MessageType;
@@ -55,17 +51,20 @@ const Message = ({
   sender,
   time,
   data,
-  viewMode,
-  textEncoding,
-  crlf,
-}: MessageProps & {
-  viewMode: ViewModeType;
-  textEncoding: TextEncodingType;
-  crlf: CRLFOptionsType;
-}) => {
+  checkSum,
+  ...messageMetaProps
+}: MessageProps & MessageMetaType) => {
   const align = sender === "Local" ? "self-end" : "self-start";
-  const visiableData = decodeSerialData(viewMode, textEncoding, data);
   const color = sender === "Remote" ? "warning" : "primary";
+
+  const checkSumSuccess = checkSumVerifyMessage({
+    message: data,
+    checkSum: checkSum,
+  });
+  const checkSumBytes = getCrcBytes(checkSum);
+  const bytesTotal = data.length;
+  data = Buffer.from(dropRight([...data], checkSumBytes));
+
   return (
     <Snippet
       codeString={String.fromCharCode(...data)}
@@ -75,15 +74,24 @@ const Message = ({
       variant="flat"
       color={color}
     >
-      <p className="text-xs text-neutral-500 font-mono">{`${
-        sender === "Remote" ? "Received" : "Send"
-      } at ${time.toLocaleTimeString()}`}</p>
-      <MessageWithCRLF
-        message={visiableData}
-        viewMode={viewMode}
-        crlf={crlf}
-        color={color}
-      />
+      <p className="text-xs text-neutral-500 font-mono items-center">
+        <code>{`${
+          sender === "Remote" ? "Received" : "Send"
+        } at ${time.toLocaleTimeString()} (${bytesTotal} bytes total)`}</code>
+        {checkSum !== "None" ? (
+          <Chip
+            size="sm"
+            variant="solid"
+            radius="sm"
+            aria-label="CRC Correct"
+            className="text-xs font-mono p-0.5 h-4 ml-1"
+            color={checkSumSuccess ? "success" : "danger"}
+          >
+            CRC
+          </Chip>
+        ) : null}
+      </p>
+      <ReadableMessage data={data} {...messageMetaProps} color={color} />
     </Snippet>
   );
 };

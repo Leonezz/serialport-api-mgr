@@ -1,11 +1,21 @@
-import { CheckSumType } from "./checksum";
-import { CRLFOptionsType } from "./crlf";
-import { TextEncodingType } from "./encoding";
-import { ViewModeType } from "./view_mode";
+import { CheckSumOptions } from "./checksum";
+import { CRLFOptions } from "./crlf";
+import { TextEncodingOptions } from "./encoding";
+import { ViewModeOptions } from "./view_mode";
+
+export type MessageConfigType<T extends keyof typeof MessageMetaOptions> =
+  (typeof MessageMetaOptions)[T][number];
 
 export type MessageMetaType = {
-  viewMode: ViewModeType;
-  crlf: CRLFOptionsType;
-  textEncoding: TextEncodingType;
-  checksum: CheckSumType;
+  viewMode: MessageConfigType<"viewMode">;
+  crlf: MessageConfigType<"crlf">;
+  textEncoding: MessageConfigType<"textEncoding">;
+  checkSum: MessageConfigType<"checkSum">;
 };
+
+export const MessageMetaOptions = {
+  viewMode: ViewModeOptions,
+  crlf: CRLFOptions,
+  textEncoding: TextEncodingOptions,
+  checkSum: CheckSumOptions,
+} as const;
