@@ -11,7 +11,7 @@ const useSendMessage = ({
   onError,
 }: {
   crlf: MessageMetaType["crlf"];
-  checkSum: MessageMetaType["checkSum"];
+  checkSum: MessageMetaType["check_sum"];
   onSuccess?: (
     res: void,
     args?: [{ port_name: string; data: number[] }]

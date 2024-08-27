@@ -2,7 +2,7 @@ import { MessageMetaType } from "@/types/message/message_meta";
 import { Buffer } from "buffer";
 
 const decodeSerialData = (
-  viewMode: MessageMetaType["viewMode"],
+  viewMode: MessageMetaType["view_mode"],
   textEncoding = "utf-8",
   data: Buffer
 ) => {

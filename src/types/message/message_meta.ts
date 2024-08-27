@@ -7,22 +7,22 @@ export type MessageConfigType<T extends keyof typeof MessageMetaOptions> =
   (typeof MessageMetaOptions)[T][number];
 
 export type MessageMetaType = {
-  viewMode: MessageConfigType<"viewMode">;
+  view_mode: MessageConfigType<"view_mode">;
   crlf: MessageConfigType<"crlf">;
-  textEncoding: MessageConfigType<"textEncoding">;
-  checkSum: MessageConfigType<"checkSum">;
+  text_encoding: MessageConfigType<"text_encoding">;
+  check_sum: MessageConfigType<"check_sum">;
 };
 
 export const DEFAULTMessageConfig: MessageMetaType = {
-  viewMode: "Text",
+  view_mode: "Text",
   crlf: "CRLF",
-  textEncoding: "utf-8",
-  checkSum: "None",
+  text_encoding: "utf-8",
+  check_sum: "None",
 };
 
 export const MessageMetaOptions = {
-  viewMode: ViewModeOptions,
+  view_mode: ViewModeOptions,
   crlf: CRLFOptions,
-  textEncoding: TextEncodingOptions,
-  checkSum: CheckSumOptions,
+  text_encoding: TextEncodingOptions,
+  check_sum: CheckSumOptions,
 } as const;

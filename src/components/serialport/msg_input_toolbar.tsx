@@ -16,14 +16,14 @@ import { startCase } from "es-toolkit";
 
 export type MsgInputToolBarProps = {
   portName: string;
-  viewMode: MessageMetaType["viewMode"];
-  setViewMode: (mode: MessageMetaType["viewMode"]) => void;
+  viewMode: MessageMetaType["view_mode"];
+  setViewMode: (mode: MessageMetaType["view_mode"]) => void;
   crlfMode: MessageMetaType["crlf"];
   setCrlfMode: (mode: MessageMetaType["crlf"]) => void;
-  textEncoding: MessageMetaType["textEncoding"];
-  setTextEncoding: (mode: MessageMetaType["textEncoding"]) => void;
-  checkSum: MessageMetaType["checkSum"];
-  setCheckSum: (mode: MessageMetaType["checkSum"]) => void;
+  textEncoding: MessageMetaType["text_encoding"];
+  setTextEncoding: (mode: MessageMetaType["text_encoding"]) => void;
+  checkSum: MessageMetaType["check_sum"];
+  setCheckSum: (mode: MessageMetaType["check_sum"]) => void;
   portOpened: boolean;
 };
 
@@ -74,16 +74,16 @@ const OptionSelector = <T1 extends keyof typeof MessageMetaOptions>({
 };
 
 const ViewModeSelector = OptionSelector({
-  selectorFor: "viewMode",
+  selectorFor: "view_mode",
 });
 const TextEncodingSelector = OptionSelector({
-  selectorFor: "textEncoding",
+  selectorFor: "text_encoding",
 });
 const CRLFSelector = OptionSelector({
   selectorFor: "crlf",
 });
 const CheckSumSelector = OptionSelector({
-  selectorFor: "checkSum",
+  selectorFor: "check_sum",
 });
 
 const MsgInputToolBar = ({

@@ -11,8 +11,8 @@ import { splitMessageByCRLF } from "@/util/crlf";
 const ReadableMessage = ({
   data,
   crlf,
-  viewMode,
-  textEncoding,
+  view_mode: viewMode,
+  text_encoding: textEncoding,
   ...props
 }: {
   data: Buffer;
@@ -51,7 +51,7 @@ const Message = ({
   sender,
   time,
   data,
-  checkSum,
+  check_sum,
   ...messageMetaProps
 }: MessageProps & MessageMetaType) => {
   const align = sender === "Local" ? "self-end" : "self-start";
@@ -59,9 +59,9 @@ const Message = ({
 
   const checkSumSuccess = checkSumVerifyMessage({
     message: data,
-    checkSum: checkSum,
+    check_sum: check_sum,
   });
-  const checkSumBytes = getCrcBytes(checkSum);
+  const checkSumBytes = getCrcBytes(check_sum);
   const bytesTotal = data.length;
   data = Buffer.from(dropRight([...data], checkSumBytes));
 
@@ -78,7 +78,7 @@ const Message = ({
         <code>{`${
           sender === "Remote" ? "Received" : "Send"
         } at ${time.toLocaleTimeString()} (${bytesTotal} bytes total)`}</code>
-        {checkSum !== "None" ? (
+        {check_sum !== "None" ? (
           <Chip
             size="sm"
             variant="solid"
@@ -91,7 +91,12 @@ const Message = ({
           </Chip>
         ) : null}
       </p>
-      <ReadableMessage data={data} {...messageMetaProps} color={color} />
+      <ReadableMessage
+        data={data}
+        {...messageMetaProps}
+        check_sum={check_sum}
+        color={color}
+      />
     </Snippet>
   );
 };

@@ -7,17 +7,17 @@ import { dropRight } from "es-toolkit";
 
 export const checkSumVerifyMessage = ({
   message,
-  checkSum,
+  check_sum,
 }: {
   message: Buffer;
-  checkSum: MessageMetaType["checkSum"];
+  check_sum: MessageMetaType["check_sum"];
 }) => {
-  if (checkSum === "None") {
+  if (check_sum === "None") {
     return true;
   }
-  const checkSumBytes = getCrcBytes(checkSum);
+  const checkSumBytes = getCrcBytes(check_sum);
   const bytesToCheck = dropRight([...message], checkSumBytes);
-  const checkSumFunc = crc[checkSum];
+  const checkSumFunc = crc[check_sum];
   const realCheckSum = checkSumFunc(Buffer.from(bytesToCheck)).toString(16);
   const messageHex = message.reduce((prev, cur) => prev + cur.toString(16), "");
   return messageHex.endsWith(realCheckSum);
@@ -28,7 +28,7 @@ const crcNone = (_: Buffer) => [];
 export const getSumCheckSigner = ({
   checkSum,
 }: {
-  checkSum: MessageMetaType["checkSum"];
+  checkSum: MessageMetaType["check_sum"];
 }) => {
   const crcFunc = checkSum === "None" ? crcNone : crc[checkSum];
   return (data: number[]) => [
@@ -36,4 +36,3 @@ export const getSumCheckSigner = ({
     ...encodeHexToBuffer(crcFunc(Buffer.from(data)).toString(16)),
   ];
 };
-

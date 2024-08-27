@@ -35,14 +35,14 @@ const SerialPortDialog = ({
       <MessageInput
         portOpened={portOpened}
         portName={serialPortConfig.port_name}
-        viewMode={messageConfig.viewMode}
-        setViewMode={singleKeySetter(setMessageConfig, "viewMode")}
+        viewMode={messageConfig.view_mode}
+        setViewMode={singleKeySetter(setMessageConfig, "view_mode")}
         crlfMode={messageConfig.crlf}
         setCrlfMode={singleKeySetter(setMessageConfig, "crlf")}
-        textEncoding={messageConfig.textEncoding}
-        setTextEncoding={singleKeySetter(setMessageConfig, "textEncoding")}
-        checkSum={messageConfig.checkSum}
-        setCheckSum={singleKeySetter(setMessageConfig, "checkSum")}
+        textEncoding={messageConfig.text_encoding}
+        setTextEncoding={singleKeySetter(setMessageConfig, "text_encoding")}
+        checkSum={messageConfig.check_sum}
+        setCheckSum={singleKeySetter(setMessageConfig, "check_sum")}
       />
     </div>
   );
