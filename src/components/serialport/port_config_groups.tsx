@@ -10,7 +10,7 @@ import {
   OpenedPortStatus,
   SerialPortStatus,
 } from "@/types/serialport/serialport_status";
-import { SerialPortConfig } from "@/types/serialport/serialport_config";
+import { SerialportConfig } from "@/types/serialport/serialport_config";
 import singleKeySetter from "@/util/util";
 
 const TimeUnitsOptions = ["s", "ms", "us", "ns"] as const;
@@ -97,8 +97,8 @@ const ReadTimeoutInput = ReadWriteTimeoutInput("read_timeout");
 const WriteTimeoutInput = ReadWriteTimeoutInput("write_timeout");
 
 type PortConfigGroupsProps = {
-  serialConfig: SerialPortConfig;
-  setSerialConfig: React.Dispatch<SetStateAction<SerialPortConfig>>;
+  serialConfig: SerialportConfig;
+  setSerialConfig: React.Dispatch<SetStateAction<SerialportConfig>>;
   portDeviceStatus?: SerialPortStatus;
 };
 const PortConfigGroups = ({

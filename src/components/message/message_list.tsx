@@ -1,10 +1,10 @@
 import { ScrollShadow } from "@nextui-org/react";
 import Message, { MessageProps } from "./message";
-import { MessageMetaType } from "@/types/message/message_meta";
+import { MessageMetaConfig } from "@/types/message/message_meta";
 
 type MessageListProps = {
   messages: MessageProps[];
-} & MessageMetaType;
+} & MessageMetaConfig;
 const MessageList = ({ messages, ...messageMetaProps }: MessageListProps) => {
   messages = messages.sort((a, b) => b.time.getTime() - a.time.getTime());
   return (

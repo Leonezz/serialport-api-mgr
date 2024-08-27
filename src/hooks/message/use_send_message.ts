@@ -1,6 +1,6 @@
-import { MessageMetaType } from "@/types/message/message_meta";
+import { MessageMetaConfig } from "@/types/message/message_meta";
 import useRequestState from "../commands.ts/useRequestState";
-import { emitToRustBus, RustBusError } from "@/bridge/call_rust";
+import { emitToRustBus, AppError } from "@/bridge/call_rust";
 import { getSumCheckSigner } from "@/util/checksum";
 import { getCrlfAppender } from "@/util/crlf";
 
@@ -10,14 +10,14 @@ const useSendMessage = ({
   onSuccess,
   onError,
 }: {
-  crlf: MessageMetaType["crlf"];
-  checkSum: MessageMetaType["check_sum"];
+  crlf: MessageMetaConfig["crlf"];
+  checkSum: MessageMetaConfig["check_sum"];
   onSuccess?: (
     res: void,
     args?: [{ port_name: string; data: number[] }]
   ) => void;
   onError?: (
-    error?: RustBusError,
+    error?: AppError,
     args?: [{ port_name: string; data: number[] }]
   ) => void;
 }) => {

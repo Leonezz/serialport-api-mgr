@@ -1,11 +1,17 @@
-import { SerialPortConfig } from "@/types/serialport/serialport_config";
+import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { SerialPortStatus } from "@/types/serialport/serialport_status";
 import { invoke } from "@tauri-apps/api/core";
 
-export type RustBusError = {
+export class AppError {
   code: string;
   msg: string;
-};
+  /**
+   *
+   */
+  constructor(err: { code: string; msg: string }) {
+    (this.code = err.code), (this.msg = err.msg);
+  }
+}
 
 type CommandArgBase = { port_name: string };
 
@@ -19,7 +25,7 @@ export type RustBus = {
     returns: SerialPortStatus[];
   };
   open_port: {
-    args: SerialPortConfig;
+    args: SerialportConfig;
     returns: void;
   };
   close_port: {

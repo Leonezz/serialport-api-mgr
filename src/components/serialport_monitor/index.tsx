@@ -1,26 +1,26 @@
 import { useState } from "react";
 import SerialPortOpener from "../serialport/port_configer";
 import MessageList from "../message/message_list";
-import usePortStatus from "@/hooks/store/usePortStatus";
+import useSerialportStatus from "@/hooks/store/usePortStatus";
 import MessageInput from "../serialport/msg_input";
-import { SerialPortConfig } from "@/types/serialport/serialport_config";
-import { MessageMetaType } from "@/types/message/message_meta";
+import { SerialportConfig } from "@/types/serialport/serialport_config";
+import { MessageMetaConfig } from "@/types/message/message_meta";
 import singleKeySetter from "@/util/util";
 
 type SerialPortDialogProps = {
-  serial_port: SerialPortConfig;
-  message_meta: MessageMetaType;
+  serial_port: SerialportConfig;
+  message_meta: MessageMetaConfig;
 };
 const SerialPortDialog = ({
   serial_port,
   message_meta,
 }: SerialPortDialogProps) => {
   const [serialPortConfig, setSerialPortConfig] =
-    useState<SerialPortConfig>(serial_port);
+    useState<SerialportConfig>(serial_port);
   const [messageConfig, setMessageConfig] =
-    useState<MessageMetaType>(message_meta);
+    useState<MessageMetaConfig>(message_meta);
 
-  const { getPortMessageList, getPortOpened } = usePortStatus();
+  const { getPortMessageList, getPortOpened } = useSerialportStatus();
   const messages = getPortMessageList({
     port_name: serialPortConfig.port_name,
   });

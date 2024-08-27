@@ -1,5 +1,5 @@
 import { getCrcBytes } from "@/types/message/checksum";
-import { MessageMetaType } from "@/types/message/message_meta";
+import { MessageMetaConfig } from "@/types/message/message_meta";
 import crc from "crc";
 import { encodeHexToBuffer } from "./message";
 import { Buffer } from "buffer";
@@ -10,7 +10,7 @@ export const checkSumVerifyMessage = ({
   check_sum,
 }: {
   message: Buffer;
-  check_sum: MessageMetaType["check_sum"];
+  check_sum: MessageMetaConfig["check_sum"];
 }) => {
   if (check_sum === "None") {
     return true;
@@ -28,7 +28,7 @@ const crcNone = (_: Buffer) => [];
 export const getSumCheckSigner = ({
   checkSum,
 }: {
-  checkSum: MessageMetaType["check_sum"];
+  checkSum: MessageMetaConfig["check_sum"];
 }) => {
   const crcFunc = checkSum === "None" ? crcNone : crc[checkSum];
   return (data: number[]) => [

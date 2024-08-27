@@ -1,17 +1,17 @@
 import {
   emitToRustBus,
 } from "@/bridge/call_rust";
-import usePortStatus from "@/hooks/store/usePortStatus";
+import useSerialportStatus from "@/hooks/store/usePortStatus";
 import { Autocomplete, AutocompleteItem, Button } from "@nextui-org/react";
 import { useToast } from "../shadcn/use-toast";
 import useRequestState from "@/hooks/commands.ts/useRequestState";
-import { SerialPortConfig } from "@/types/serialport/serialport_config";
+import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { convertPortTypeToString } from "@/types/serialport/serialport_status";
 
 type PortSelectorProps = {
   setSelectedPortName: (port: string) => void;
   refreshAvaliablePorts: () => void;
-  serialPortConfig: SerialPortConfig;
+  serialPortConfig: SerialportConfig;
 };
 
 const PortSelector = ({
@@ -50,7 +50,7 @@ const PortSelector = ({
       }),
   });
 
-  const { data: portStatus, getPortOpened, getPortStatusByName } = usePortStatus();
+  const { data: portStatus, getPortOpened, getPortStatusByName } = useSerialportStatus();
   const portOpened = getPortOpened({port_name: selectedPortName});
   const selectedPortStatus = getPortStatusByName({port_name: selectedPortName});
 

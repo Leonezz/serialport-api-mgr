@@ -2,7 +2,7 @@ import { MessageType } from "@/hooks/store/usePortStatus";
 import { Chip, ChipProps, Snippet } from "@nextui-org/react";
 import decodeSerialData from "./util";
 import { Buffer } from "buffer";
-import { MessageMetaType } from "@/types/message/message_meta";
+import { MessageMetaConfig } from "@/types/message/message_meta";
 import { checkSumVerifyMessage } from "@/util/checksum";
 import { getCrcBytes } from "@/types/message/checksum";
 import { dropRight } from "es-toolkit";
@@ -16,7 +16,7 @@ const ReadableMessage = ({
   ...props
 }: {
   data: Buffer;
-} & Omit<MessageMetaType, "checkSum"> &
+} & Omit<MessageMetaConfig, "checkSum"> &
   ChipProps) => {
   const message = decodeSerialData(viewMode, textEncoding, data);
   const lines = splitMessageByCRLF({ message: message, crlfMode: crlf });
@@ -53,7 +53,7 @@ const Message = ({
   data,
   check_sum,
   ...messageMetaProps
-}: MessageProps & MessageMetaType) => {
+}: MessageProps & MessageMetaConfig) => {
   const align = sender === "Local" ? "self-end" : "self-start";
   const color = sender === "Remote" ? "warning" : "primary";
 

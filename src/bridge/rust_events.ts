@@ -1,5 +1,5 @@
 "use client";
-import usePortStatus from "@/hooks/store/usePortStatus";
+import useSerialportStatus from "@/hooks/store/usePortStatus";
 import { listen, Event, UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { Buffer } from "buffer";
@@ -45,7 +45,7 @@ const port_read = (arg: TauriEvnts["port_read"]) => {
 
 export const useTauriEvents = () => {
   const { reviceMessage, sendMessage } =
-    usePortStatus();
+    useSerialportStatus();
   const {debouncedReloadPortList} = useAvaliablePorts();
   useEffect(() => {
     const events: Promise<UnlistenFn>[] = [];

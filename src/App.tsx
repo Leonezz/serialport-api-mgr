@@ -2,9 +2,11 @@ import { useTauriEvents } from "@/bridge/rust_events";
 import RootLayout from "./layout/root";
 import { Cable, Combine, Microchip, MonitorCog } from "lucide-react";
 import { NavProps } from "./components/shadcn/nav";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SerialPortMonitor from "./pages/serial_port_monitor";
 import { v7 as uuid } from "uuid";
+import useNamedSerialortConfigStore from "./hooks/store/useNamedSerialPortConfig";
+import { DEFAULTSerialportConfig } from "./types/serialport/serialport_config";
 const links: NavProps["links"] = [
   {
     title: "Monitor",

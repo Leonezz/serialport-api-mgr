@@ -1,12 +1,12 @@
 import { emitToRustBus } from "@/bridge/call_rust";
 import { useState } from "react";
 import { debounce } from "es-toolkit";
-import usePortStatus from "./store/usePortStatus";
+import useSerialportStatus from "./store/usePortStatus";
 import { SerialPortStatus } from "@/types/serialport/serialport_status";
 
 const useAvaliablePorts = () => {
   const [portList, setPortList] = useState<SerialPortStatus[]>([]);
-  const { updateAvaliablePorts } = usePortStatus();
+  const { updateAvaliablePorts } = useSerialportStatus();
   const reloadPortList = () => {
     emitToRustBus("get_all_port_info", undefined)
       .then((values) => {

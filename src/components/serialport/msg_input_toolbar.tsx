@@ -8,22 +8,22 @@ import {
 } from "@nextui-org/react";
 import { useToast } from "../shadcn/use-toast";
 import {
-  MessageConfigType,
+  MessageMetaConfigFields,
   MessageMetaOptions,
-  MessageMetaType,
+  MessageMetaConfig,
 } from "@/types/message/message_meta";
 import { startCase } from "es-toolkit";
 
 export type MsgInputToolBarProps = {
   portName: string;
-  viewMode: MessageMetaType["view_mode"];
-  setViewMode: (mode: MessageMetaType["view_mode"]) => void;
-  crlfMode: MessageMetaType["crlf"];
-  setCrlfMode: (mode: MessageMetaType["crlf"]) => void;
-  textEncoding: MessageMetaType["text_encoding"];
-  setTextEncoding: (mode: MessageMetaType["text_encoding"]) => void;
-  checkSum: MessageMetaType["check_sum"];
-  setCheckSum: (mode: MessageMetaType["check_sum"]) => void;
+  viewMode: MessageMetaConfig["view_mode"];
+  setViewMode: (mode: MessageMetaConfig["view_mode"]) => void;
+  crlfMode: MessageMetaConfig["crlf"];
+  setCrlfMode: (mode: MessageMetaConfig["crlf"]) => void;
+  textEncoding: MessageMetaConfig["text_encoding"];
+  setTextEncoding: (mode: MessageMetaConfig["text_encoding"]) => void;
+  checkSum: MessageMetaConfig["check_sum"];
+  setCheckSum: (mode: MessageMetaConfig["check_sum"]) => void;
   portOpened: boolean;
 };
 
@@ -37,8 +37,8 @@ const OptionSelector = <T1 extends keyof typeof MessageMetaOptions>({
     value,
     setValue,
   }: {
-    value: MessageConfigType<T1>;
-    setValue: (value: MessageConfigType<T1>) => void;
+    value: MessageMetaConfigFields<T1>;
+    setValue: (value: MessageMetaConfigFields<T1>) => void;
   }) => (
     <Autocomplete
       label={
@@ -54,7 +54,7 @@ const OptionSelector = <T1 extends keyof typeof MessageMetaOptions>({
       }}
       value={value}
       onSelectionChange={(key) => {
-        setValue(key?.toString() as MessageConfigType<T1>);
+        setValue(key?.toString() as MessageMetaConfigFields<T1>);
       }}
       size="sm"
       className="w-fit text-xs font-mono hover:w-full"

@@ -8,21 +8,21 @@ import {
   SerialPortTypeCard,
 } from "./port_misc_state_indicator";
 import PortConfigGroups from "./port_config_groups";
-import { SerialPortConfig } from "@/types/serialport/serialport_config";
-import usePortStatus from "@/hooks/store/usePortStatus";
+import { SerialportConfig } from "@/types/serialport/serialport_config";
+import useSerialportStatus from "@/hooks/store/usePortStatus";
 import singleKeySetter from "@/util/util";
 
 const SerialPortOpener = ({
   serialPortConfig,
   setSerialPortConfig,
 }: {
-  serialPortConfig: SerialPortConfig;
-  setSerialPortConfig: React.Dispatch<React.SetStateAction<SerialPortConfig>>;
+  serialPortConfig: SerialportConfig;
+  setSerialPortConfig: React.Dispatch<React.SetStateAction<SerialportConfig>>;
 }) => {
   const { debouncedReloadPortList: reloadPortList } = useAvaliablePorts();
   useEffect(reloadPortList, []);
 
-  const { getPortStatusByName } = usePortStatus();
+  const { getPortStatusByName } = useSerialportStatus();
   const serialPortDeviceStatus = getPortStatusByName({
     port_name: serialPortConfig.port_name,
   });

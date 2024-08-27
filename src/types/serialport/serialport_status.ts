@@ -1,4 +1,4 @@
-import { SerialPortConfig } from "./serialport_config";
+import { SerialportConfig } from "./serialport_config";
 
 export type OpenedPortStatus = {
   Opened: {
@@ -6,7 +6,7 @@ export type OpenedPortStatus = {
     clear_to_send: boolean;
     data_set_ready: boolean;
     ring_indicator: boolean;
-  } & Omit<SerialPortConfig, "port_name">;
+  } & Omit<SerialportConfig, "port_name">;
 };
 
 export type USBPortInfo = {

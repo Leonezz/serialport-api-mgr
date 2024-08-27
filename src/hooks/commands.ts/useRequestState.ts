@@ -1,6 +1,6 @@
 import { useRequest, useResetState } from "ahooks";
 import { ActionResState } from "./util";
-import { RustBusError } from "@/bridge/call_rust";
+import { AppError } from "@/bridge/call_rust";
 
 const useRequestState = <Res, Payload extends any[]>({
   action,
@@ -14,14 +14,14 @@ const useRequestState = <Res, Payload extends any[]>({
   debounceWait?: number;
   manual?: boolean;
   onSuccess?: (d?: Res, p?: Payload) => void;
-  onError?: (e?: RustBusError, p?: Payload) => void;
+  onError?: (e?: AppError, p?: Payload) => void;
   defaultParams?: Payload;
 }) => {
   const [state, setState, resetState] = useResetState<ActionResState<Res>>({
     failed: false,
     succeed: false,
   });
-  const setFailed = (e: RustBusError) =>
+  const setFailed = (e: AppError) =>
     setState({ failed: true, succeed: false, data: undefined, error: e });
   const setSuccess = (d: Res) =>
     setState({ failed: false, succeed: true, data: d, error: undefined });

@@ -6,7 +6,7 @@ export type MessageType = {
   data: Buffer;
 };
 
-type PortStatus = {
+type SerialportStatusStore = {
   data: Map<
     string,
     {
@@ -16,7 +16,7 @@ type PortStatus = {
   >;
 };
 
-type PortStatusActions = {
+type SerialportStatusStoreActions = {
   updateAvaliablePorts: (props: { ports: SerialPortStatus[] }) => void;
   getPortStatusByName: (props: { port_name: string }) => SerialPortStatus | undefined;
   sendMessage: (props: { port_name: string; data: Buffer }) => void;
@@ -28,7 +28,7 @@ type PortStatusActions = {
   getOpenedPorts: () => string[];
 };
 
-const usePortStatus = create<PortStatus & PortStatusActions>((set, get) => ({
+const useSerialportStatus = create<SerialportStatusStore & SerialportStatusStoreActions>((set, get) => ({
   data: new Map(),
 
   updateAvaliablePorts: ({ ports }) =>
@@ -142,4 +142,4 @@ const usePortStatus = create<PortStatus & PortStatusActions>((set, get) => ({
   },
 }));
 
-export default usePortStatus;
+export default useSerialportStatus;

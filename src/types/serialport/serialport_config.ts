@@ -1,6 +1,9 @@
+// import { NamedConfigStoreType } from "@/util/store_types";
 import { SERIALPORT } from "./base";
 
-export type SerialPortConfig = {
+// export type NamedSerialportConfig = NamedConfigStoreType<SerialportConfig>;
+
+export type SerialportConfig = {
   port_name: string;
   baud_rate: number;
   data_bits: SERIALPORT.ConfigTypes<"data_bits">;
@@ -11,7 +14,7 @@ export type SerialPortConfig = {
   write_timeout: number;
 };
 
-export const DEFAULTSerialPortConfig: SerialPortConfig = {
+export const DEFAULTSerialportConfig: SerialportConfig = {
   port_name: "",
   baud_rate: SERIALPORT.CommonlyUsedBaudRates[0],
   data_bits: SERIALPORT.ConfigOptions["data_bits"][0],
