@@ -45,6 +45,7 @@ pub enum CmdErrorCode {
     RustChannelDisconnect,
     RustAsyncTimeout,
     RustHashMapError,
+    RustCreateFileFailed,
 
     SerialNoDevice,
     SerialInvalidInput,
@@ -63,20 +64,18 @@ pub struct CmdError {
 impl From<InnerError> for CmdError {
     fn from(value: InnerError) -> Self {
         let code = match value.code {
-            ErrorType::Rust(rust_error) =>
-                match rust_error {
-                    RustErrorType::ErrorAcquireRwLock => CmdErrorCode::RustRwLock,
-                    RustErrorType::ChannelDisconnected => CmdErrorCode::RustChannelDisconnect,
-                    RustErrorType::NoError => CmdErrorCode::NoError,
-                    RustErrorType::HashMapError => CmdErrorCode::RustHashMapError,
-                }
-            ErrorType::Serial(serial_error) =>
-                match serial_error {
-                    serialport5::ErrorKind::InvalidInput => CmdErrorCode::SerialInvalidInput,
-                    serialport5::ErrorKind::NoDevice => CmdErrorCode::SerialNoDevice,
-                    serialport5::ErrorKind::Unknown => CmdErrorCode::SerialUnknown,
-                    serialport5::ErrorKind::Io(_) => CmdErrorCode::SerialIoError,
-                }
+            ErrorType::Rust(rust_error) => match rust_error {
+                RustErrorType::ErrorAcquireRwLock => CmdErrorCode::RustRwLock,
+                RustErrorType::ChannelDisconnected => CmdErrorCode::RustChannelDisconnect,
+                RustErrorType::NoError => CmdErrorCode::NoError,
+                RustErrorType::HashMapError => CmdErrorCode::RustHashMapError,
+            },
+            ErrorType::Serial(serial_error) => match serial_error {
+                serialport5::ErrorKind::InvalidInput => CmdErrorCode::SerialInvalidInput,
+                serialport5::ErrorKind::NoDevice => CmdErrorCode::SerialNoDevice,
+                serialport5::ErrorKind::Unknown => CmdErrorCode::SerialUnknown,
+                serialport5::ErrorKind::Io(_) => CmdErrorCode::SerialIoError,
+            },
         };
         CmdError {
             code: code,

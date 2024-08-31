@@ -5,5 +5,5 @@ const useNamedMessageMetaConfigStore = buildNamedConfigStore<
   MessageMetaConfig,
   {},
   {}
->({}, {});
+>("messagemeta-config.json", {}, {});
 export default useNamedMessageMetaConfigStore;

@@ -1,6 +1,4 @@
 import { Accordion, AccordionItem, Chip, Divider } from "@nextui-org/react";
-import { useEffect } from "react";
-import useAvaliablePorts from "@/hooks/use_avaliable_ports";
 import PortSelector from "./port_selector";
 import { LucideSettings } from "lucide-react";
 import {
@@ -19,8 +17,6 @@ const SerialPortOpener = ({
   serialPortConfig: SerialportConfig;
   setSerialPortConfig: React.Dispatch<React.SetStateAction<SerialportConfig>>;
 }) => {
-  const { debouncedReloadPortList: reloadPortList } = useAvaliablePorts();
-  useEffect(reloadPortList, []);
 
   const { getPortStatusByName } = useSerialportStatus();
   const serialPortDeviceStatus = getPortStatusByName({
@@ -63,11 +59,11 @@ const SerialPortOpener = ({
                 }
                 singleKeySetter(setSerialPortConfig, "port_name")(portName);
               }}
-              refreshAvaliablePorts={reloadPortList}
               serialPortConfig={serialPortConfig}
             />
           </div>
         }
+        textValue="header"
       >
         <div className="flex flex-row space-x-2 w-full justify-stretch">
           <PortConfigGroups

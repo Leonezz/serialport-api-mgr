@@ -1,5 +1,5 @@
 import { MessageMetaConfig } from "@/types/message/message_meta";
-import useRequestState from "../commands.ts/useRequestState";
+import useRequestState from "../commands/useRequestState";
 import { emitToRustBus, AppError } from "@/bridge/call_rust";
 import { getSumCheckSigner } from "@/util/checksum";
 import { getCrlfAppender } from "@/util/crlf";

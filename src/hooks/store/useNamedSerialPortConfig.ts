@@ -5,5 +5,5 @@ const useNamedSerialortConfigStore = buildNamedConfigStore<
   Omit<SerialportConfig, "port_name">,
   {},
   {}
->({}, {});
+>("serialport-config.json", {}, {});
 export default useNamedSerialortConfigStore;

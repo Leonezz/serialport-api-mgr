@@ -26,6 +26,7 @@ const ReadableMessage = ({
     <div className="flex flex-row items-center">
       {lines.map((line) => (
         <p
+          key={line}
           className={`flex flex-row max-w-full text-wrap ${lineBreak} items-center align-middle`}
         >
           <p className="h-full">{line}</p>

@@ -1,65 +1,43 @@
-import {
-  emitToRustBus,
-} from "@/bridge/call_rust";
 import useSerialportStatus from "@/hooks/store/usePortStatus";
-import { Autocomplete, AutocompleteItem, Button } from "@nextui-org/react";
-import { useToast } from "../shadcn/use-toast";
-import useRequestState from "@/hooks/commands.ts/useRequestState";
+import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { convertPortTypeToString } from "@/types/serialport/serialport_status";
+import RefreshAvaliablePortsBtn from "./refresh_avaliable_ports_btn";
+import OpenPortBtn from "./open_port_btn";
 
 type PortSelectorProps = {
   setSelectedPortName: (port: string) => void;
-  refreshAvaliablePorts: () => void;
   serialPortConfig: SerialportConfig;
 };
 
 const PortSelector = ({
   setSelectedPortName,
-  refreshAvaliablePorts,
   serialPortConfig,
 }: PortSelectorProps) => {
   const selectedPortName = serialPortConfig.port_name;
-  const { loading: portOpening, runRequest: openPort } = useRequestState({
-    action: () =>
-      emitToRustBus("open_port", {
-        ...serialPortConfig,
-        port_name: selectedPortName,
-      }),
-    onError: (err) =>
-      toastError({
-        description: `Opening port ${selectedPortName} failed: ${err?.msg}`,
-      }),
-    onSuccess: () =>
-      toastSuccess({
-        description: `${selectedPortName} opened`,
-      }),
-  });
 
-  const { toastError, toastSuccess } = useToast();
-  const { loading: portClosing, runRequest: closePort } = useRequestState({
-    action: () =>
-      emitToRustBus("close_port", { port_name: selectedPortName }),
-    onError: (err) =>
-      toastError({
-        description: `Closing port ${selectedPortName} failed: ${err?.msg}`,
-      }),
-    onSuccess: () =>
-      toastSuccess({
-        description: `${selectedPortName} closed`,
-      }),
+  const {
+    data: portStatus,
+    getPortOpened,
+    getPortStatusByName,
+  } = useSerialportStatus();
+  const portOpened = getPortOpened({ port_name: selectedPortName });
+  const selectedPortStatus = getPortStatusByName({
+    port_name: selectedPortName,
   });
-
-  const { data: portStatus, getPortOpened, getPortStatusByName } = useSerialportStatus();
-  const portOpened = getPortOpened({port_name: selectedPortName});
-  const selectedPortStatus = getPortStatusByName({port_name: selectedPortName});
 
   return (
     <div className="flex flex-row sm:flex-nowrap flex-wrap gap-2 items-center z-50">
-      {portOpened ? <div className="flex flex-col gap-1 text-xs font-mono">
-        <p color="success" className="w-max text-primary">RX: {selectedPortStatus?.bytes_read || 0} bytes</p>
-        <p color="warning" className="w-max text-success">TX: {selectedPortStatus?.bytes_write || 0} bytes</p>
-      </div> : null}
+      {portOpened ? (
+        <div className="flex flex-col gap-1 text-xs font-mono">
+          <p color="success" className="w-max text-primary">
+            RX: {selectedPortStatus?.bytes_read || 0} bytes
+          </p>
+          <p color="warning" className="w-max text-success">
+            TX: {selectedPortStatus?.bytes_write || 0} bytes
+          </p>
+        </div>
+      ) : null}
       <Autocomplete
         allowsCustomValue={false}
         label={<p className="text-md min-w-max">Port to Open</p>}
@@ -89,7 +67,7 @@ const PortSelector = ({
             <div>
               <p className="text-md">
                 {key}
-                {getPortOpened({port_name: key}) ? "  (Opened)" : ""}
+                {getPortOpened({ port_name: key }) ? "  (Opened)" : ""}
               </p>
               <p className="text-sm">
                 {convertPortTypeToString(info.info.port_type)}
@@ -98,21 +76,8 @@ const PortSelector = ({
           </AutocompleteItem>
         )}
       </Autocomplete>
-      <Button
-        color="primary"
-        onClick={refreshAvaliablePorts}
-        isDisabled={portOpening}
-      >
-        Refresh
-      </Button>
-      <Button
-        color="danger"
-        onClick={portOpened ? closePort : openPort}
-        isLoading={portOpening || portClosing}
-        isDisabled={selectedPortName.length === 0}
-      >
-        {portOpened ? "Close" : "Open"}
-      </Button>
+      <RefreshAvaliablePortsBtn />
+      <OpenPortBtn serialportConfig={serialPortConfig} />
     </div>
   );
 };

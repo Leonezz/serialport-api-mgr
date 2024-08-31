@@ -1,5 +1,6 @@
 import { SerialPortStatus } from "@/types/serialport/serialport_status";
 import { create } from "zustand";
+import { mountStoreDevtool } from "simple-zustand-devtools";
 export type MessageType = {
   sender: "Local" | "Remote";
   time: Date;
@@ -18,7 +19,9 @@ type SerialportStatusStore = {
 
 type SerialportStatusStoreActions = {
   updateAvaliablePorts: (props: { ports: SerialPortStatus[] }) => void;
-  getPortStatusByName: (props: { port_name: string }) => SerialPortStatus | undefined;
+  getPortStatusByName: (props: {
+    port_name: string;
+  }) => SerialPortStatus | undefined;
   sendMessage: (props: { port_name: string; data: Buffer }) => void;
   reviceMessage: (props: { port_name: string; data: Buffer }) => void;
   getPortMessageList: (props: { port_name: string }) => MessageType[];
@@ -28,7 +31,9 @@ type SerialportStatusStoreActions = {
   getOpenedPorts: () => string[];
 };
 
-const useSerialportStatus = create<SerialportStatusStore & SerialportStatusStoreActions>((set, get) => ({
+const useSerialportStatus = create<
+  SerialportStatusStore & SerialportStatusStoreActions
+>((set, get) => ({
   data: new Map(),
 
   updateAvaliablePorts: ({ ports }) =>
@@ -42,7 +47,7 @@ const useSerialportStatus = create<SerialportStatusStore & SerialportStatusStore
       }
       return { data: prev.data };
     }),
-  getPortStatusByName: ({port_name}): SerialPortStatus | undefined => {
+  getPortStatusByName: ({ port_name }): SerialPortStatus | undefined => {
     const res = get().data.get(port_name);
     return res?.info;
   },
@@ -106,8 +111,8 @@ const useSerialportStatus = create<SerialportStatusStore & SerialportStatusStore
           data_set_ready: false,
           ring_indicator: false,
           read_timeout: 0,
-          write_timeout: 0
-        }
+          write_timeout: 0,
+        },
       };
       prev.data.set(portName, currentState);
       return {
@@ -141,5 +146,9 @@ const useSerialportStatus = create<SerialportStatusStore & SerialportStatusStore
       .map(([portName, _]) => portName);
   },
 }));
+
+if (import.meta.env.DEV) {
+  mountStoreDevtool("serialport_status", useSerialportStatus);
+}
 
 export default useSerialportStatus;

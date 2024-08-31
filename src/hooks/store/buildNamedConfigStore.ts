@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { v7 as uuid } from "uuid";
+import { devtools, persist } from "zustand/middleware";
+import mappedDataLocalFileStorage from "./persist/localFile";
 type NamedConfigStoreType<T> = {
   id: string;
   name: string;
@@ -25,60 +27,74 @@ type NamedConfigStoreCURDActions<T> = {
 };
 
 const buildNamedConfigStore = <T, Extra, ExtraActions>(
+  storageName: string,
   extraInit: Extra,
   actions: ExtraActions
 ) => {
   return create<
     NamedConfigStore<T> & Extra & NamedConfigStoreCURDActions<T> & ExtraActions
-  >((set, get) => ({
-    ...extraInit,
-    ...actions,
-    data: new Map(),
-    get: ({ id }) => {
-      return get().data.get(id);
-    },
-    delete: ({ id }) => {
-      if (!get().data.has(id)) {
-        return false;
-      }
-      set((prev) => {
-        prev.data.delete(id);
-        return {
-          ...prev,
-          data: prev.data,
-        };
-      });
-      return true;
-    },
-    add: ({ name, config }) => {
-      const id = uuid();
-      set((prev) => ({
-        ...prev,
-        data: prev.data.set(id, { id: id, name: name, config: config }),
-      }));
-      return id;
-    },
-    update: ({ id, name, config }) => {
-      if (!get().data.has(id)) {
-        return false;
-      }
-      set((prev) => {
-        const currentConfig = prev.data.get(id);
-        if (!currentConfig) {
-          return prev;
+  >()(
+    devtools(
+      persist(
+        (set, get) => ({
+          ...extraInit,
+          ...actions,
+          data: new Map(),
+          get: ({ id }) => {
+            return get().data.get(id);
+          },
+          delete: ({ id }) => {
+            if (!get().data.has(id)) {
+              return false;
+            }
+            set((prev) => {
+              prev.data.delete(id);
+              return {
+                ...prev,
+                data: prev.data,
+              };
+            });
+            return true;
+          },
+          add: ({ name, config }) => {
+            const id = uuid();
+            set((prev) => {
+              console.log(prev, prev.data);
+              return {
+                ...prev,
+                data: prev.data.set(id, { id: id, name: name, config: config }),
+              };
+            });
+            return id;
+          },
+          update: ({ id, name, config }) => {
+            if (!get().data.has(id)) {
+              return false;
+            }
+            set((prev) => {
+              const currentConfig = prev.data.get(id);
+              if (!currentConfig) {
+                return prev;
+              }
+              return {
+                ...prev,
+                data: prev.data.set(id, {
+                  id: id,
+                  name: name || currentConfig.name,
+                  config: { ...currentConfig.config, ...config },
+                }),
+              };
+            });
+            return true;
+          },
+        }),
+        {
+          name: storageName,
+          storage: mappedDataLocalFileStorage,
         }
-        return {
-          ...prev,
-          data: prev.data.set(id, {
-            id: id,
-            name: name || currentConfig.name,
-            config: { ...currentConfig.config, ...config },
-          }),
-        };
-      });
-      return true;
-    },
-  }));
+      )
+    )
+  );
 };
 
 export default buildNamedConfigStore;

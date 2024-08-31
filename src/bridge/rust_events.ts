@@ -4,8 +4,7 @@ import { listen, Event, UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { Buffer } from "buffer";
 import { INFO } from "./logging";
-import useAvaliablePorts from "@/hooks/use_avaliable_ports";
-
+import useAvaliablePorts from "@/hooks/commands/useAvaliablePorts";
 type TauriSerialEvents = {
   port_name: string;
 };
@@ -44,22 +43,21 @@ const port_read = (arg: TauriEvnts["port_read"]) => {
 };
 
 export const useTauriEvents = () => {
-  const { reviceMessage, sendMessage } =
-    useSerialportStatus();
-  const {debouncedReloadPortList} = useAvaliablePorts();
+  const { reviceMessage, sendMessage } = useSerialportStatus();
+  const { refresh } = useAvaliablePorts();
   useEffect(() => {
     const events: Promise<UnlistenFn>[] = [];
     events.push(
       listenTauriEvent("port_closed", (params) => {
         port_closed({ ...params });
-        debouncedReloadPortList();
+        refresh();
       })
     );
 
     events.push(
       listenTauriEvent("port_opened", (params) => {
         port_opened({ ...params });
-        debouncedReloadPortList();
+        refresh();
       })
     );
 
@@ -70,7 +68,7 @@ export const useTauriEvents = () => {
           port_name: port_name,
           data: Buffer.from(event.WriteFinished),
         });
-        debouncedReloadPortList();
+        refresh();
       })
     );
 
@@ -81,7 +79,7 @@ export const useTauriEvents = () => {
           port_name: port_name,
           data: Buffer.from(event.ReadFinished),
         });
-        debouncedReloadPortList();
+        refresh();
       })
     );
 

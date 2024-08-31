@@ -1,5 +1,5 @@
 import { emitToRustBus } from "@/bridge/call_rust";
-import useRequestState from "@/hooks/commands.ts/useRequestState";
+import useRequestState from "@/hooks/commands/useRequestState";
 import {
   Autocomplete,
   AutocompleteItem,
