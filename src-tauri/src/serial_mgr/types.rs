@@ -1,9 +1,16 @@
-use std::{default, time::Duration};
+use std::{ default, time::Duration };
 
-use serde::{de::value::Error, Serialize};
-use serialport5::{ DataBits, FlowControl, Parity, SerialPort, SerialPortInfo, SerialPortType, StopBits, UsbPortInfo };
-
-
+use serde::{ de::value::Error, Serialize };
+use serialport5::{
+    DataBits,
+    FlowControl,
+    Parity,
+    SerialPort,
+    SerialPortInfo,
+    SerialPortType,
+    StopBits,
+    UsbPortInfo,
+};
 
 #[derive(serde::Serialize, Debug, Clone)]
 pub enum SerialPortTypeForSerilize {
@@ -64,10 +71,10 @@ pub enum FlowControlForSerialize {
 
 impl From<FlowControl> for FlowControlForSerialize {
     fn from(value: FlowControl) -> Self {
-        match value{
+        match value {
             FlowControl::None => FlowControlForSerialize::None,
             FlowControl::Software => FlowControlForSerialize::Software,
-            FlowControl::Hardware => FlowControlForSerialize::Hardware
+            FlowControl::Hardware => FlowControlForSerialize::Hardware,
         }
     }
 }
@@ -78,7 +85,7 @@ pub enum DataBitsForSerialize {
     Six,
     Seven,
     #[default]
-    Eight
+    Eight,
 }
 
 impl From<DataBits> for DataBitsForSerialize {
@@ -87,7 +94,7 @@ impl From<DataBits> for DataBitsForSerialize {
             DataBits::Five => DataBitsForSerialize::Five,
             DataBits::Six => DataBitsForSerialize::Six,
             DataBits::Seven => DataBitsForSerialize::Seven,
-            DataBits::Eight => DataBitsForSerialize::Eight
+            DataBits::Eight => DataBitsForSerialize::Eight,
         }
     }
 }
@@ -97,7 +104,7 @@ pub enum ParityForSerialize {
     #[default]
     None,
     Even,
-    Odd
+    Odd,
 }
 
 impl From<Parity> for ParityForSerialize {
@@ -105,7 +112,7 @@ impl From<Parity> for ParityForSerialize {
         match value {
             Parity::None => ParityForSerialize::None,
             Parity::Even => ParityForSerialize::Even,
-            Parity::Odd => ParityForSerialize::Odd
+            Parity::Odd => ParityForSerialize::Odd,
         }
     }
 }
@@ -114,14 +121,14 @@ impl From<Parity> for ParityForSerialize {
 pub enum StopBitsForSerialize {
     #[default]
     One,
-    Two
+    Two,
 }
 
 impl From<StopBits> for StopBitsForSerialize {
     fn from(value: StopBits) -> Self {
         match value {
             StopBits::One => StopBitsForSerialize::One,
-            StopBits::Two => StopBitsForSerialize::Two
+            StopBits::Two => StopBitsForSerialize::Two,
         }
     }
 }
@@ -160,7 +167,7 @@ impl OpenedPortProfile {
 #[derive(Serialize, Debug, Clone, Copy)]
 pub enum PortStatusType {
     Opened(OpenedPortProfile),
-    Closed
+    Closed,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -170,4 +177,9 @@ pub struct PortInfo {
     pub port_status: PortStatusType,
     pub bytes_read: u128,
     pub bytes_write: u128,
+}
+
+pub struct SerialportMessage {
+    pub message_id: String,
+    pub data: Vec<u8>,
 }

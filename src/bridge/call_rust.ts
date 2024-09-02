@@ -37,7 +37,7 @@ export type RustBus = {
     returns: any;
   };
   write_port: {
-    args: CommandArgBase & { data: number[] };
+    args: CommandArgBase & { data: number[]; message_id: string };
     returns: void;
   };
   write_dtr: {

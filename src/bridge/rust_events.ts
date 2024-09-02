@@ -12,7 +12,17 @@ type TauriSerialEvents = {
 type TauriEvnts = {
   port_closed: {} & TauriSerialEvents;
   port_opened: {} & TauriSerialEvents;
-  port_wrote: { event: { WriteFinished: number[] } } & TauriSerialEvents;
+  port_wrote: {
+    event: { WriteFinished: { data: number[]; message_id: string } };
+  } & TauriSerialEvents;
+  port_write_sending: {
+    event: {
+      Writing: { data: number[]; message_id: string };
+    };
+  } & TauriSerialEvents;
+  port_write_failed: {
+    event: { WriteError: { data: number[]; error: any; message_id: string } };
+  } & TauriSerialEvents;
   port_read: { event: { ReadFinished: number[] } } & TauriSerialEvents;
 };
 
@@ -43,7 +53,8 @@ const port_read = (arg: TauriEvnts["port_read"]) => {
 };
 
 export const useTauriEvents = () => {
-  const { reviceMessage, sendMessage } = useSerialportStatus();
+  const { reviceMessage, messageSent, messageSendFailed, messageSending } =
+    useSerialportStatus();
   const { refresh } = useAvaliablePorts();
   useEffect(() => {
     const events: Promise<UnlistenFn>[] = [];
@@ -63,10 +74,32 @@ export const useTauriEvents = () => {
 
     events.push(
       listenTauriEvent("port_wrote", ({ port_name, event }) => {
-        port_wrote({ port_name: port_name, event: event });
-        sendMessage({
+        port_wrote({
           port_name: port_name,
-          data: Buffer.from(event.WriteFinished),
+          event: event,
+        });
+        messageSent({
+          port_name: port_name,
+          message_id: event.WriteFinished.message_id,
+        });
+        refresh();
+      })
+    );
+
+    events.push(
+      listenTauriEvent("port_write_sending", ({ event, port_name }) => {
+        messageSending({
+          port_name: port_name,
+          message_id: event.Writing.message_id,
+        });
+      })
+    );
+
+    events.push(
+      listenTauriEvent("port_write_failed", ({ port_name, event }) => {
+        messageSendFailed({
+          port_name: port_name,
+          message_id: event.WriteError.message_id,
         });
         refresh();
       })

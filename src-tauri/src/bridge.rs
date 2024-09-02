@@ -20,9 +20,7 @@ pub fn hello(param: &str) -> String {
 #[logcall(ok = "trace", err = "error")]
 pub async fn get_all_port_info() -> CmdResult<Vec<PortInfo>> {
     SerialMgr::update_avaliable_ports()
-        .and_then(|res|
-            Ok(res)
-        )
+        .and_then(|res| Ok(res))
         .or_else(|err| Err(err.into()))
 }
 
@@ -121,10 +119,10 @@ pub async fn write_rts(port_name: String, rts: bool) -> CmdResult<()> {
 
 #[tauri::command(async, rename_all = "snake_case")]
 #[logcall(ok = "trace", err = "error")]
-pub async fn write_port(port_name: String, data: Vec<u8>) -> CmdResult<()> {
+pub async fn write_port(port_name: String, data: Vec<u8>, message_id: String) -> CmdResult<()> {
     async_std::future
         ::timeout(Duration::from_secs(10), async {
-            serial_mgr::SerialMgr::write_port(port_name, data)
+            serial_mgr::SerialMgr::write_port(port_name, data, message_id)
         }).await
         .or_else(|_| {
             Err(CmdError {

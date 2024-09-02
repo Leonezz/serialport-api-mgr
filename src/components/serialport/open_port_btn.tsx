@@ -10,7 +10,7 @@ type OpenPortBtnProps = {
 const OpenPortBtn = ({ serialportConfig: serialport_config }: OpenPortBtnProps) => {
   const { getPortOpened } = useSerialportStatus();
   const portOpened = getPortOpened({ port_name: serialport_config.port_name });
-  const { portClosing, closePort } = useClosePort();
+  const { portClosing, closePort, } = useClosePort();
   const { portOpening, openPort } = useOpenPort();
 
   return (

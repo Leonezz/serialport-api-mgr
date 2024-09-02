@@ -1,7 +1,10 @@
 import { SerialPortStatus } from "@/types/serialport/serialport_status";
 import { create } from "zustand";
 import { mountStoreDevtool } from "simple-zustand-devtools";
+import { v7 as uuid } from "uuid";
 export type MessageType = {
+  id: string;
+  status: "received" | "sent" | "pending" | "sending" | "failed";
   sender: "Local" | "Remote";
   time: Date;
   data: Buffer;
@@ -12,7 +15,7 @@ type SerialportStatusStore = {
     string,
     {
       info: SerialPortStatus;
-      messages: MessageType[];
+      messages: Map<string, MessageType>;
     }
   >;
 };
@@ -22,7 +25,10 @@ type SerialportStatusStoreActions = {
   getPortStatusByName: (props: {
     port_name: string;
   }) => SerialPortStatus | undefined;
-  sendMessage: (props: { port_name: string; data: Buffer }) => void;
+  sendMessage: (props: { port_name: string; data: Buffer; id: string }) => void;
+  messageSent: (props: { port_name: string; message_id: string }) => void;
+  messageSending: (props: { port_name: string; message_id: string }) => void;
+  messageSendFailed: (props: { port_name: string; message_id: string }) => void;
   reviceMessage: (props: { port_name: string; data: Buffer }) => void;
   getPortMessageList: (props: { port_name: string }) => MessageType[];
   portOpened: (props: { port_name: string }) => void;
@@ -42,7 +48,7 @@ const useSerialportStatus = create<
         const prevInfo = prev.data.get(info.port_name);
         prev.data.set(info.port_name, {
           info: info,
-          messages: prevInfo?.messages || [],
+          messages: prevInfo?.messages || new Map(),
         });
       }
       return { data: prev.data };
@@ -51,7 +57,7 @@ const useSerialportStatus = create<
     const res = get().data.get(port_name);
     return res?.info;
   },
-  sendMessage: ({ port_name, data }) =>
+  sendMessage: ({ port_name, data, id }) =>
     set((prev) => {
       console.log(`${port_name} - ${data}`);
       const currentState = prev.data.get(port_name);
@@ -59,7 +65,9 @@ const useSerialportStatus = create<
       if (!currentState) {
         return { data: prev.data };
       }
-      currentState.messages.push({
+      currentState.messages.set(id, {
+        id: id,
+        status: "pending",
         sender: "Local",
         time: new Date(),
         data: data,
@@ -69,13 +77,76 @@ const useSerialportStatus = create<
         data: prev.data,
       };
     }),
+  messageSending: ({ port_name, message_id }) => {
+    set((prev) => {
+      console.log(`${port_name} message ${message_id} sending`);
+      const currentState = prev.data.get(port_name);
+      const message = currentState?.messages.get(message_id);
+      if (!currentState || !message) {
+        return { data: prev.data };
+      }
+      return {
+        data: prev.data.set(port_name, {
+          ...currentState,
+          messages: currentState.messages.set(message_id, {
+            ...message,
+            status: "sending",
+          }),
+        }),
+      };
+    });
+  },
+  messageSent: ({ port_name, message_id }) => {
+    set((prev) => {
+      console.log(
+        `${port_name} successfully sent a message, id: ${message_id}`
+      );
+      const currentState = prev.data.get(port_name);
+      const message = currentState?.messages.get(message_id);
+      if (!currentState || !message) {
+        return { data: prev.data };
+      }
+      return {
+        data: prev.data.set(port_name, {
+          ...currentState,
+          messages: currentState.messages.set(message_id, {
+            ...message,
+            status: "sent",
+          }),
+        }),
+      };
+    });
+  },
+  messageSendFailed: ({ port_name, message_id }) => {
+    set((prev) => {
+      console.error(`${port_name} send message ${message_id} failed`);
+      const currentState = prev.data.get(port_name);
+      const message = currentState?.messages.get(message_id);
+      if (!currentState || !message) {
+        return { data: prev.data };
+      }
+
+      return {
+        data: prev.data.set(port_name, {
+          ...currentState,
+          messages: currentState.messages.set(message_id, {
+            ...message,
+            status: "failed",
+          }),
+        }),
+      };
+    });
+  },
   reviceMessage: ({ port_name: portName, data: content }) =>
     set((prev) => {
       const currentState = prev.data.get(portName);
       if (!currentState) {
         return { data: prev.data };
       }
-      currentState.messages.push({
+      const messageId = uuid();
+      currentState.messages.set(messageId, {
+        id: messageId,
+        status: "received",
         sender: "Remote",
         time: new Date(),
         data: content,
@@ -90,7 +161,7 @@ const useSerialportStatus = create<
     if (!portState) {
       return [];
     }
-    return portState.messages;
+    return [...portState.messages.values()];
   },
 
   portOpened: ({ port_name: portName }) =>

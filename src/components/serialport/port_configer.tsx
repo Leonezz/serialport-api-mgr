@@ -17,7 +17,6 @@ const SerialPortOpener = ({
   serialPortConfig: SerialportConfig;
   setSerialPortConfig: React.Dispatch<React.SetStateAction<SerialportConfig>>;
 }) => {
-
   const { getPortStatusByName } = useSerialportStatus();
   const serialPortDeviceStatus = getPortStatusByName({
     port_name: serialPortConfig.port_name,
@@ -54,9 +53,6 @@ const SerialPortOpener = ({
           <div className="flex justify-end flex-wrap">
             <PortSelector
               setSelectedPortName={(portName) => {
-                if (portOpened) {
-                  return;
-                }
                 singleKeySetter(setSerialPortConfig, "port_name")(portName);
               }}
               serialPortConfig={serialPortConfig}
@@ -76,7 +72,9 @@ const SerialPortOpener = ({
             className="border-x-5 w-1 border-neutral-800 my-2"
           />
           <div className="flex flex-row justify-evenly gap-5">
-            <SerialPortTypeCard type={serialPortDeviceStatus?.port_type || "Unknown"} />
+            <SerialPortTypeCard
+              type={serialPortDeviceStatus?.port_type || "Unknown"}
+            />
             <SerialPortMiscIndicators
               status={serialPortDeviceStatus?.port_status}
             />

@@ -52,6 +52,7 @@ const Message = ({
   sender,
   time,
   data,
+  status,
   check_sum,
   ...messageMetaProps
 }: MessageProps & MessageMetaConfig) => {
@@ -76,9 +77,13 @@ const Message = ({
       color={color}
     >
       <p className="text-xs text-neutral-500 font-mono items-center">
-        <code>{`${
-          sender === "Remote" ? "Received" : "Send"
-        } at ${time.toLocaleTimeString()} (${bytesTotal} bytes total)`}</code>
+        {status === "received" || status === "sent" ? (
+          <code>{`${
+            sender === "Remote" ? "Received" : "Send"
+          } at ${time.toLocaleTimeString()} (${bytesTotal} bytes total)`}</code>
+        ) : (
+          <code>{`${status}`}</code>
+        )}
         {check_sum !== "None" ? (
           <Chip
             size="sm"
