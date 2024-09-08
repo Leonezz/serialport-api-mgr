@@ -31,9 +31,9 @@ const links: NavProps["links"] = [
     page: ConfigMgr,
   },
   {
-    title: "APIs",
+    title: "Conversation",
     id: uuid(),
-    description: "Serialport API with specific request and response",
+    description: "Serialport conversation with specific request and response",
     icon: Cable,
     variant: "ghost",
     page: () => <div>TBD</div>,
@@ -41,7 +41,7 @@ const links: NavProps["links"] = [
   {
     title: "Devices",
     id: uuid(),
-    description: "Serialport Device with multiple APIs",
+    description: "Serialport Device with configs and conversations",
     icon: Microchip,
     variant: "ghost",
     page: () => <div>TBD</div>,

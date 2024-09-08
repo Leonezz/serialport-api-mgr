@@ -28,8 +28,8 @@ const ListWithDetail = <T extends { id: string; modified: boolean }>({
   return (
     <div className="flex flex-row gap-2 w-full">
       <Card className="w-max min-w-[250px]">
-        <CardHeader>{topContent}</CardHeader>
-        <CardBody>
+        <CardHeader className="w-full">{topContent}</CardHeader>
+        <CardBody className="pt-0">
           <ScrollShadow
             size={100}
             hideScrollBar

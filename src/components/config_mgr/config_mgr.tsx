@@ -180,7 +180,7 @@ const ConfigMgrBuilder = <Key extends keyof SupportedConfig>(key: Key) => {
       }}
       renderTitle={title}
       topContent={
-        <div className="flex flex-row gap-1 justify-between items-center">
+        <div className="flex flex-row gap-1 justify-between items-center w-full">
           <span className="text-medium font-extrabold">Config List</span>
           <AddConfigToolBar
             onClick={() => {
