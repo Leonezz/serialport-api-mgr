@@ -29,3 +29,5 @@ tauri-plugin-log = "2.0.0-rc.0"
 logcall = "0.1.9"
 # tauri-plugin-devtools = "2.0.0-rc"
 tauri-plugin-fs = "2.0.0-rc.0"
+
+# nutype = "0.5.0"

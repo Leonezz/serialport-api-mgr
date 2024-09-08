@@ -16,4 +16,12 @@ const singleKeySetter = <T, Key extends keyof T>(
     );
 };
 
+export const partialSingleKeySetter = <T, Key extends keyof T>(
+  setter: (value: Partial<T>) => void,
+  key: Key
+) => {
+  //FIXME - MAKE this safe again
+  return (value: T[Key]) => setter({ [key]: value } as unknown as Partial<T>);
+};
+
 export default singleKeySetter;

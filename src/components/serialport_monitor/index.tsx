@@ -5,7 +5,6 @@ import useSerialportStatus from "@/hooks/store/usePortStatus";
 import MessageInput from "../serialport/msg_input";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { MessageMetaConfig } from "@/types/message/message_meta";
-import singleKeySetter from "@/util/util";
 
 type SerialPortDialogProps = {
   serial_port: SerialportConfig;
@@ -19,6 +18,11 @@ const SerialPortDialog = ({
     useState<SerialportConfig>(serial_port);
   const [messageConfig, setMessageConfig] =
     useState<MessageMetaConfig>(message_meta);
+  const updateMessageMetaConfig = (data: Partial<MessageMetaConfig>) =>
+    setMessageConfig((prev) => ({
+      ...prev,
+      ...data,
+    }));
 
   const { getPortMessageList, getPortOpened } = useSerialportStatus();
   const messages = getPortMessageList({
@@ -35,14 +39,8 @@ const SerialPortDialog = ({
       <MessageInput
         portOpened={portOpened}
         portName={serialPortConfig.port_name}
-        viewMode={messageConfig.view_mode}
-        setViewMode={singleKeySetter(setMessageConfig, "view_mode")}
-        crlfMode={messageConfig.crlf}
-        setCrlfMode={singleKeySetter(setMessageConfig, "crlf")}
-        textEncoding={messageConfig.text_encoding}
-        setTextEncoding={singleKeySetter(setMessageConfig, "text_encoding")}
-        checkSum={messageConfig.check_sum}
-        setCheckSum={singleKeySetter(setMessageConfig, "check_sum")}
+        messageMetaConfig={messageConfig}
+        updateMessageMetaConfig={updateMessageMetaConfig}
       />
     </div>
   );

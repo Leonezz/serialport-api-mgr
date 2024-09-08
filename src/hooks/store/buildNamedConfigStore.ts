@@ -2,27 +2,55 @@ import { create } from "zustand";
 import { v7 as uuid } from "uuid";
 import { devtools, persist } from "zustand/middleware";
 import mappedDataLocalFileStorage from "./persist/localFile";
-type NamedConfigStoreType<T> = {
+import { omit } from "es-toolkit";
+export type BasicConfigInfomation = {
   id: string;
   name: string;
-  config: T;
+  comment: string;
+  usedBy: string[];
+  createAt: Date;
+  updateAt: Date;
 };
+export type NamedConfigStoreType<T> = {
+  config: T;
+} & BasicConfigInfomation;
 type NamedConfigStore<T> = {
   data: Map<string, NamedConfigStoreType<T>>;
 };
 
 type NamedConfigStoreCURDActions<T> = {
   get: ({ id }: { id: string }) => NamedConfigStoreType<T> | undefined;
-  delete: ({ id }: { id: string }) => boolean;
-  add: ({ name, config }: { name: string; config: T }) => string;
-  update: ({
-    id,
+  getByName: ({
     name,
+  }: {
+    name: string;
+  }) => NamedConfigStoreType<T> | undefined;
+  getIdList: () => string[];
+  getNameList: () => string[];
+  getAll: () => NamedConfigStoreType<T>[];
+  delete: ({ id }: { id: string }) => boolean;
+  add: ({
+    basicInfo,
     config,
   }: {
+    basicInfo: Omit<
+      BasicConfigInfomation,
+      "id" | "createAt" | "updateAt" | "usedBy"
+    >;
+    config: T;
+  }) => string;
+  update: ({
+    id,
+    basicInfo,
+    config,
+    newUser,
+  }: {
     id: string;
-    name?: string;
-    config: Partial<T>;
+    basicInfo?: Partial<
+      Omit<BasicConfigInfomation, "id" | "createAt" | "updateAt" | "useBy">
+    >;
+    newUser?: string;
+    config?: Partial<T>;
   }) => boolean;
 };
 
@@ -43,6 +71,14 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
           get: ({ id }) => {
             return get().data.get(id);
           },
+          getByName: ({ name }) => {
+            const data = get().data;
+            return [...data.values()].find((value) => value.name === name);
+          },
+          getIdList: () => [...get().data.keys()],
+          getNameList: () =>
+            [...get().data.values()].map((value) => value.name),
+          getAll: () => [...get().data.values()],
           delete: ({ id }) => {
             if (!get().data.has(id)) {
               return false;
@@ -56,18 +92,28 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
             });
             return true;
           },
-          add: ({ name, config }) => {
+          add: ({ basicInfo, config }) => {
             const id = uuid();
             set((prev) => {
-              console.log(prev, prev.data);
+              const now = new Date();
+              const newEntry: Omit<NamedConfigStoreType<T>, "config"> = {
+                ...basicInfo,
+                id: id,
+                createAt: now,
+                updateAt: now,
+                usedBy: [],
+              };
               return {
                 ...prev,
-                data: prev.data.set(id, { id: id, name: name, config: config }),
+                data: prev.data.set(id, {
+                  ...newEntry,
+                  config: config,
+                }),
               };
             });
             return id;
           },
-          update: ({ id, name, config }) => {
+          update: ({ id, basicInfo, newUser, config }) => {
             if (!get().data.has(id)) {
               return false;
             }
@@ -80,8 +126,13 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
                 ...prev,
                 data: prev.data.set(id, {
                   id: id,
-                  name: name || currentConfig.name,
                   config: { ...currentConfig.config, ...config },
+                  ...omit(currentConfig, ["id", "config"]),
+                  ...basicInfo,
+                  updateAt: new Date(),
+                  usedBy: newUser
+                    ? [...currentConfig.usedBy, newUser]
+                    : currentConfig.usedBy,
                 }),
               };
             });

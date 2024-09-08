@@ -1,12 +1,18 @@
 import { useTauriEvents } from "@/bridge/rust_events";
 import RootLayout from "./layout/root";
-import { Cable, Combine, Microchip, MonitorCog } from "lucide-react";
+import {
+  Cable,
+  Combine,
+  FileSliders,
+  Microchip,
+  MonitorCog,
+} from "lucide-react";
 import { NavProps } from "./components/shadcn/nav";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import SerialPortMonitor from "./pages/serial_port_monitor";
 import { v7 as uuid } from "uuid";
-import useNamedSerialortConfigStore from "./hooks/store/useNamedSerialPortConfig";
-import { DEFAULTSerialportConfig } from "./types/serialport/serialport_config";
+import ConfigMgr from "./pages/config_mgr";
+
 const links: NavProps["links"] = [
   {
     title: "Monitor",
@@ -15,6 +21,14 @@ const links: NavProps["links"] = [
     icon: MonitorCog,
     variant: "default",
     page: SerialPortMonitor,
+  },
+  {
+    title: "Configs",
+    description: "Configurations for serialport hardware and messages",
+    id: uuid(),
+    icon: FileSliders,
+    variant: "default",
+    page: ConfigMgr,
   },
   {
     title: "APIs",

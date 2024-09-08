@@ -11,7 +11,7 @@ import {
   SerialPortStatus,
 } from "@/types/serialport/serialport_status";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
-import singleKeySetter from "@/util/util";
+import singleKeySetter, { partialSingleKeySetter } from "@/util/util";
 
 const TimeUnitsOptions = ["s", "ms", "us", "ns"] as const;
 export type TimeUnits = (typeof TimeUnitsOptions)[number];
@@ -97,54 +97,80 @@ const ReadTimeoutInput = ReadWriteTimeoutInput("read_timeout");
 const WriteTimeoutInput = ReadWriteTimeoutInput("write_timeout");
 
 type PortConfigGroupsProps = {
-  serialConfig: SerialportConfig;
-  setSerialConfig: React.Dispatch<SetStateAction<SerialportConfig>>;
+  value: SerialportConfig;
+  onValueChange: (value: Partial<SerialportConfig>) => void;
   portDeviceStatus?: SerialPortStatus;
+  verticalLayout?: boolean;
 };
 const PortConfigGroups = ({
-  serialConfig,
-  setSerialConfig,
+  value: serialConfig,
+  onValueChange: onSerialConfigChange,
   portDeviceStatus,
-}: PortConfigGroupsProps) => {
+  children,
+  verticalLayout,
+}: PortConfigGroupsProps &
+  Readonly<{
+    children?: React.ReactNode;
+  }>) => {
   return (
-    <div className=" space-y-2 pt-2 w-full">
-      <div className="flex flex-row gap-1">
+    <div className="flex flex-col gap-2 w-full">
+      <div
+        className={`flex flex-${verticalLayout ? "col" : "row"} gap-${
+          verticalLayout ? "4" : "1"
+        }`}
+      >
         <BaudRateInput
           value={serialConfig.baud_rate}
           portStatus={portDeviceStatus?.port_status}
-          setValue={singleKeySetter(setSerialConfig, "baud_rate")}
+          setValue={partialSingleKeySetter(onSerialConfigChange, "baud_rate")}
         />
         <ReadTimeoutInput
           value={serialConfig.read_timeout}
           portInfo={portDeviceStatus}
-          setValue={singleKeySetter(setSerialConfig, "read_timeout")}
+          setValue={partialSingleKeySetter(
+            onSerialConfigChange,
+            "read_timeout"
+          )}
         />
         <WriteTimeoutInput
           value={serialConfig.write_timeout}
           portInfo={portDeviceStatus}
-          setValue={singleKeySetter(setSerialConfig, "write_timeout")}
+          setValue={partialSingleKeySetter(
+            onSerialConfigChange,
+            "write_timeout"
+          )}
         />
       </div>
-      <DataBitsRadio
-        value={serialConfig.data_bits}
-        portStatus={portDeviceStatus?.port_status}
-        setValue={singleKeySetter(setSerialConfig, "data_bits")}
-      />
-      <FlowControlRadio
-        value={serialConfig.flow_control}
-        portStatus={portDeviceStatus?.port_status}
-        setValue={singleKeySetter(setSerialConfig, "flow_control")}
-      />
-      <ParityRadio
-        value={serialConfig.parity}
-        portStatus={portDeviceStatus?.port_status}
-        setValue={singleKeySetter(setSerialConfig, "parity")}
-      />
-      <StopBitsRadio
-        value={serialConfig.stop_bits}
-        portStatus={portDeviceStatus?.port_status}
-        setValue={singleKeySetter(setSerialConfig, "stop_bits")}
-      />
+      <div
+        className={`flex flex-${
+          verticalLayout ? "col" : "row flex-wrap"
+        } gap-2 justify-between pr-2`}
+      >
+        <DataBitsRadio
+          value={serialConfig.data_bits}
+          portStatus={portDeviceStatus?.port_status}
+          setValue={partialSingleKeySetter(onSerialConfigChange, "data_bits")}
+        />
+        <FlowControlRadio
+          value={serialConfig.flow_control}
+          portStatus={portDeviceStatus?.port_status}
+          setValue={partialSingleKeySetter(
+            onSerialConfigChange,
+            "flow_control"
+          )}
+        />
+        <ParityRadio
+          value={serialConfig.parity}
+          portStatus={portDeviceStatus?.port_status}
+          setValue={partialSingleKeySetter(onSerialConfigChange, "parity")}
+        />
+        <StopBitsRadio
+          value={serialConfig.stop_bits}
+          portStatus={portDeviceStatus?.port_status}
+          setValue={partialSingleKeySetter(onSerialConfigChange, "stop_bits")}
+        />
+      </div>
+      {children}
     </div>
   );
 };

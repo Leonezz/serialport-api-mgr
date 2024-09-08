@@ -36,7 +36,7 @@ const useRequestState = <Res, Payload extends any[]>({
       if (onError) {
         onError(e, p);
       }
-      console.log(e);
+      console.error(e);
     },
     onSuccess: (d: Res, p: Payload) => {
       setSuccess(d);

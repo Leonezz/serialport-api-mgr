@@ -84,7 +84,7 @@ const SerialPortMiscIndicators = ({
     );
   }
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-row flex-wrap gap-2">
       <p className="w-max text-md font-bold align-top">Port Status</p>
       <CarrireDetectIndicator value={!!status?.Opened.carrire_detect} />
       <ClearToSendIndicator value={!!status?.Opened.clear_to_send} />

@@ -20,21 +20,16 @@ type MessageInputProps = {
 } & MsgInputToolBarProps;
 const MessageInput = ({
   portName,
-  viewMode,
-  setViewMode,
-  crlfMode,
-  setCrlfMode,
   portOpened,
-  textEncoding,
-  setTextEncoding,
-  checkSum,
-  setCheckSum,
+  messageMetaConfig,
+  updateMessageMetaConfig,
 }: MessageInputProps) => {
   const [messageData, setMessageData] = useState("");
   const [visibleMessage, setVisibleMessage] = useState(messageData);
   const [messageError, setMessageError] = useState<string | undefined>(
     undefined
   );
+  const viewMode = messageMetaConfig.view_mode;
   useDebounceEffect(
     () => {
       if (viewMode === "Text") {
@@ -74,8 +69,8 @@ const MessageInput = ({
 
   const { toastError } = useToast();
   const { sending, sendMessageToSerialPort } = useSendMessage({
-    crlf: crlfMode,
-    checkSum: checkSum,
+    crlf: messageMetaConfig.crlf,
+    checkSum: messageMetaConfig.check_sum,
     onError: (err) =>
       toastError({
         description: `write ${messageData} to port ${portName} failed: ${err}`,
@@ -107,15 +102,9 @@ const MessageInput = ({
       <div className="flex items-center gap-2">
         <MsgInputToolBar
           portName={portName}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          crlfMode={crlfMode}
-          setCrlfMode={setCrlfMode}
-          textEncoding={textEncoding}
-          setTextEncoding={setTextEncoding}
           portOpened={portOpened}
-          checkSum={checkSum}
-          setCheckSum={setCheckSum}
+          messageMetaConfig={messageMetaConfig}
+          updateMessageMetaConfig={updateMessageMetaConfig}
         />
         <Button
           isDisabled={

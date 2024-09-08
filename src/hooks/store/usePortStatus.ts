@@ -91,6 +91,7 @@ const useSerialportStatus = create<
           messages: currentState.messages.set(message_id, {
             ...message,
             status: "sending",
+            time: new Date(),
           }),
         }),
       };
@@ -112,6 +113,7 @@ const useSerialportStatus = create<
           messages: currentState.messages.set(message_id, {
             ...message,
             status: "sent",
+            time: new Date(),
           }),
         }),
       };
@@ -132,6 +134,7 @@ const useSerialportStatus = create<
           messages: currentState.messages.set(message_id, {
             ...message,
             status: "failed",
+            time: new Date(),
           }),
         }),
       };

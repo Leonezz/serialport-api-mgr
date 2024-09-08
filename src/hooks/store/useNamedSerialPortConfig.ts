@@ -1,8 +1,12 @@
 import { SerialportConfig } from "@/types/serialport/serialport_config";
-import buildNamedConfigStore from "./buildNamedConfigStore";
+import buildNamedConfigStore, {
+  NamedConfigStoreType,
+} from "./buildNamedConfigStore";
+
+export type NamedSerialportConfig = NamedConfigStoreType<SerialportConfig>;
 
 const useNamedSerialortConfigStore = buildNamedConfigStore<
-  Omit<SerialportConfig, "port_name">,
+  SerialportConfig,
   {},
   {}
 >("serialport-config.json", {}, {});

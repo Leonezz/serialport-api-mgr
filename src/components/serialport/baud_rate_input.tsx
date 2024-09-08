@@ -1,15 +1,20 @@
 import { SERIALPORT } from "@/types/serialport/base";
-import { OpenedPortStatus, SerialPortStatus } from "@/types/serialport/serialport_status";
+import {
+  OpenedPortStatus,
+  SerialPortStatus,
+} from "@/types/serialport/serialport_status";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
 
 type BaudRateInputProps = {
   value: number;
-  portStatus?: SerialPortStatus["port_status"],
+  portStatus?: SerialPortStatus["port_status"];
   setValue: (value: number) => void;
 };
 const BaudRateInput = ({ value, setValue, portStatus }: BaudRateInputProps) => {
-  const readonly = !!portStatus && (portStatus !== "Closed");
-  const defauleValue = (readonly ? (portStatus as OpenedPortStatus).Opened.baud_rate : value).toString();
+  const readonly = !!portStatus && portStatus !== "Closed";
+  const defauleValue = (
+    readonly ? (portStatus as OpenedPortStatus).Opened.baud_rate : value
+  ).toString();
   return (
     <Autocomplete
       isReadOnly={readonly}
@@ -26,6 +31,7 @@ const BaudRateInput = ({ value, setValue, portStatus }: BaudRateInputProps) => {
       size="sm"
       value={defauleValue}
       defaultInputValue={defauleValue}
+      inputValue={defauleValue}
       onValueChange={(value) => {
         setValue(Number(value));
       }}

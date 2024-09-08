@@ -1,5 +1,8 @@
 import { SERIALPORT } from "@/types/serialport/base";
-import { OpenedPortStatus, SerialPortStatus } from "@/types/serialport/serialport_status";
+import {
+  OpenedPortStatus,
+  SerialPortStatus,
+} from "@/types/serialport/serialport_status";
 import { Radio, RadioGroup } from "@nextui-org/react";
 import { startCase } from "es-toolkit";
 
@@ -22,8 +25,10 @@ const RadioBuilder = <
   type OptionType = SERIALPORT.ConfigTypes<T1>;
   type Props = SerialConfigRadioProps<T1>;
   const component = ({ value, portStatus, setValue }: Props) => {
-    const readonly = !!portStatus && (portStatus !== "Closed");
-    const defaultValue = (readonly ? (portStatus as OpenedPortStatus).Opened[radioFor] : value).toString();
+    const readonly = !!portStatus && portStatus !== "Closed";
+    const defaultValue = (
+      readonly ? (portStatus as OpenedPortStatus).Opened[radioFor] : value
+    ).toString();
     return (
       <RadioGroup
         isReadOnly={readonly}
@@ -36,6 +41,9 @@ const RadioBuilder = <
         value={defaultValue.toString()}
         onValueChange={(v) => {
           setValue(v as OptionType);
+        }}
+        classNames={{
+          wrapper: "flex-nowrap"
         }}
       >
         {options.map((v) => (
