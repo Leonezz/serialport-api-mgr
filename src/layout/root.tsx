@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <Providers>
       <div className="h-screen min-h-96 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="p-2 h-full">
+        <ResizablePanelGroup direction="horizontal" className="p-0 h-full">
           <ResizablePanel
             collapsible
             collapsedSize={5}
