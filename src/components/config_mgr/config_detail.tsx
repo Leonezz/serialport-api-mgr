@@ -9,8 +9,9 @@ import {
   Snippet,
   Textarea,
 } from "@nextui-org/react";
-import { Fragment, ReactNode } from "react";
+import { Fragment, ReactNode, useState } from "react";
 import DeleteConfirmPopover from "../basics/delete-confirm-popover";
+import { ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 
 type ConfigDetailCommonProps = {
   value: BasicConfigInfomation;
@@ -31,19 +32,40 @@ const ConfigDetailCommon = ({
   onValueSave,
   onValueDelete,
 }: ConfigDetailCommonProps & Readonly<{ children: ReactNode }>) => {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <div className="flex flex-row gap-2 w-full">
       <Card className="w-full">
         <CardHeader className="text-large font-extrabold">
-          Device Config
+          Detail Config
         </CardHeader>
         <CardBody className=" scrollbar-hide">{children}</CardBody>
       </Card>
-      <Card className="w-full">
-        <CardHeader className="text-large font-extrabold">
-          Common Information
+      <Card className={`w-${collapsed ? "fit" : "full"}`}>
+        <CardHeader
+          className={`flex flex-row justify-${
+            collapsed ? "around" : "between"
+          }`}
+        >
+          {!collapsed && (
+            <span className="text-large font-extrabold">Common Config</span>
+          )}
+          <Button
+            size="sm"
+            variant="light"
+            color="primary"
+            isIconOnly
+            onClick={() => setCollapsed((prev) => !prev)}
+          >
+            {collapsed ? <ChevronsLeftRight /> : <ChevronsRightLeft />}
+          </Button>
         </CardHeader>
-        <CardBody className="flex flex-col gap-4 w-full scrollbar-hide">
+        <CardBody
+          className={`flex flex-col gap-4 w-full scrollbar-hide ${
+            collapsed ? "hidden" : ""
+          }`}
+        >
           <Snippet symbol="ID: " size="sm" codeString={value.id}>
             {value.id}
           </Snippet>
@@ -87,7 +109,7 @@ const ConfigDetailCommon = ({
             onValueChange={(v) => onValueChange({ comment: v })}
           />
         </CardBody>
-        <CardFooter className="justify-end">
+        <CardFooter className={`justify-end ${collapsed ? "hidden" : ""}`}>
           <DeleteConfirmPopover
             content={
               <Fragment>

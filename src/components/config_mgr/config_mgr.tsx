@@ -14,7 +14,7 @@ import { BasicConfigInfomation } from "@/hooks/store/buildNamedConfigStore";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { usePrevious, useSafeState } from "ahooks";
 import { isEqual, omit } from "es-toolkit";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   DEFAULTMessageConfig,
   MessageMetaConfig,
@@ -23,6 +23,12 @@ import useNamedMessageMetaConfigStore, {
   NamedMessageMetaConfig,
 } from "@/hooks/store/useNamedMessageMetaConfig";
 import MessageMetaConfiger from "../serialport/message_meta_configer";
+import useNamedApiStore, {
+  NamedSerialportApi,
+} from "@/hooks/store/useNamedConversationStore";
+import { DEFAULTSerialportConversation } from "@/types/conversation/default";
+import SerialportConversation from "@/types/conversation";
+import ConversationConfigDetailView from "../conversation/conversation_config_detail_view";
 
 type SupportedConfig = {
   serialport: {
@@ -33,14 +39,25 @@ type SupportedConfig = {
     configType: MessageMetaConfig;
     namedConfigType: NamedMessageMetaConfig;
   };
+  api: {
+    configType: SerialportConversation;
+    namedConfigType: NamedSerialportApi;
+  };
 };
 const UseStoreHandles = {
   serialport: useNamedSerialortConfigStore,
   message: useNamedMessageMetaConfigStore,
+  api: useNamedApiStore,
 } as const;
 const DEFAULTConfigs = {
   serialport: DEFAULTSerialportConfig,
   message: DEFAULTMessageConfig,
+  api: DEFAULTSerialportConversation,
+} as const;
+const ConfigDetailViews = {
+  serialport: PortConfigGroups,
+  message: MessageMetaConfiger,
+  api: ConversationConfigDetailView,
 } as const;
 
 type ConfigDetailProps<Key extends keyof SupportedConfig> = {
@@ -57,7 +74,6 @@ const ConfigMgrDetailViewBuilder = <Key extends keyof SupportedConfig>({
   onValueDelete,
 }: ConfigDetailProps<Key> & { configDetailFor: Key }) => {
   type ConfigDataType = SupportedConfig[Key]["configType"];
-
   const [defaultValue, setDefaultValue] = useSafeState(value);
   const previousValue = usePrevious(value);
   const { update: updateConfig, delete: deleteConfig } =
@@ -104,6 +120,17 @@ const ConfigMgrDetailViewBuilder = <Key extends keyof SupportedConfig>({
     onValueDelete();
   };
 
+  const DetailView = useMemo(
+    () =>
+      ConfigDetailViews[configDetailFor]({
+        //@ts-expect-error
+        value: defaultValue.config,
+        onValueChange: setConfig,
+        verticalLayout: true,
+      }),
+    [configDetailFor, defaultValue.config, setConfig]
+  );
+
   return (
     <ConfigDetailCommon
       value={defaultValue}
@@ -112,21 +139,7 @@ const ConfigMgrDetailViewBuilder = <Key extends keyof SupportedConfig>({
       onValueDelete={doDeleteConfig}
       readonly={false}
     >
-      {configDetailFor === "serialport" ? (
-        <PortConfigGroups
-          //FIXME - TYPE safety
-          value={defaultValue.config as SerialportConfig}
-          onValueChange={setConfig}
-          verticalLayout
-        />
-      ) : (
-        <MessageMetaConfiger
-          //FIXME - TYPE safety
-          value={defaultValue.config as MessageMetaConfig}
-          onValueChange={setConfig}
-          verticalLayout
-        />
-      )}
+      {DetailView}
     </ConfigDetailCommon>
   );
 };
@@ -194,7 +207,8 @@ const ConfigMgrBuilder = <Key extends keyof SupportedConfig>(key: Key) => {
                   comment: "",
                 },
                 //FIXME - TYPE safety
-                config: defaultConfig as SerialportConfig & MessageMetaConfig,
+                //@ts-expect-error
+                config: defaultConfig,
               });
             }}
           />

@@ -1,14 +1,11 @@
 import ConfigMgrBuilder from "@/components/config_mgr/config_mgr";
+import { ConfigIcons } from "@/components/config_mgr/config_title";
 import { Tabs, Tab } from "@nextui-org/react";
-import { Handshake, Usb } from "lucide-react";
 
 const ConfigMgr = () => {
   const SerialportConfigMgr = ConfigMgrBuilder("serialport");
   const MessageMetaConfigMgr = ConfigMgrBuilder("message");
-  const tabs = [];
-  for (let i = 0; i < 145; ++i) {
-    tabs.push({ id: i.toString() });
-  }
+  const ApiConfigMgr = ConfigMgrBuilder("api");
   return (
     <div className="flex h-full w-full flex-col max-h-full ">
       <Tabs
@@ -24,7 +21,7 @@ const ConfigMgr = () => {
           key="serialport"
           title={
             <div className="flex items-center space-x-2">
-              <Usb />
+              <ConfigIcons.serialport />
               <span>Serialport</span>
             </div>
           }
@@ -35,12 +32,23 @@ const ConfigMgr = () => {
           key="message"
           title={
             <div className="flex items-center space-x-2">
-              <Handshake />
+              <ConfigIcons.message />
               <span>Message</span>
             </div>
           }
         >
           {MessageMetaConfigMgr}
+        </Tab>
+        <Tab
+          key={"api"}
+          title={
+            <div className="flex items-center space-x-2">
+              <ConfigIcons.api />
+              <span>Api</span>
+            </div>
+          }
+        >
+          {ApiConfigMgr}
         </Tab>
       </Tabs>
     </div>

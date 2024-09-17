@@ -31,14 +31,6 @@ const links: NavProps["links"] = [
     page: ConfigMgr,
   },
   {
-    title: "Conversation",
-    id: uuid(),
-    description: "Serialport conversation with specific request and response",
-    icon: Cable,
-    variant: "ghost",
-    page: () => <div>TBD</div>,
-  },
-  {
     title: "Devices",
     id: uuid(),
     description: "Serialport Device with configs and conversations",

@@ -1,22 +1,27 @@
 import { Avatar } from "@nextui-org/react";
-import { Handshake, Usb } from "lucide-react";
+import { Handshake, MessagesSquare, Usb } from "lucide-react";
+export const ConfigIcons = {
+  serialport: Usb,
+  message: Handshake,
+  api: MessagesSquare,
+};
 
 const ConfigTitle = ({
   type,
   content,
 }: {
-  type: "serialport" | "message";
+  type: keyof typeof ConfigIcons;
   content: string;
 }) => {
-  const icon =
-    type === "serialport" ? (
-      <Usb size={4} className="h-4 w-4" />
-    ) : (
-      <Handshake />
-    );
+  const ICON = ConfigIcons[type];
   return (
     <div className="flex gap-2 items-center">
-      <Avatar alt={content} className=" h-6 w-6" radius="sm" icon={icon} />
+      <Avatar
+        alt={content}
+        className=" h-6 w-6"
+        radius="sm"
+        icon={<ICON className="h-4 w-4" />}
+      />
       <span className="text-md max-w-[130px] truncate">{content}</span>
     </div>
   );
