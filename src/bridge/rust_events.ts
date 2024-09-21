@@ -1,5 +1,5 @@
 "use client";
-import useSerialportStatus from "@/hooks/store/usePortStatus";
+import { useSerialportStatus } from "@/hooks/store/usePortStatus";
 import { listen, Event, UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { Buffer } from "buffer";

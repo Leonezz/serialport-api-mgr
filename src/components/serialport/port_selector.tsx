@@ -1,4 +1,4 @@
-import useSerialportStatus from "@/hooks/store/usePortStatus";
+import { useSerialportStatus } from "@/hooks/store/usePortStatus";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { convertPortTypeToString } from "@/types/serialport/serialport_status";

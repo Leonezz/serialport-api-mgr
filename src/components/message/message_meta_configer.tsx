@@ -8,8 +8,10 @@ import { startCase } from "es-toolkit";
 
 const OptionSelector = <T1 extends keyof typeof MessageMetaOptions>({
   selectorFor,
+  fullWidth,
 }: {
   selectorFor: T1;
+  fullWidth?: boolean;
 }) => {
   const options = MessageMetaOptions[selectorFor];
   return ({
@@ -44,7 +46,9 @@ const OptionSelector = <T1 extends keyof typeof MessageMetaOptions>({
         setValue(key?.toString() as MessageMetaConfigFields<T1>);
       }}
       size="sm"
-      className="w-fit text-xs font-mono hover:w-full"
+      className={`w-${
+        fullWidth ? "full" : "fit"
+      } text-xs font-mono hover:w-full`}
       isClearable={false}
     >
       {options.map((option) => (
@@ -60,29 +64,33 @@ const OptionSelector = <T1 extends keyof typeof MessageMetaOptions>({
   );
 };
 
-const ViewModeSelector = OptionSelector({
-  selectorFor: "view_mode",
-});
-const TextEncodingSelector = OptionSelector({
-  selectorFor: "text_encoding",
-});
-const CRLFSelector = OptionSelector({
-  selectorFor: "crlf",
-});
-const CheckSumSelector = OptionSelector({
-  selectorFor: "check_sum",
-});
-
 type MessageMetaConfigerProps = {
   value: MessageMetaConfig;
   onValueChange: (data: Partial<MessageMetaConfig>) => void;
   verticalLayout?: boolean;
+  fullWidth?: boolean;
 };
 const MessageMetaConfiger = ({
   value,
   onValueChange,
   verticalLayout,
 }: MessageMetaConfigerProps) => {
+  const ViewModeSelector = OptionSelector({
+    selectorFor: "view_mode",
+    fullWidth: verticalLayout,
+  });
+  const TextEncodingSelector = OptionSelector({
+    selectorFor: "text_encoding",
+    fullWidth: verticalLayout,
+  });
+  const CRLFSelector = OptionSelector({
+    selectorFor: "crlf",
+    fullWidth: verticalLayout,
+  });
+  const CheckSumSelector = OptionSelector({
+    selectorFor: "check_sum",
+    fullWidth: verticalLayout,
+  });
   return (
     <div
       className={`flex flex-${verticalLayout ? "col" : "row"} gap-${
@@ -115,4 +123,4 @@ const MessageMetaConfiger = ({
   );
 };
 
-export default MessageMetaConfiger;
+export { MessageMetaConfiger };

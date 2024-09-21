@@ -1,5 +1,6 @@
-import SerialportConversation from "@/types/conversation";
-import buildNamedConfigStore, {
+import { SerialportConversation } from "@/types/conversation";
+import {
+  buildNamedConfigStore,
   NamedConfigStoreType,
 } from "./buildNamedConfigStore";
 
@@ -10,4 +11,4 @@ const useNamedApiStore = buildNamedConfigStore<SerialportConversation, {}, {}>(
   {},
   {}
 );
-export default useNamedApiStore;
+export { useNamedApiStore };

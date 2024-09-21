@@ -6,25 +6,45 @@ import {
   ListboxItem,
   ScrollShadow,
 } from "@nextui-org/react";
-import { ReactNode, useState } from "react";
+import { ComponentType, ReactNode, useMemo, useState } from "react";
+import { SupportedConfig } from "../config_mgr/util";
 
-type ListWithDetailProps<T extends { id: string; modified: boolean }> = {
-  items: T[];
+type ListWithDetailProps<Key extends keyof SupportedConfig> = {
+  items: SupportedConfig[Key]["namedConfigType"][];
+  modifiedItems: Set<string>;
   defaultSelectId: string;
-  detailView: (item: T | undefined) => ReactNode;
-  renderTitle: (item: T) => ReactNode;
+  detailView: (item: SupportedConfig[Key]["namedConfigType"]) => ReactNode;
+  renderTitle: ComponentType<{
+    item: SupportedConfig[Key]["namedConfigType"];
+  }>;
   topContent?: ReactNode;
 };
-const ListWithDetail = <T extends { id: string; modified: boolean }>({
+const ListWithDetail = <Key extends keyof SupportedConfig>({
   items,
+  modifiedItems,
   defaultSelectId,
   detailView,
-  renderTitle,
+  renderTitle: Title,
   topContent,
-}: ListWithDetailProps<T>) => {
+}: ListWithDetailProps<Key>) => {
   const [selectedId, setSelectedId] = useState(defaultSelectId);
-  const selectedItem = items.find((v) => v.id === selectedId);
+  const selectedItem = useMemo(() => {
+    return items.filter((v) => v.id === selectedId);
+  }, [items, selectedId]);
 
+  const configDetailView = useMemo(
+    () =>
+      selectedItem && selectedItem.length === 1 ? (
+        detailView(selectedItem[0])
+      ) : (
+        <Card className="w-full justify-center">
+          <span className="text-neutral-500 text-3xl text-center">
+            Not Selected
+          </span>
+        </Card>
+      ),
+    [selectedItem]
+  );
   return (
     <div className="flex flex-row gap-2 w-full">
       <Card className="w-max min-w-[250px]">
@@ -41,7 +61,10 @@ const ListWithDetail = <T extends { id: string; modified: boolean }>({
               }}
               selectionMode="single"
               defaultSelectedKeys={[defaultSelectId]}
-              items={items}
+              items={items.map((v) => ({
+                ...v,
+                modified: modifiedItems.has(v.id),
+              }))}
               onSelectionChange={(keys) => {
                 if (keys === "all") {
                   return;
@@ -54,27 +77,29 @@ const ListWithDetail = <T extends { id: string; modified: boolean }>({
               }}
               variant="solid"
             >
-              {(item) => (
-                <ListboxItem
-                  key={item.id}
-                  endContent={
-                    item.modified ? (
-                      <span className=" text-medium font-mono text-red-500">
-                        M
-                      </span>
-                    ) : null
-                  }
-                >
-                  <div className="flex flex-row justify-between">
-                    {renderTitle(item)}
-                  </div>
-                </ListboxItem>
-              )}
+              {(item) => {
+                return (
+                  <ListboxItem
+                    key={item.id}
+                    endContent={
+                      item.modified ? (
+                        <span className=" text-medium font-mono text-red-500">
+                          M
+                        </span>
+                      ) : null
+                    }
+                  >
+                    <div className="flex flex-row justify-between">
+                      <Title item={item} />
+                    </div>
+                  </ListboxItem>
+                );
+              }}
             </Listbox>
           </ScrollShadow>
         </CardBody>
       </Card>
-      {detailView(selectedItem)}
+      {configDetailView}
     </div>
   );
 };

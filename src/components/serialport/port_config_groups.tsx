@@ -3,7 +3,7 @@ import DataBitsRadio from "./data_bits_radio";
 import FlowControlRadio from "./flow_control_radio";
 import ParityRadio from "./parity_radio";
 import StopBitsRadio from "./stop_bits_radio";
-import React, { SetStateAction, useState } from "react";
+import React, { useState } from "react";
 import { startCase } from "es-toolkit";
 import { Input } from "@nextui-org/react";
 import {
@@ -11,7 +11,7 @@ import {
   SerialPortStatus,
 } from "@/types/serialport/serialport_status";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
-import singleKeySetter, { partialSingleKeySetter } from "@/util/util";
+import { partialSingleKeySetter } from "@/util/util";
 
 const TimeUnitsOptions = ["s", "ms", "us", "ns"] as const;
 export type TimeUnits = (typeof TimeUnitsOptions)[number];
@@ -175,4 +175,4 @@ const PortConfigGroups = ({
   );
 };
 
-export default PortConfigGroups;
+export { PortConfigGroups };

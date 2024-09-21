@@ -1,11 +1,24 @@
-import ConfigMgrBuilder from "@/components/config_mgr/config_mgr";
+import ConfigMgrWrapper from "@/components/config_mgr/config_mgr";
 import { ConfigIcons } from "@/components/config_mgr/config_title";
+import { ConversationConfigMgr } from "@/components/conversation/config_mgr_wrapper";
+import { SerialportDeviceConfigMgr } from "@/components/device/config_mgr_wrapper";
+import MessageMetaConfigMgrDetail from "@/components/message/config_mgr/wrapper";
+import SerialportConfigMgrDetail from "@/components/serialport/config_mgr/wrapper";
 import { Tabs, Tab } from "@nextui-org/react";
 
 const ConfigMgr = () => {
-  const SerialportConfigMgr = ConfigMgrBuilder("serialport");
-  const MessageMetaConfigMgr = ConfigMgrBuilder("message");
-  const ApiConfigMgr = ConfigMgrBuilder("api");
+  const SerialportConfigMgr = ConfigMgrWrapper<"serialport">({
+    children: SerialportConfigMgrDetail,
+  });
+  const MessageMetaConfigMgr = ConfigMgrWrapper<"message">({
+    children: MessageMetaConfigMgrDetail,
+  });
+  const ApiConfigMgr = ConfigMgrWrapper<"api">({
+    children: ConversationConfigMgr,
+  });
+  const DeviceConfigMgr = ConfigMgrWrapper<"device">({
+    children: SerialportDeviceConfigMgr,
+  });
   return (
     <div className="flex h-full w-full flex-col max-h-full ">
       <Tabs
@@ -26,7 +39,7 @@ const ConfigMgr = () => {
             </div>
           }
         >
-          {SerialportConfigMgr}
+          <SerialportConfigMgr configFor="serialport" />
         </Tab>
         <Tab
           key="message"
@@ -37,7 +50,7 @@ const ConfigMgr = () => {
             </div>
           }
         >
-          {MessageMetaConfigMgr}
+          <MessageMetaConfigMgr configFor="message" />
         </Tab>
         <Tab
           key={"api"}
@@ -48,7 +61,18 @@ const ConfigMgr = () => {
             </div>
           }
         >
-          {ApiConfigMgr}
+          <ApiConfigMgr configFor="api" />
+        </Tab>
+        <Tab
+          key={"device"}
+          title={
+            <div className="flex items-center space-x-2">
+              <ConfigIcons.device />
+              <span>Device</span>
+            </div>
+          }
+        >
+          <DeviceConfigMgr configFor="device" />
         </Tab>
       </Tabs>
     </div>

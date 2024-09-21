@@ -58,4 +58,4 @@ const useRequestState = <Res, Payload extends any[]>({
   };
 };
 
-export default useRequestState;
+export { useRequestState };

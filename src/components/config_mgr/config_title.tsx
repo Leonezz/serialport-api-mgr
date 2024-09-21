@@ -1,18 +1,17 @@
 import { Avatar } from "@nextui-org/react";
-import { Handshake, MessagesSquare, Usb } from "lucide-react";
+import { Handshake, MessagesSquare, Microchip, Usb } from "lucide-react";
 export const ConfigIcons = {
   serialport: Usb,
   message: Handshake,
   api: MessagesSquare,
+  device: Microchip,
 };
 
-const ConfigTitle = ({
-  type,
-  content,
-}: {
+export type ConfigTitleProps = {
   type: keyof typeof ConfigIcons;
   content: string;
-}) => {
+};
+export const ConfigTitle = ({ type, content }: ConfigTitleProps) => {
   const ICON = ConfigIcons[type];
   return (
     <div className="flex gap-2 items-center">
@@ -26,4 +25,3 @@ const ConfigTitle = ({
     </div>
   );
 };
-export default ConfigTitle;

@@ -1,5 +1,6 @@
 import { MessageMetaConfig } from "@/types/message/message_meta";
-import buildNamedConfigStore, {
+import {
+  buildNamedConfigStore,
   NamedConfigStoreType,
 } from "./buildNamedConfigStore";
 
@@ -10,4 +11,4 @@ const useNamedMessageMetaConfigStore = buildNamedConfigStore<
   {},
   {}
 >("messagemeta-config.json", {}, {});
-export default useNamedMessageMetaConfigStore;
+export { useNamedMessageMetaConfigStore };

@@ -225,4 +225,4 @@ if (import.meta.env.DEV) {
   mountStoreDevtool("serialport_status", useSerialportStatus);
 }
 
-export default useSerialportStatus;
+export { useSerialportStatus };

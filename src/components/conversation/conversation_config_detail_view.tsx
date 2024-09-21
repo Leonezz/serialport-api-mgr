@@ -1,16 +1,17 @@
-import SerialportConversation from "@/types/conversation";
+import { SerialportConversation } from "@/types/conversation";
 import { Textarea } from "@nextui-org/react";
 
-type ConversationConfigDetailViewProps = {
+type ConversationConfigerProps = {
   value: SerialportConversation;
   onValueChange: (v: Partial<SerialportConversation>) => void;
   verticalLayout?: boolean;
+  readonly?: boolean;
 };
-const ConversationConfigDetailView = ({
+const ConversationConfiger = ({
   value,
   onValueChange,
-  verticalLayout,
-}: ConversationConfigDetailViewProps) => {
+  readonly,
+}: ConversationConfigerProps) => {
   return (
     <div className="flex flex-col gap-2">
       <Textarea
@@ -30,10 +31,13 @@ const ConversationConfigDetailView = ({
           base: "max-w-full",
           input: "resize-none min-h-[40px]",
         }}
+        readOnly={readonly}
       />
       <Textarea
         value={value.response}
-        onValueChange={(value) => onValueChange({ response: value })}
+        onValueChange={(value) => {
+          onValueChange({ response: value });
+        }}
         variant="bordered"
         placeholder="Enter the request content"
         label={
@@ -46,9 +50,10 @@ const ConversationConfigDetailView = ({
           base: "max-w-full",
           input: "resize-none min-h-[40px]",
         }}
+        readOnly={readonly}
       />
     </div>
   );
 };
 
-export default ConversationConfigDetailView;
+export { ConversationConfiger };

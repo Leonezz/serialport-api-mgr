@@ -11,33 +11,60 @@ export type BasicConfigInfomation = {
   createAt: Date;
   updateAt: Date;
 };
+
+export const DEFAULTBasicInformation: BasicConfigInfomation = {
+  id: "",
+  name: "",
+  comment: "",
+  usedBy: [],
+  createAt: new Date(),
+  updateAt: new Date(),
+};
+
 export type NamedConfigStoreType<T> = {
-  config: T;
+  config: Extract<T, T>;
 } & BasicConfigInfomation;
 type NamedConfigStore<T> = {
   data: Map<string, NamedConfigStoreType<T>>;
 };
 
 type NamedConfigStoreCURDActions<T> = {
-  get: ({ id }: { id: string }) => NamedConfigStoreType<T> | undefined;
+  get: ({
+    id,
+  }: {
+    id: string;
+  }) =>
+    | Extract<
+        NamedConfigStoreType<Extract<T, T>>,
+        NamedConfigStoreType<Extract<T, T>>
+      >
+    | undefined;
   getByName: ({
     name,
   }: {
     name: string;
-  }) => NamedConfigStoreType<T> | undefined;
+  }) =>
+    | Extract<
+        NamedConfigStoreType<Extract<T, T>>,
+        NamedConfigStoreType<Extract<T, T>>
+      >
+    | undefined;
   getIdList: () => string[];
   getNameList: () => string[];
-  getAll: () => NamedConfigStoreType<T>[];
+  getAll: () => Extract<
+    NamedConfigStoreType<Extract<T, T>>,
+    NamedConfigStoreType<Extract<T, T>>
+  >[];
   delete: ({ id }: { id: string }) => boolean;
   add: ({
     basicInfo,
     config,
   }: {
     basicInfo: Omit<
-      BasicConfigInfomation,
+      Extract<BasicConfigInfomation, BasicConfigInfomation>,
       "id" | "createAt" | "updateAt" | "usedBy"
     >;
-    config: T;
+    config: Extract<T, T>;
   }) => string;
   update: ({
     id,
@@ -47,10 +74,13 @@ type NamedConfigStoreCURDActions<T> = {
   }: {
     id: string;
     basicInfo?: Partial<
-      Omit<BasicConfigInfomation, "id" | "createAt" | "updateAt" | "useBy">
+      Omit<
+        Extract<BasicConfigInfomation, BasicConfigInfomation>,
+        "id" | "createAt" | "updateAt" | "useBy"
+      >
     >;
     newUser?: string;
-    config?: Partial<T>;
+    config?: Partial<Extract<T, T>>;
   }) => boolean;
 };
 
@@ -60,7 +90,10 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
   actions: ExtraActions
 ) => {
   return create<
-    NamedConfigStore<T> & Extra & NamedConfigStoreCURDActions<T> & ExtraActions
+    NamedConfigStore<Extract<T, T>> &
+      Extra &
+      NamedConfigStoreCURDActions<T> &
+      ExtraActions
   >()(
     devtools(
       persist(
@@ -96,7 +129,13 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
             const id = uuid();
             set((prev) => {
               const now = new Date();
-              const newEntry: Omit<NamedConfigStoreType<T>, "config"> = {
+              const newEntry: Omit<
+                Extract<
+                  NamedConfigStoreType<Extract<T, T>>,
+                  NamedConfigStoreType<Extract<T, T>>
+                >,
+                "config"
+              > = {
                 ...basicInfo,
                 id: id,
                 createAt: now,
@@ -148,4 +187,4 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
   );
 };
 
-export default buildNamedConfigStore;
+export { buildNamedConfigStore };

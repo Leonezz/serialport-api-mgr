@@ -5,15 +5,15 @@ import {
   SerialPortMiscIndicators,
   SerialPortTypeCard,
 } from "./port_misc_state_indicator";
-import PortConfigGroups from "./port_config_groups";
+import { PortConfigGroups } from "./port_config_groups";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
-import useSerialportStatus from "@/hooks/store/usePortStatus";
-import singleKeySetter from "@/util/util";
-import PresetConfigSelector from "./config/config_selector";
+import { useSerialportStatus } from "@/hooks/store/usePortStatus";
+import { singleKeySetter } from "@/util/util";
+import { PresetConfigSelector } from "./config/config_selector";
 import { useState } from "react";
 import RefreshAvaliablePortsBtn from "./refresh_avaliable_ports_btn";
 import OpenPortBtn from "./open_port_btn";
-import useNamedSerialortConfigStore from "@/hooks/store/useNamedSerialPortConfig";
+import { useNamedSerialortConfigStore } from "@/hooks/store/useNamedSerialPortConfig";
 import { useToast } from "../shadcn/use-toast";
 import { useUpdateEffect } from "ahooks";
 import { omit } from "es-toolkit";
@@ -76,6 +76,8 @@ const SerialPortOpener = ({
     }
   };
 
+  const SerialportPresetConfigSelector = PresetConfigSelector("serialport");
+
   return (
     <Accordion
       variant="splitted"
@@ -104,8 +106,7 @@ const SerialPortOpener = ({
         title={
           <div className="flex justify-end flex-wrap">
             <div className="flex flex-row sm:flex-nowrap flex-wrap gap-2 items-center z-50">
-              <PresetConfigSelector
-                selectorFor="serialport"
+              <SerialportPresetConfigSelector
                 selectedName={newName}
                 setSelectedName={setNewName}
                 readonly={portOpened}

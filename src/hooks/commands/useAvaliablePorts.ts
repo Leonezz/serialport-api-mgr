@@ -1,7 +1,7 @@
 import { emitToRustBus } from "@/bridge/call_rust";
-import useRequestState from "./useRequestState";
+import { useRequestState } from "./useRequestState";
 import { useToast } from "@/components/shadcn/use-toast";
-import useSerialportStatus from "@/hooks/store/usePortStatus";
+import { useSerialportStatus } from "@/hooks/store/usePortStatus";
 
 const useAvaliablePorts = () => {
   const { toastError, toastWarn } = useToast();

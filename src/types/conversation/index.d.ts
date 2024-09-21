@@ -4,4 +4,4 @@ type SerialportConversation = {
   request: string;
   response: string;
 };
-export default SerialportConversation;
+export { type SerialportConversation };

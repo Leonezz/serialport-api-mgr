@@ -1,5 +1,5 @@
 import { emitToRustBus } from "@/bridge/call_rust";
-import useRequestState from "./useRequestState";
+import { useRequestState } from "./useRequestState";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { useToast } from "@/components/shadcn/use-toast";
 

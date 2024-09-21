@@ -1,8 +1,8 @@
 import { useState } from "react";
 import SerialPortOpener from "../serialport/port_configer";
 import MessageList from "../message/message_list";
-import useSerialportStatus from "@/hooks/store/usePortStatus";
-import MessageInput from "../serialport/msg_input";
+import { useSerialportStatus } from "@/hooks/store/usePortStatus";
+import MessageInput from "../message/msg_input";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { MessageMetaConfig } from "@/types/message/message_meta";
 

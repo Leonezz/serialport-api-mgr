@@ -1,221 +1,154 @@
-import { DEFAULTSerialportConfig } from "@/types/serialport/serialport_config";
-import ConfigTitle from "./config_title";
 import { useSet } from "ahooks";
 import ListWithDetail from "../basics/list-with-detail";
-import { Card, CardBody } from "@nextui-org/react";
 import AddConfigToolBar from "./add_config_toolbar";
 
-import useNamedSerialortConfigStore, {
-  NamedSerialportConfig,
-} from "@/hooks/store/useNamedSerialPortConfig";
-import PortConfigGroups from "../serialport/port_config_groups";
 import ConfigDetailCommon from "./config_detail";
-import { BasicConfigInfomation } from "@/hooks/store/buildNamedConfigStore";
-import { SerialportConfig } from "@/types/serialport/serialport_config";
-import { usePrevious, useSafeState } from "ahooks";
-import { isEqual, omit } from "es-toolkit";
-import { useEffect, useMemo } from "react";
-import {
-  DEFAULTMessageConfig,
-  MessageMetaConfig,
-} from "@/types/message/message_meta";
-import useNamedMessageMetaConfigStore, {
-  NamedMessageMetaConfig,
-} from "@/hooks/store/useNamedMessageMetaConfig";
-import MessageMetaConfiger from "../serialport/message_meta_configer";
-import useNamedApiStore, {
-  NamedSerialportApi,
-} from "@/hooks/store/useNamedConversationStore";
-import { DEFAULTSerialportConversation } from "@/types/conversation/default";
-import SerialportConversation from "@/types/conversation";
-import ConversationConfigDetailView from "../conversation/conversation_config_detail_view";
-
-type SupportedConfig = {
-  serialport: {
-    configType: SerialportConfig;
-    namedConfigType: NamedSerialportConfig;
-  };
-  message: {
-    configType: MessageMetaConfig;
-    namedConfigType: NamedMessageMetaConfig;
-  };
-  api: {
-    configType: SerialportConversation;
-    namedConfigType: NamedSerialportApi;
-  };
-};
-const UseStoreHandles = {
-  serialport: useNamedSerialortConfigStore,
-  message: useNamedMessageMetaConfigStore,
-  api: useNamedApiStore,
-} as const;
-const DEFAULTConfigs = {
-  serialport: DEFAULTSerialportConfig,
-  message: DEFAULTMessageConfig,
-  api: DEFAULTSerialportConversation,
-} as const;
-const ConfigDetailViews = {
-  serialport: PortConfigGroups,
-  message: MessageMetaConfiger,
-  api: ConversationConfigDetailView,
-} as const;
+import { ComponentType, useState } from "react";
+import { DEFAULTConfigs, SupportedConfig, UseStoreHandles } from "./util";
+import { ConfigTitle } from "./config_title";
 
 type ConfigDetailProps<Key extends keyof SupportedConfig> = {
-  value: SupportedConfig[Key]["namedConfigType"];
-  onValueChange: () => void;
+  value: SupportedConfig[Key]["configType"];
+  onValueChange: (v: Partial<SupportedConfig[Key]["configType"]>) => void;
   onValueSave: () => void;
   onValueDelete: () => void;
 };
-const ConfigMgrDetailViewBuilder = <Key extends keyof SupportedConfig>({
-  configDetailFor,
-  value,
-  onValueChange,
-  onValueSave,
-  onValueDelete,
-}: ConfigDetailProps<Key> & { configDetailFor: Key }) => {
-  type ConfigDataType = SupportedConfig[Key]["configType"];
-  const [defaultValue, setDefaultValue] = useSafeState(value);
-  const previousValue = usePrevious(value);
-  const { update: updateConfig, delete: deleteConfig } =
-    UseStoreHandles[configDetailFor]();
-  useEffect(() => {
-    if (
-      isEqual(
-        { ...previousValue, modified: false },
-        { ...value, modified: false }
-      )
-    ) {
-      return;
-    }
-    setDefaultValue(value);
-  }, [value]);
 
-  const setCommonInfo = (
-    data: Partial<Omit<BasicConfigInfomation, "id" | "updateAt" | "createAt">>
-  ) => {
-    setDefaultValue((prev) => ({
-      ...prev,
-      ...data,
-    }));
-    onValueChange();
-  };
-  const setConfig = (data: Partial<ConfigDataType>) => {
-    setDefaultValue((prev) => ({
-      ...prev,
-      config: { ...prev.config, ...data },
-    }));
-    onValueChange();
+type ConfigDetailWrapperProps<Key extends keyof SupportedConfig> = {
+  children: ComponentType<ConfigDetailProps<Key>>;
+};
+const ConfigMgrDetailViewWrapper =
+  <Key extends keyof SupportedConfig>({
+    children: DetailView,
+  }: ConfigDetailWrapperProps<Key>) =>
+  ({
+    configFor,
+    value,
+    onValueChange,
+    onValueSave,
+    onValueDelete,
+  }: {
+    configFor: Key;
+    value: Extract<
+      SupportedConfig[Key]["namedConfigType"],
+      SupportedConfig[Key]["namedConfigType"]
+    >;
+    onValueChange: () => void;
+    onValueSave: () => void;
+    onValueDelete: () => void;
+  }) => {
+    const { update: updateConfig, delete: deleteConfig } =
+      UseStoreHandles[configFor]();
+    const [localValue, setLocalValue] =
+      useState<SupportedConfig[Key]["namedConfigType"]>(value);
+    console.log(localValue);
+    return (
+      <ConfigDetailCommon
+        configFor={configFor}
+        value={localValue}
+        onValueChange={(v) => {
+          setLocalValue((prev) => ({ ...prev, ...v }));
+          onValueChange();
+        }}
+        onValueSave={onValueSave}
+        onValueDelete={onValueDelete}
+        readonly={false}
+      >
+        <DetailView
+          value={localValue.config}
+          onValueChange={(v) => {
+            setLocalValue((prev) => {
+              return {
+                ...prev,
+                config: { ...prev.config, ...v },
+              };
+            });
+            onValueChange();
+          }}
+          onValueDelete={() => {
+            deleteConfig({ id: localValue.id });
+            onValueDelete();
+          }}
+          onValueSave={() => {
+            updateConfig({
+              id: localValue.id,
+              basicInfo: { ...localValue },
+              config: { ...localValue.config },
+            });
+            onValueSave();
+          }}
+        />
+      </ConfigDetailCommon>
+    );
   };
 
-  const doSaveConfig = () => {
-    updateConfig({
-      id: defaultValue.id,
-      basicInfo: { ...omit(defaultValue, ["config"]) },
-      config: { ...defaultValue.config },
-    });
-    onValueSave();
-  };
-  const doDeleteConfig = () => {
-    deleteConfig({ id: defaultValue.id });
-    onValueDelete();
-  };
+const ConfigMgrWrapper = <Key extends keyof SupportedConfig>({
+  children: ConfigDetail,
+}: {
+  children: ComponentType<ConfigDetailProps<Key>>;
+}) => {
+  const ConfigMgrWrapper = ConfigMgrDetailViewWrapper<Key>({
+    children: ConfigDetail,
+  });
+  return ({ configFor }: { configFor: Key }) => {
+    const {
+      getAll: getAllConfigs,
+      getNameList: getConfigNameList,
+      add: addNewConfig,
+    } = UseStoreHandles[configFor]();
 
-  const DetailView = useMemo(
-    () =>
-      ConfigDetailViews[configDetailFor]({
-        //@ts-expect-error
-        value: defaultValue.config,
-        onValueChange: setConfig,
-        verticalLayout: true,
-      }),
-    [configDetailFor, defaultValue.config, setConfig]
-  );
+    const allConfigsItems = getAllConfigs();
 
-  return (
-    <ConfigDetailCommon
-      value={defaultValue}
-      onValueChange={setCommonInfo}
-      onValueSave={doSaveConfig}
-      onValueDelete={doDeleteConfig}
-      readonly={false}
-    >
-      {DetailView}
-    </ConfigDetailCommon>
-  );
+    const [modifiedList, { add: addToModified, remove: removeModified }] =
+      useSet<string>([]);
+
+    const defaultConfig = DEFAULTConfigs[configFor];
+
+    return (
+      <ListWithDetail
+        items={allConfigsItems}
+        modifiedItems={modifiedList}
+        defaultSelectId=""
+        detailView={(configItem) => {
+          return (
+            <ConfigMgrWrapper
+              key={configItem.id}
+              value={configItem}
+              configFor={configFor}
+              onValueChange={() => {
+                addToModified(configItem.id);
+              }}
+              onValueSave={() => removeModified(configItem.id)}
+              onValueDelete={() => removeModified(configItem.id)}
+            />
+          );
+        }}
+        renderTitle={({ item }) => (
+          <ConfigTitle type={configFor} content={item.name} />
+        )}
+        topContent={
+          <div className="flex flex-row gap-1 justify-between items-center w-full">
+            <span className="text-medium font-extrabold">Config List</span>
+            <AddConfigToolBar
+              onClick={() => {
+                const NEW_CONFIG_PREFIX = `New ${configFor} Config`;
+                const new_cnt = getConfigNameList().filter((v) =>
+                  v.startsWith(NEW_CONFIG_PREFIX)
+                ).length;
+                addNewConfig({
+                  basicInfo: {
+                    name: `${NEW_CONFIG_PREFIX}-${new_cnt}`,
+                    comment: "",
+                  },
+                  config: defaultConfig,
+                });
+              }}
+            />
+          </div>
+        }
+      />
+    );
+  };
 };
 
-const Title = <Key extends keyof SupportedConfig>(key: Key) => {
-  return <Item extends { name: string }>(item: Item) => (
-    <ConfigTitle type={key} content={item.name} />
-  );
-};
-
-const ConfigMgrBuilder = <Key extends keyof SupportedConfig>(key: Key) => {
-  const {
-    getAll: getAllConfig,
-    getNameList: getConfigNameList,
-    add: addNewConfig,
-  } = UseStoreHandles[key]();
-  const configList = getAllConfig();
-
-  const [modifiedList, { add: addToModified, remove: removeModified }] =
-    useSet<string>([]);
-
-  const items = configList.map((v) => ({
-    ...v,
-    modified: modifiedList.has(v.id),
-  }));
-  const title = Title(key);
-  const defaultConfig = DEFAULTConfigs[key];
-
-  return (
-    <ListWithDetail
-      items={items}
-      defaultSelectId=""
-      detailView={(item) => {
-        return item ? (
-          <ConfigMgrDetailViewBuilder
-            configDetailFor={key}
-            value={item}
-            onValueChange={() => addToModified(item.id)}
-            onValueDelete={() => removeModified(item.id)}
-            onValueSave={() => removeModified(item.id)}
-          />
-        ) : (
-          <Card className="w-full h-full">
-            <CardBody className=" justify-center">
-              <span className="text-neutral-500 text-3xl text-center">
-                Not Selected
-              </span>
-            </CardBody>
-          </Card>
-        );
-      }}
-      renderTitle={title}
-      topContent={
-        <div className="flex flex-row gap-1 justify-between items-center w-full">
-          <span className="text-medium font-extrabold">Config List</span>
-          <AddConfigToolBar
-            onClick={() => {
-              const NEW_CONFIG_PREFIX = "New Config";
-              const new_cnt = getConfigNameList().filter((v) =>
-                v.startsWith(NEW_CONFIG_PREFIX)
-              ).length;
-              addNewConfig({
-                basicInfo: {
-                  name: `${NEW_CONFIG_PREFIX}-${new_cnt}`,
-                  comment: "",
-                },
-                //FIXME - TYPE safety
-                //@ts-expect-error
-                config: defaultConfig,
-              });
-            }}
-          />
-        </div>
-      }
-    />
-  );
-};
-
-export default ConfigMgrBuilder;
+export default ConfigMgrWrapper;

@@ -1,16 +1,18 @@
 import useClosePort from "@/hooks/commands/useClosePort";
 import useOpenPort from "@/hooks/commands/useOpenPort";
-import useSerialportStatus from "@/hooks/store/usePortStatus";
+import { useSerialportStatus } from "@/hooks/store/usePortStatus";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { Button } from "@nextui-org/react";
 
 type OpenPortBtnProps = {
   serialportConfig: SerialportConfig;
 };
-const OpenPortBtn = ({ serialportConfig: serialport_config }: OpenPortBtnProps) => {
+const OpenPortBtn = ({
+  serialportConfig: serialport_config,
+}: OpenPortBtnProps) => {
   const { getPortOpened } = useSerialportStatus();
   const portOpened = getPortOpened({ port_name: serialport_config.port_name });
-  const { portClosing, closePort, } = useClosePort();
+  const { portClosing, closePort } = useClosePort();
   const { portOpening, openPort } = useOpenPort();
 
   return (
