@@ -2,12 +2,16 @@ import { create } from "zustand";
 import { v7 as uuid } from "uuid";
 import { devtools, persist } from "zustand/middleware";
 import mappedDataLocalFileStorage from "./persist/localFile";
-import { omit } from "es-toolkit";
+import { omit, uniqWith } from "es-toolkit";
+import { SupportedConfig } from "@/components/config_mgr/util";
 export type BasicConfigInfomation = {
   id: string;
   name: string;
   comment: string;
-  usedBy: string[];
+  usedBy: {
+    type: keyof SupportedConfig;
+    id: string;
+  }[];
   createAt: Date;
   updateAt: Date;
 };
@@ -66,6 +70,24 @@ type NamedConfigStoreCURDActions<T> = {
     >;
     config: Extract<T, T>;
   }) => string;
+  addUser: ({
+    id,
+    type,
+    userId,
+  }: {
+    id: string;
+    type: keyof SupportedConfig;
+    userId: string;
+  }) => boolean;
+  removeUser: ({
+    id,
+    type,
+    userId,
+  }: {
+    id: string;
+    type: keyof SupportedConfig;
+    userId: string;
+  }) => boolean;
   update: ({
     id,
     basicInfo,
@@ -152,7 +174,55 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
             });
             return id;
           },
-          update: ({ id, basicInfo, newUser, config }) => {
+          addUser: ({ id, type, userId }) => {
+            if (!get().data.has(id)) {
+              return false;
+            }
+            set((prev) => {
+              const currentConfig = prev.data.get(id);
+              if (!currentConfig) {
+                return prev;
+              }
+              const usedBy = uniqWith(
+                [...currentConfig.usedBy, { type: type, id: userId }],
+                (a, b) => a.id === b.id && a.type === b.type
+              );
+              return {
+                ...prev,
+                data: prev.data.set(id, {
+                  ...currentConfig,
+                  usedBy: [...usedBy],
+                }),
+              };
+            });
+            return true;
+          },
+          removeUser: ({ id, type, userId }) => {
+            if (!get().data.has(id)) {
+              return false;
+            }
+            set((prev) => {
+              const currentConfig = prev.data.get(id);
+              if (!currentConfig) {
+                return prev;
+              }
+              return {
+                ...prev,
+                data: prev.data.set(id, {
+                  ...currentConfig,
+                  usedBy: [
+                    ...new Set([
+                      ...currentConfig.usedBy.filter(
+                        (v) => v.type === type && v.id !== userId
+                      ),
+                    ]),
+                  ],
+                }),
+              };
+            });
+            return true;
+          },
+          update: ({ id, basicInfo, config }) => {
             if (!get().data.has(id)) {
               return false;
             }
@@ -169,9 +239,6 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
                   ...omit(currentConfig, ["id", "config"]),
                   ...basicInfo,
                   updateAt: new Date(),
-                  usedBy: newUser
-                    ? [...currentConfig.usedBy, newUser]
-                    : currentConfig.usedBy,
                 }),
               };
             });

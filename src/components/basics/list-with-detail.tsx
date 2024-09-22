@@ -60,6 +60,8 @@ const ListWithDetail = <Key extends keyof SupportedConfig>({
                 base: "scrollbar-hide min-w-fit min-w-[200px] max-w-max",
               }}
               selectionMode="single"
+              disallowEmptySelection
+              shouldHighlightOnFocus
               defaultSelectedKeys={[defaultSelectId]}
               items={items.map((v) => ({
                 ...v,

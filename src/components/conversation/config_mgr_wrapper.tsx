@@ -3,6 +3,7 @@ import { ConversationConfiger } from "./conversation_config_detail_view";
 
 type ConversationConfigDetailViewProps = {
   value: SerialportConversation;
+  configId: string;
   onValueChange: (v: Partial<SerialportConversation>) => void;
   onValueSave: () => void;
   onValueDelete: () => void;

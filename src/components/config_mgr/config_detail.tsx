@@ -13,6 +13,7 @@ import { Fragment, ReactNode, useState } from "react";
 import DeleteConfirmPopover from "../basics/delete-confirm-popover";
 import { ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 import { SupportedConfig, UseStoreHandles } from "./util";
+import { UsedByTable } from "./used_by_tbl";
 
 type ConfigDetailCommonProps<Key extends keyof SupportedConfig> = {
   configFor: Key;
@@ -39,26 +40,48 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
     children: ReactNode;
   }>) => {
   // type NamedConfigType = SupportedConfig[Key]["namedConfigType"];
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedCommon, setCollapsedCommon] = useState(false);
+  const [collapsedDetail, setCollapsedDetail] = useState(false);
 
   const { update: updateConfig, delete: deleteConfig } =
     UseStoreHandles[configFor]();
 
   return (
     <div className="flex flex-row gap-2 w-full">
-      <Card className="w-full">
-        <CardHeader className="text-large font-extrabold">
-          Detail Config
-        </CardHeader>
-        <CardBody className=" scrollbar-hide">{children}</CardBody>
-      </Card>
-      <Card className={`w-${collapsed ? "fit" : "full"}`}>
+      <Card className={`w-${collapsedDetail ? "fit" : "full"}`}>
         <CardHeader
           className={`flex flex-row justify-${
-            collapsed ? "around" : "between"
+            collapsedDetail ? "around" : "between"
           }`}
         >
-          {!collapsed && (
+          {!collapsedDetail && (
+            <span className="text-large font-extrabold">Detailed Config</span>
+          )}
+          <Button
+            size="sm"
+            variant="light"
+            color="primary"
+            isIconOnly
+            onClick={() => setCollapsedDetail((prev) => !prev)}
+          >
+            {collapsedDetail ? <ChevronsLeftRight /> : <ChevronsRightLeft />}
+          </Button>
+        </CardHeader>
+        <CardBody
+          className={`flex flex-col gap-4 w-full scrollbar-hide ${
+            collapsedDetail ? "hidden" : ""
+          }`}
+        >
+          {children}
+        </CardBody>
+      </Card>
+      <Card className={`w-${collapsedCommon ? "fit" : "full"}`}>
+        <CardHeader
+          className={`flex flex-row justify-${
+            collapsedCommon ? "around" : "between"
+          }`}
+        >
+          {!collapsedCommon && (
             <span className="text-large font-extrabold">Common Config</span>
           )}
           <Button
@@ -66,14 +89,14 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
             variant="light"
             color="primary"
             isIconOnly
-            onClick={() => setCollapsed((prev) => !prev)}
+            onClick={() => setCollapsedCommon((prev) => !prev)}
           >
-            {collapsed ? <ChevronsLeftRight /> : <ChevronsRightLeft />}
+            {collapsedCommon ? <ChevronsLeftRight /> : <ChevronsRightLeft />}
           </Button>
         </CardHeader>
         <CardBody
           className={`flex flex-col gap-4 w-full scrollbar-hide ${
-            collapsed ? "hidden" : ""
+            collapsedCommon ? "hidden" : ""
           }`}
         >
           <Snippet symbol="ID: " size="sm" codeString={value.id}>
@@ -93,7 +116,7 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
           >
             {value.updateAt.toLocaleString()}
           </Snippet>
-          //TODO - add used by
+          <UsedByTable usedByList={value.usedBy} />
           <Input
             isReadOnly={readonly}
             label={
@@ -125,7 +148,9 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
             }}
           />
         </CardBody>
-        <CardFooter className={`justify-end ${collapsed ? "hidden" : ""}`}>
+        <CardFooter
+          className={`justify-end ${collapsedCommon ? "hidden" : ""}`}
+        >
           {value ? (
             <Fragment>
               <DeleteConfirmPopover

@@ -3,6 +3,7 @@ import { SerialportConfig } from "@/types/serialport/serialport_config";
 
 type SerialportConfigMgrDetailProps = {
   value: SerialportConfig;
+  configId: string;
   onValueChange: (v: Partial<SerialportConfig>) => void;
   onValueSave: () => void;
   onValueDelete: () => void;

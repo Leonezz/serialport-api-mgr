@@ -3,6 +3,7 @@ import { MessageMetaConfig } from "@/types/message/message_meta";
 
 type MessageMetaConfigMgrDetailProps = {
   value: MessageMetaConfig;
+  configId: string;
   onValueChange: (v: Partial<MessageMetaConfig>) => void;
   onValueSave: () => void;
   onValueDelete: () => void;
@@ -10,8 +11,8 @@ type MessageMetaConfigMgrDetailProps = {
 const MessageMetaConfigMgrDetail = ({
   value,
   onValueChange,
-  // ...props
-}: MessageMetaConfigMgrDetailProps) => {
+}: // ...props
+MessageMetaConfigMgrDetailProps) => {
   return (
     <MessageMetaConfiger
       value={value}

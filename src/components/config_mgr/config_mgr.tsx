@@ -9,6 +9,7 @@ import { ConfigTitle } from "./config_title";
 
 type ConfigDetailProps<Key extends keyof SupportedConfig> = {
   value: SupportedConfig[Key]["configType"];
+  configId: string;
   onValueChange: (v: Partial<SupportedConfig[Key]["configType"]>) => void;
   onValueSave: () => void;
   onValueDelete: () => void;
@@ -41,7 +42,6 @@ const ConfigMgrDetailViewWrapper =
       UseStoreHandles[configFor]();
     const [localValue, setLocalValue] =
       useState<SupportedConfig[Key]["namedConfigType"]>(value);
-    console.log(localValue);
     return (
       <ConfigDetailCommon
         configFor={configFor}
@@ -56,6 +56,7 @@ const ConfigMgrDetailViewWrapper =
       >
         <DetailView
           value={localValue.config}
+          configId={localValue.id}
           onValueChange={(v) => {
             setLocalValue((prev) => {
               return {

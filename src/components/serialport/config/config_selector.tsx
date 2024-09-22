@@ -1,5 +1,6 @@
 import { UseStoreHandles } from "@/components/config_mgr/util";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
+import { capitalize } from "es-toolkit";
 
 type PresetConfigSelectorProps = {
   selectedName: string;
@@ -33,7 +34,7 @@ const PresetConfigSelector = <Key extends "serialport" | "message" | "api">(
         allowsCustomValue
         label={
           <p className="text-medium w-fit font-bold text-content1-foreground">
-            {selectorFor} Config
+            {capitalize(selectorFor)} Config
           </p>
         }
         isClearable={false}

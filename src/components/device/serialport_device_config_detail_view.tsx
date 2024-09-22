@@ -18,7 +18,7 @@ import {
   Tooltip,
 } from "@nextui-org/react";
 import { DeleteIcon, EditIcon, Plus } from "lucide-react";
-import { ReactNode, useState } from "react";
+import { ReactNode, useCallback, useState } from "react";
 import { PopupModal } from "../basics/popup-modal";
 import { ConversationConfiger } from "../conversation/conversation_config_detail_view";
 
@@ -74,69 +74,83 @@ const ApiTable = ({
   const { getAll: getAllApiConfigs } = useNamedApiStore();
   const allApiConfig = getAllApiConfigs();
 
-  const renderCell = (
-    item: NamedSerialportApi,
-    columnKey: (typeof columns)[number]["name"]
-  ) => {
-    const selected = apiIDs.includes(item.id);
-    switch (columnKey) {
-      case "actions": {
-        return (
-          <div className="relative flex items-center justify-end gap-2">
-            {/* <SerialportApiConfigModal
+  const renderCell = useCallback(
+    (item: NamedSerialportApi, columnKey: (typeof columns)[number]["name"]) => {
+      const selected = apiIDs.includes(item.id);
+      switch (columnKey) {
+        case "actions": {
+          return (
+            <div className="relative flex items-center justify-end gap-2">
+              {/* <SerialportApiConfigModal
               tooltipContent={"View Detail"}
               value={item}
               readonly
               tooltipIcon={<EyeIcon />}
             /> */}
-            <SerialportApiConfigModal
-              tooltipContent={"Edit"}
-              value={item}
-              readonly={false}
-              tooltipIcon={<EditIcon />}
-            />
-            <Tooltip color="danger" content={selected ? "Delete" : "Add"}>
-              <Button
-                onClick={() => (selected ? onDelete(item.id) : onAdd(item.id))}
-                variant="light"
-                size="sm"
-                isIconOnly
-                className="text-lg text-danger cursor-pointer active:opacity-50"
-              >
-                {selected ? <DeleteIcon /> : <Plus />}
-              </Button>
-            </Tooltip>
-          </div>
-        );
+              <SerialportApiConfigModal
+                tooltipContent={"Edit"}
+                value={item}
+                readonly={false}
+                tooltipIcon={<EditIcon />}
+              />
+              <Tooltip color="danger" content={selected ? "Delete" : "Add"}>
+                <Button
+                  onClick={() =>
+                    selected ? onDelete(item.id) : onAdd(item.id)
+                  }
+                  variant="light"
+                  size="sm"
+                  isIconOnly
+                  className="text-lg text-danger cursor-pointer active:opacity-50"
+                >
+                  {selected ? <DeleteIcon /> : <Plus />}
+                </Button>
+              </Tooltip>
+            </div>
+          );
+        }
+        case "name": {
+          return item.name;
+        }
+        case "status": {
+          return (
+            <Chip color={selected ? "primary" : "default"} variant="dot">
+              {selected ? "used" : "unused"}
+            </Chip>
+          );
+        }
+        default:
+          return "ERROR";
       }
-      case "name": {
-        return item.name;
-      }
-      case "status": {
-        return (
-          <Chip color={selected ? "primary" : "default"} variant="dot">
-            {selected ? "used" : "not used"}
-          </Chip>
-        );
-      }
-      default:
-        return "ERROR";
-    }
-  };
+    },
+    [apiIDs, onAdd, onDelete]
+  );
 
   return (
-    <Table className="w-full h-full" removeWrapper>
+    <Table
+      className="w-full"
+      removeWrapper
+      isCompact
+      topContent={
+        <div className="flex flex-row justify-between px-2">
+          <span className="text-sm font-semibold font-mono">Api Configs</span>
+          <span className="text-sm font-mono text-neutral-700">
+            {apiIDs.length} configs used
+          </span>
+        </div>
+      }
+    >
       <TableHeader columns={columns}>
         {(column) => (
           <TableColumn
             key={column.uid}
             align={column.uid === "actions" ? "end" : "start"}
           >
-            {column.name}
+            {column.name.toUpperCase()}
           </TableColumn>
         )}
       </TableHeader>
-      <TableBody emptyContent={"No rows to display."}>
+      <TableBody emptyContent={"No Api config assigned."}>
         {allApiConfig.map(
           //NOTE - have to do this to make sure it re-renders every time
           (item) => (
@@ -153,32 +167,44 @@ const ApiTable = ({
 };
 
 type SerialportDeviceConfigDetailViewProps = {
+  configId: string;
   value: SerialportDevice;
   onValueChange: (v: Partial<SerialportDevice>) => void;
   verticalLayout?: boolean;
 };
 const SerialportDeviceConfigDetailView = ({
+  configId,
   value,
   onValueChange,
   verticalLayout,
 }: SerialportDeviceConfigDetailViewProps) => {
-  const { get: getSerialportConfigById, getByName: getSerialportConfigByName } =
-    useNamedSerialortConfigStore();
+  const {
+    get: getSerialportConfigById,
+    getByName: getSerialportConfigByName,
+    addUser: serialportConfigAddUser,
+    removeUser: serialportConfigRemoveUser,
+  } = useNamedSerialortConfigStore();
   const { api_ids, device_config_id, message_meta_id } = value;
   const defaultSerialportConfig = getSerialportConfigById({
     id: device_config_id,
   });
-  const { get: getMessageMetaById, getByName: getMessageMetaByName } =
-    useNamedMessageMetaConfigStore();
+  const {
+    get: getMessageMetaById,
+    getByName: getMessageMetaByName,
+    addUser: messageMetaConfigAddUser,
+    removeUser: messageMetaConfigRemoveUser,
+  } = useNamedMessageMetaConfigStore();
   const defaultMessageMetaConfig = getMessageMetaById({
     id: message_meta_id,
   });
 
+  const { addUser: apiConfigAddUser, removeUser: apiConfigRemoveUser } =
+    useNamedApiStore();
+
   const SerialportPresetConfigSelector = PresetConfigSelector("serialport");
   const MessageMetaPresetConfigSelector = PresetConfigSelector("message");
-  console.log(api_ids);
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex flex-col gap-3 w-full">
       <SerialportPresetConfigSelector
         fullWidth={verticalLayout}
         selectedName={defaultSerialportConfig?.name || ""}
@@ -189,6 +215,16 @@ const SerialportDeviceConfigDetailView = ({
             return;
           }
           onValueChange({ device_config_id: selectedConfig.id });
+          serialportConfigRemoveUser({
+            id: device_config_id,
+            type: "device",
+            userId: configId,
+          });
+          serialportConfigAddUser({
+            id: selectedConfig.id,
+            type: "device",
+            userId: configId,
+          });
         }}
       />
       <MessageMetaPresetConfigSelector
@@ -201,6 +237,16 @@ const SerialportDeviceConfigDetailView = ({
             return;
           }
           onValueChange({ message_meta_id: selectedConfig.id });
+          messageMetaConfigRemoveUser({
+            id: message_meta_id,
+            userId: configId,
+            type: "device",
+          });
+          messageMetaConfigAddUser({
+            id: selectedConfig.id,
+            type: "device",
+            userId: configId,
+          });
         }}
       />
 
@@ -210,9 +256,11 @@ const SerialportDeviceConfigDetailView = ({
           onValueChange({
             api_ids: [...api_ids.filter((v) => v !== id)],
           });
+          apiConfigRemoveUser({ id: id, type: "device", userId: configId });
         }}
         onAdd={(id) => {
           onValueChange({ api_ids: [...api_ids, id] });
+          apiConfigAddUser({ id: id, userId: configId, type: "device" });
         }}
       />
     </div>
