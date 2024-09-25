@@ -10,7 +10,7 @@ type SerialPortDialogProps = {
   serial_port: SerialportConfig;
   message_meta: MessageMetaConfig;
 };
-const SerialPortDialog = ({
+const SerialPortMonitorDialog = ({
   serial_port,
   message_meta,
 }: SerialPortDialogProps) => {
@@ -33,7 +33,9 @@ const SerialPortDialog = ({
     <div className="h-full relative gap-2 flex flex-col">
       <SerialPortOpener
         serialPortConfig={serialPortConfig}
-        setSerialPortConfig={setSerialPortConfig}
+        setSerialPortConfig={(v) =>
+          setSerialPortConfig((prev) => ({ ...prev, ...v }))
+        }
       />
       <MessageList messages={messages} {...messageConfig} />
       <MessageInput
@@ -46,4 +48,4 @@ const SerialPortDialog = ({
   );
 };
 
-export default SerialPortDialog;
+export default SerialPortMonitorDialog;

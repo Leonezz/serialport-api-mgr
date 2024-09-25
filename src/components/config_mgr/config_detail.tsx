@@ -116,7 +116,6 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
           >
             {value.updateAt.toLocaleString()}
           </Snippet>
-          <UsedByTable usedByList={value.usedBy} />
           <Input
             isReadOnly={readonly}
             label={
@@ -147,6 +146,7 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
               onValueChange({ comment: v });
             }}
           />
+          <UsedByTable usedByList={value.usedBy} />
         </CardBody>
         <CardFooter
           className={`justify-end ${collapsedCommon ? "hidden" : ""}`}

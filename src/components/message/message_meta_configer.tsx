@@ -28,7 +28,7 @@ const OptionSelector = <T1 extends keyof typeof MessageMetaOptions>({
         <p
           className={`text-${
             verticalLayout ? "lg" : "sm"
-          } font-bold font-mono w-max`}
+          } font-bold font-mono w-max text-nowrap`}
         >
           {startCase(selectorFor)}
         </p>

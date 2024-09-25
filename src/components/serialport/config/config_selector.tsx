@@ -33,7 +33,7 @@ const PresetConfigSelector = <Key extends "serialport" | "message" | "api">(
         type="text"
         allowsCustomValue
         label={
-          <p className="text-medium w-fit font-bold text-content1-foreground">
+          <p className="text-medium w-fit text-nowrap font-bold text-content1-foreground">
             {capitalize(selectorFor)} Config
           </p>
         }
@@ -51,8 +51,8 @@ const PresetConfigSelector = <Key extends "serialport" | "message" | "api">(
           onValueChange(value);
         }}
         className={`text-xs font-mono w-${
-          fullWidth ? "full" : "max"
-        } min-w-fit`}
+          fullWidth ? "full" : "min md:min-w-24 hover:w-full"
+        }`}
       >
         {nameList.map((n) => (
           <AutocompleteItem key={n} textValue={n}>

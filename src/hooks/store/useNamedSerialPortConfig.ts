@@ -11,4 +11,5 @@ const useNamedSerialortConfigStore = buildNamedConfigStore<
   {},
   {}
 >("serialport-config.json", {}, {});
+
 export { useNamedSerialortConfigStore };

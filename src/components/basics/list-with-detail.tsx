@@ -8,6 +8,7 @@ import {
 } from "@nextui-org/react";
 import { ComponentType, ReactNode, useMemo, useState } from "react";
 import { SupportedConfig } from "../config_mgr/util";
+import { useUpdateEffect } from "ahooks";
 
 type ListWithDetailProps<Key extends keyof SupportedConfig> = {
   items: SupportedConfig[Key]["namedConfigType"][];
@@ -28,6 +29,9 @@ const ListWithDetail = <Key extends keyof SupportedConfig>({
   topContent,
 }: ListWithDetailProps<Key>) => {
   const [selectedId, setSelectedId] = useState(defaultSelectId);
+  useUpdateEffect(() => {
+    setSelectedId(defaultSelectId);
+  }, [defaultSelectId]);
   const selectedItem = useMemo(() => {
     return items.filter((v) => v.id === selectedId);
   }, [items, selectedId]);
@@ -46,7 +50,7 @@ const ListWithDetail = <Key extends keyof SupportedConfig>({
     [selectedItem]
   );
   return (
-    <div className="flex flex-row gap-2 w-full">
+    <div className="flex flex-row gap-2 w-full h-full">
       <Card className="w-max min-w-[250px]">
         <CardHeader className="w-full">{topContent}</CardHeader>
         <CardBody className="pt-0">
@@ -62,7 +66,10 @@ const ListWithDetail = <Key extends keyof SupportedConfig>({
               selectionMode="single"
               disallowEmptySelection
               shouldHighlightOnFocus
-              defaultSelectedKeys={[defaultSelectId]}
+              autoFocus
+              defaultSelectedKeys={[selectedId]}
+              selectedKeys={[selectedId]}
+              selectionBehavior="replace"
               items={items.map((v) => ({
                 ...v,
                 modified: modifiedItems.has(v.id),
@@ -77,7 +84,8 @@ const ListWithDetail = <Key extends keyof SupportedConfig>({
                 const key = [...keys.values()][0].toString();
                 setSelectedId(key);
               }}
-              variant="solid"
+              variant="shadow"
+              color="warning"
             >
               {(item) => {
                 return (

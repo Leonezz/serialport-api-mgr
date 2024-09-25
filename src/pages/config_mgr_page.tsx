@@ -6,7 +6,7 @@ import MessageMetaConfigMgrDetail from "@/components/message/config_mgr/wrapper"
 import SerialportConfigMgrDetail from "@/components/serialport/config_mgr/wrapper";
 import { Tabs, Tab } from "@nextui-org/react";
 
-const ConfigMgr = () => {
+const ConfigMgrPage = () => {
   const SerialportConfigMgr = ConfigMgrWrapper<"serialport">({
     children: SerialportConfigMgrDetail,
   });
@@ -79,4 +79,4 @@ const ConfigMgr = () => {
   );
 };
 
-export default ConfigMgr;
+export { ConfigMgrPage };

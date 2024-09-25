@@ -4,10 +4,13 @@ import { mountStoreDevtool } from "simple-zustand-devtools";
 import { v7 as uuid } from "uuid";
 export type MessageType = {
   id: string;
-  status: "received" | "sent" | "pending" | "sending" | "failed";
+  status: "received" | "sent" | "pending" | "sending" | "failed" | "inactive";
   sender: "Local" | "Remote";
   time: Date;
   data: Buffer;
+  expectedData?: Buffer;
+  order?: number;
+  error?: string;
 };
 
 type SerialportStatusStore = {
@@ -29,7 +32,7 @@ type SerialportStatusStoreActions = {
   messageSent: (props: { port_name: string; message_id: string }) => void;
   messageSending: (props: { port_name: string; message_id: string }) => void;
   messageSendFailed: (props: { port_name: string; message_id: string }) => void;
-  reviceMessage: (props: { port_name: string; data: Buffer }) => void;
+  receiveMessage: (props: { port_name: string; data: Buffer }) => void;
   getPortMessageList: (props: { port_name: string }) => MessageType[];
   portOpened: (props: { port_name: string }) => void;
   portClosed: (props: { port_name: string }) => void;
@@ -140,7 +143,7 @@ const useSerialportStatus = create<
       };
     });
   },
-  reviceMessage: ({ port_name: portName, data: content }) =>
+  receiveMessage: ({ port_name: portName, data: content }) =>
     set((prev) => {
       const currentState = prev.data.get(portName);
       if (!currentState) {

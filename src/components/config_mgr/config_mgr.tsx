@@ -105,11 +105,13 @@ const ConfigMgrWrapper = <Key extends keyof SupportedConfig>({
 
     const defaultConfig = DEFAULTConfigs[configFor];
 
+    const [defaultSelectId, setDefaultSelectedId] = useState("");
+
     return (
       <ListWithDetail
         items={allConfigsItems}
         modifiedItems={modifiedList}
-        defaultSelectId=""
+        defaultSelectId={defaultSelectId}
         detailView={(configItem) => {
           return (
             <ConfigMgrWrapper
@@ -136,13 +138,14 @@ const ConfigMgrWrapper = <Key extends keyof SupportedConfig>({
                 const new_cnt = getConfigNameList().filter((v) =>
                   v.startsWith(NEW_CONFIG_PREFIX)
                 ).length;
-                addNewConfig({
+                const id = addNewConfig({
                   basicInfo: {
                     name: `${NEW_CONFIG_PREFIX}-${new_cnt}`,
                     comment: "",
                   },
                   config: defaultConfig,
                 });
+                setDefaultSelectedId(id);
               }}
             />
           </div>

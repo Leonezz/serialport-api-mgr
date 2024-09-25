@@ -11,4 +11,5 @@ const useNamedApiStore = buildNamedConfigStore<SerialportConversation, {}, {}>(
   {},
   {}
 );
+
 export { useNamedApiStore };

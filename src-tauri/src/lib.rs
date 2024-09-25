@@ -6,8 +6,6 @@ mod error;
 mod serial_mgr;
 mod util;
 
-use std::fs::File;
-
 use crate::bridge::{
     close_port,
     get_all_port_info,

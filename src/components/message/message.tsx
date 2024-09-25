@@ -1,5 +1,5 @@
 import { MessageType } from "@/hooks/store/usePortStatus";
-import { Chip, ChipProps, Snippet } from "@nextui-org/react";
+import { Chip, ChipProps, Snippet, Spinner } from "@nextui-org/react";
 import decodeSerialData from "./util";
 import { Buffer } from "buffer";
 import { MessageMetaConfig } from "@/types/message/message_meta";
@@ -7,6 +7,7 @@ import { checkSumVerifyMessage } from "@/util/checksum";
 import { getCrcBytes } from "@/types/message/checksum";
 import { dropRight } from "es-toolkit";
 import { splitMessageByCRLF } from "@/util/crlf";
+import { CircleAlert } from "lucide-react";
 
 const ReadableMessage = ({
   data,
@@ -56,8 +57,11 @@ const Message = ({
   check_sum,
   ...messageMetaProps
 }: MessageProps & MessageMetaConfig) => {
-  const align = sender === "Local" ? "self-end" : "self-start";
-  const color = sender === "Remote" ? "warning" : "primary";
+  const isLocalMsg = sender === "Local";
+  const color = isLocalMsg ? "primary" : "warning";
+  const isMsgLoading = status === "pending" || status === "sending";
+  const isMsgInactive = status === "inactive";
+  const isMsgFailed = status === "failed";
 
   const checkSumSuccess = checkSumVerifyMessage({
     message: data,
@@ -68,42 +72,52 @@ const Message = ({
   data = Buffer.from(dropRight([...data], checkSumBytes));
 
   return (
-    <Snippet
-      codeString={String.fromCharCode(...data)}
-      hideSymbol
-      size="md"
-      className={`max-w-[75%] w-fit items-start text-md text-wrap ${align}`}
-      variant="flat"
-      color={color}
+    <div
+      className={`flex gap-2 ${
+        isLocalMsg ? "flex-row self-end " : "flex-row-reverse self-start"
+      }`}
     >
-      <p className="text-xs text-neutral-500 font-mono items-center">
-        {status === "received" || status === "sent" ? (
-          <code>{`${
-            sender === "Remote" ? "Received" : "Send"
-          } at ${time.toLocaleTimeString()} (${bytesTotal} bytes total)`}</code>
-        ) : (
-          <code>{`${status}`}</code>
-        )}
-        {check_sum !== "None" ? (
-          <Chip
-            size="sm"
-            variant="solid"
-            radius="sm"
-            aria-label="CRC Correct"
-            className="text-xs font-mono p-0.5 h-4 ml-1"
-            color={checkSumSuccess ? "success" : "danger"}
-          >
-            CRC
-          </Chip>
-        ) : null}
-      </p>
-      <ReadableMessage
-        data={data}
-        {...messageMetaProps}
-        check_sum={check_sum}
+      <div>
+        {isMsgLoading && <Spinner size="sm" color={color} />}
+        {isMsgFailed && <CircleAlert className="danger stroke-danger" />}
+      </div>
+      <Snippet
+        codeString={String.fromCharCode(...data)}
+        hideSymbol
+        size="md"
+        className={`max-w-[75%] min-w-fit w-fit items-start text-md text-wrap`}
+        variant="flat"
         color={color}
-      />
-    </Snippet>
+      >
+        <p className="text-xs text-neutral-500 font-mono items-center">
+          {status === "received" || status === "sent" ? (
+            <code>{`${
+              sender === "Remote" ? "Received" : "Send"
+            } at ${time.toLocaleTimeString()} (${bytesTotal} bytes total)`}</code>
+          ) : (
+            <code>{`${status}`}</code>
+          )}
+          {check_sum !== "None" ? (
+            <Chip
+              size="sm"
+              variant="solid"
+              radius="sm"
+              aria-label="CRC Correct"
+              className="text-xs font-mono p-0.5 h-4 ml-1"
+              color={checkSumSuccess ? "success" : "danger"}
+            >
+              CRC
+            </Chip>
+          ) : null}
+        </p>
+        <ReadableMessage
+          data={data}
+          {...messageMetaProps}
+          check_sum={check_sum}
+          color={color}
+        />
+      </Snippet>
+    </div>
   );
 };
 

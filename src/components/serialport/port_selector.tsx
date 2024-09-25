@@ -6,11 +6,13 @@ import { convertPortTypeToString } from "@/types/serialport/serialport_status";
 type PortSelectorProps = {
   setSelectedPortName: (port: string) => void;
   serialPortConfig: SerialportConfig;
+  readonly?: boolean;
 };
 
 const PortSelector = ({
   setSelectedPortName,
   serialPortConfig,
+  readonly,
 }: PortSelectorProps) => {
   const selectedPortName = serialPortConfig.port_name;
 
@@ -20,13 +22,13 @@ const PortSelector = ({
     <Autocomplete
       allowsCustomValue={false}
       label={
-        <p className="text-medium font-bold text-content1-foreground">
+        <p className="text-medium font-semibold text-content1-foreground">
           Port to Open
         </p>
       }
       placeholder="Select a port by name"
       size="sm"
-      className="min-w-60"
+      className="w-min md:min-w-24 hover:w-full"
       value={selectedPortName}
       onValueChange={(value) => {
         const port = portStatus.get(value);
@@ -44,6 +46,7 @@ const PortSelector = ({
         setSelectedPortName(key.toString());
       }}
       items={portStatus}
+      readOnly={readonly}
     >
       {([key, info]) => (
         <AutocompleteItem key={key} textValue={key}>

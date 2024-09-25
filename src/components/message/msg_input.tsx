@@ -12,7 +12,7 @@ import {
   verifyBinStr,
   verifyHexStr,
 } from "@/util/message";
-import useSendMessage from "@/hooks/message/use_send_message";
+import { useSendMessage } from "@/hooks/message/use_send_message";
 
 type MessageInputProps = {
   portName: string;

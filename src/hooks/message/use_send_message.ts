@@ -6,6 +6,7 @@ import { getCrlfAppender } from "@/util/crlf";
 import { v7 as uuid } from "uuid";
 import { useSerialportStatus } from "../store/usePortStatus";
 import { Buffer } from "buffer";
+import { useSessionDialogStore } from "../store/useSessionDialogMessages";
 
 const useSendMessage = ({
   crlf,
@@ -27,26 +28,33 @@ const useSendMessage = ({
   const crcSigner = getSumCheckSigner({ checkSum: checkSum });
   const crlfAppender = getCrlfAppender({ crlf: crlf });
   const { sendMessage } = useSerialportStatus();
+  const { sendMessage: sessionSendMessage } = useSessionDialogStore();
   const { loading: sending, runRequest: sendMessageToSerialPort } =
     useRequestState({
       action: async ({
         port_name,
         data,
+        messageId,
       }: {
         port_name: string;
         data: number[];
+        messageId?: string;
       }) => {
-        const messageId = uuid();
+        const msgId = messageId || uuid();
         const dataToSend = crcSigner(crlfAppender(data));
         emitToRustBus("write_port", {
           port_name: port_name,
           data: dataToSend,
-          message_id: messageId,
+          message_id: msgId,
         });
         sendMessage({
           port_name: port_name,
           data: Buffer.from(dataToSend),
-          id: messageId,
+          id: msgId,
+        });
+        sessionSendMessage({
+          port_name: port_name,
+          message_id: msgId,
         });
       },
 
@@ -56,4 +64,33 @@ const useSendMessage = ({
   return { sending, sendMessageToSerialPort };
 };
 
-export default useSendMessage;
+const useSendMessageAwaitable = ({ crlf, check_sum }: MessageMetaConfig) => {
+  const crcSigner = getSumCheckSigner({ checkSum: check_sum });
+  const crlfAppender = getCrlfAppender({ crlf: crlf });
+  const { sendMessage } = useSerialportStatus();
+
+  const doSend = ({
+    port_name,
+    data,
+  }: {
+    port_name: string;
+    data: number[];
+  }) => {
+    const message_id = uuid();
+    const dataToSend = crcSigner(crlfAppender(data));
+    const res = emitToRustBus("write_port", {
+      port_name: port_name,
+      data: dataToSend,
+      message_id: message_id,
+    });
+    sendMessage({
+      port_name: port_name,
+      data: Buffer.from(dataToSend),
+      id: message_id,
+    });
+    return res;
+  };
+  return { sendMessageToSerialport: doSend };
+};
+
+export { useSendMessage, useSendMessageAwaitable };

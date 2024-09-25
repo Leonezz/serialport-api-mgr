@@ -1,17 +1,12 @@
 import { useTauriEvents } from "@/bridge/rust_events";
 import RootLayout from "./layout/root";
-import {
-  Cable,
-  Combine,
-  FileSliders,
-  Microchip,
-  MonitorCog,
-} from "lucide-react";
+import { Combine, FileSliders, Microchip, MonitorCog } from "lucide-react";
 import { NavProps } from "./components/shadcn/nav";
 import { useState } from "react";
-import SerialPortMonitor from "./pages/serial_port_monitor";
+import SerialPortMonitorPage from "./pages/serial_port_monitor_page";
 import { v7 as uuid } from "uuid";
-import ConfigMgr from "./pages/config_mgr";
+import { ConfigMgrPage } from "./pages/config_mgr_page";
+import { DeviceTesterPage } from "./pages/device_tester_page";
 
 const links: NavProps["links"] = [
   {
@@ -20,7 +15,7 @@ const links: NavProps["links"] = [
     id: uuid(),
     icon: MonitorCog,
     variant: "default",
-    page: SerialPortMonitor,
+    page: SerialPortMonitorPage,
   },
   {
     title: "Configs",
@@ -28,7 +23,7 @@ const links: NavProps["links"] = [
     id: uuid(),
     icon: FileSliders,
     variant: "default",
-    page: ConfigMgr,
+    page: ConfigMgrPage,
   },
   {
     title: "Devices",
@@ -36,7 +31,7 @@ const links: NavProps["links"] = [
     description: "Serialport Device with configs and conversations",
     icon: Microchip,
     variant: "ghost",
-    page: () => <div>TBD</div>,
+    page: DeviceTesterPage,
   },
   {
     title: "Applications",
@@ -65,7 +60,7 @@ const App = () => {
       activeLink={activeLinkId}
       setActiveLink={setActiveLinkId}
     >
-      {<activeLink.page />}
+      <activeLink.page />
     </RootLayout>
   );
 };
