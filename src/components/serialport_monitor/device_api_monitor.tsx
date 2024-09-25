@@ -143,13 +143,18 @@ const DeviceApiMonitor = ({
 
   const MessageMetaPresetConfigSelector = PresetConfigSelector("message");
 
-  const { getMessagesBySessionId, addSession, removeSession, setPortName } =
-    useSessionDialogStore();
+  const {
+    getMessagesBySessionId,
+    addSession,
+    removeSession,
+    resetSession,
+    setPortName,
+  } = useSessionDialogStore();
 
-  const [sessionId, setSessionId] = useState<string>();
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   useEffect(() => {
     if (sessionId !== undefined) {
-      return;
+      return () => {};
     }
     const value = addSession({
       port_name: localSerialportConfig.port_name,
@@ -159,12 +164,16 @@ const DeviceApiMonitor = ({
     setSessionId(value.session_id);
 
     return () => {
-      if (sessionId) {
-        removeSession({ session_id: sessionId });
-        setSessionId(undefined);
-      }
+      removeSession({ session_id: value.session_id });
+      setSessionId(undefined);
     };
-  }, [sessionId]);
+  }, []);
+
+  useEffect(() => {
+    if (!portOpened && sessionId) {
+      resetSession({ session_id: sessionId });
+    }
+  }, [portOpened]);
 
   const messages = getMessagesBySessionId(sessionId || "");
   const totalTasks = messages?.messages.length || 0;
@@ -265,8 +274,7 @@ const DeviceApiMonitor = ({
         onStart={runAction}
         onReset={() => {
           if (sessionId) {
-            removeSession({ session_id: sessionId });
-            setSessionId(undefined);
+            resetSession({ session_id: sessionId });
           }
         }}
         messageMetaPresetSelector={

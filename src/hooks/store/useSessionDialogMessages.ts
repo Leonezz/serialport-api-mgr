@@ -47,6 +47,7 @@ type SessionDialogStoreActions = {
     message_meta: MessageMetaConfig;
   }) => SessionDialog;
   removeSession: ({}: { session_id: string }) => void;
+  resetSession: ({}: { session_id: string }) => void;
   setPortName: ({}: { sessionId: string; portName: string }) => void;
   query: ({}: { port_name: string }) => SessionDialog | undefined;
   sendMessage: ({}: { port_name: string; message_id: string }) => void;
@@ -81,6 +82,21 @@ const useSessionDialogStore = create<
       prev.data.delete(session_id);
       return { data: prev.data };
     });
+  },
+  resetSession: ({ session_id }) => {
+    const currentValue = get().data.get(session_id);
+    if (!currentValue) {
+      return;
+    }
+    set((prev) => ({
+      data: prev.data.set(session_id, {
+        ...currentValue,
+        messages: currentValue.messages.map((v) => ({
+          ...v,
+          status: "inactive",
+        })),
+      }),
+    }));
   },
   setPortName: ({ sessionId, portName }) => {
     const currentValue = get().data.get(sessionId);
