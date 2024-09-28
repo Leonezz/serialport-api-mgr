@@ -68,7 +68,7 @@ type NamedConfigStoreCURDActions<T> = {
       Extract<BasicConfigInfomation, BasicConfigInfomation>,
       "id" | "createAt" | "updateAt" | "usedBy"
     >;
-    config: Extract<T, T>;
+    config: T;
   }) => string;
   addUser: ({
     id,

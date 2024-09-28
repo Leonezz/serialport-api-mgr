@@ -5,6 +5,21 @@ import { v7 as uuid } from "uuid";
 import { MessageMetaConfig } from "@/types/message/message_meta";
 import { Buffer } from "buffer";
 import { mountStoreDevtool } from "simple-zustand-devtools";
+import {
+  getRequestMessage,
+  verifyResponse,
+} from "@/types/conversation/default";
+
+type SessionDialogMessageType = (
+  | {
+      sender: "Remote";
+      verifyMode: "text" | "script";
+      verifyText: string;
+      verifyScript: string;
+    }
+  | { sender: "Local" }
+) &
+  MessageType;
 
 const makeSessionMessageFromApi = (api: SerialportConversation) => {
   return [
@@ -13,7 +28,7 @@ const makeSessionMessageFromApi = (api: SerialportConversation) => {
       status: "inactive",
       sender: "Local",
       time: new Date(),
-      data: Buffer.from(api.request),
+      data: Buffer.from(getRequestMessage(api.request)),
       order: 1,
     },
     {
@@ -21,18 +36,24 @@ const makeSessionMessageFromApi = (api: SerialportConversation) => {
       status: "inactive",
       sender: "Remote",
       time: new Date(),
-      data: Buffer.from(api.response),
-      expectedData: Buffer.from(api.response),
+      data: Buffer.from([]),
+      expectedMessage:
+        api.response.mode === "script"
+          ? "[VERIFY BY SCRIPT]"
+          : api.response.text,
       order: 2,
+      verifyMode: api.response.mode,
+      verifyText: api.response.text,
+      verifyScript: api.response.script,
     },
-  ] satisfies MessageType[];
+  ] satisfies SessionDialogMessageType[];
 };
 
 type SessionDialog = {
   session_id: string;
   port_name: string;
   message_meta: MessageMetaConfig;
-  messages: MessageType[];
+  messages: SessionDialogMessageType[];
 };
 
 type SessionDialogStore = {
@@ -93,6 +114,8 @@ const useSessionDialogStore = create<
         ...currentValue,
         messages: currentValue.messages.map((v) => ({
           ...v,
+          data: v.sender === "Remote" ? Buffer.from([]) : v.data,
+          time: new Date(),
           status: "inactive",
         })),
       }),
@@ -165,12 +188,33 @@ const useSessionDialogStore = create<
     if (!currentValue) {
       return;
     }
-    const messages = currentValue.messages.map((v) => {
-      if (v.id === message_id) {
-        return { ...v, status: "sent", time: new Date() } satisfies MessageType;
-      }
-      return v;
-    });
+    const messages = currentValue.messages
+      .map((v) => {
+        if (v.id === message_id) {
+          return {
+            ...v,
+            status: "sent",
+            time: new Date(),
+          } satisfies MessageType;
+        }
+        return v;
+      })
+      .map((v, idx, arr) => {
+        const prev = arr.at(idx - 1);
+        if (
+          prev &&
+          (prev.status === "received" || prev.status === "sent") &&
+          v.sender === "Remote" &&
+          v.status === "inactive"
+        ) {
+          return {
+            ...v,
+            time: new Date(),
+            status: "waiting",
+          } satisfies MessageType;
+        }
+        return v;
+      });
     set((prev) => ({
       data: prev.data.set(currentValue.session_id, {
         ...currentValue,
@@ -212,19 +256,51 @@ const useSessionDialogStore = create<
     if (curMessageIdx === -1) {
       return;
     }
-    const messages = curMessages.map((v, idx) => {
-      if (idx === curMessageIdx) {
-        const valueMatch =
-          JSON.stringify(v.expectedData) === JSON.stringify(data);
-        return {
-          ...v,
-          status: valueMatch ? "received" : "failed",
-          data: data,
-          error: valueMatch ? undefined : "value not match",
-        } satisfies MessageType;
-      }
-      return v;
-    });
+
+    const messages = curMessages
+      .map((v, idx) => {
+        if (idx === curMessageIdx && v.sender === "Remote") {
+          try {
+            const verified = verifyResponse({
+              mode: v.verifyMode,
+              text: v.verifyText,
+              script: v.verifyScript,
+              response: data,
+              ...currentValue.message_meta,
+            });
+            return {
+              ...v,
+              status: verified ? "received" : "failed",
+              data: data,
+              error: verified ? undefined : "value not match",
+            } satisfies SessionDialogMessageType;
+          } catch {
+            return {
+              ...v,
+              status: "failed",
+              data: data,
+              error: "run verify script failed",
+            } satisfies SessionDialogMessageType;
+          }
+        }
+        return v;
+      })
+      .map((v, idx, arr) => {
+        const prev = arr.at(idx - 1);
+        if (
+          prev &&
+          (prev.status === "received" || prev.status === "sent") &&
+          v.sender === "Remote" &&
+          v.status === "inactive"
+        ) {
+          return {
+            ...v,
+            time: new Date(),
+            status: "waiting",
+          } satisfies MessageType;
+        }
+        return v;
+      });
     set((prev) => ({
       data: prev.data.set(currentValue.session_id, {
         ...currentValue,

@@ -2,11 +2,11 @@ import { MessageMetaConfig } from "@/types/message/message_meta";
 import { useRequestState } from "../commands/useRequestState";
 import { emitToRustBus, AppError } from "@/bridge/call_rust";
 import { getSumCheckSigner } from "@/util/checksum";
-import { getCrlfAppender } from "@/util/crlf";
 import { v7 as uuid } from "uuid";
 import { useSerialportStatus } from "../store/usePortStatus";
 import { Buffer } from "buffer";
 import { useSessionDialogStore } from "../store/useSessionDialogMessages";
+import { getCrlfAppender } from "@/types/message/crlf";
 
 const useSendMessage = ({
   crlf,

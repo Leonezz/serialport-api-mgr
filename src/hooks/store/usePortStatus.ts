@@ -4,11 +4,18 @@ import { mountStoreDevtool } from "simple-zustand-devtools";
 import { v7 as uuid } from "uuid";
 export type MessageType = {
   id: string;
-  status: "received" | "sent" | "pending" | "sending" | "failed" | "inactive";
+  status:
+    | "received"
+    | "sent"
+    | "pending"
+    | "sending"
+    | "failed"
+    | "inactive"
+    | "waiting";
   sender: "Local" | "Remote";
   time: Date;
   data: Buffer;
-  expectedData?: Buffer;
+  expectedMessage?: string;
   order?: number;
   error?: string;
 };

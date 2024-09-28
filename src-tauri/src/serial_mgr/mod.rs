@@ -580,7 +580,7 @@ impl SerialMgr {
         }
         log::info!(target: port_name.as_str(), "port async task started");
 
-        const HEARTBEAT_INTERVAL_MS: u32 = 10000;
+        const HEARTBEAT_INTERVAL_MS: u32 = 100000;
         const LOOP_SLEEP_MS: u32 = 10;
         let mut loop_cnt = 0;
         loop {

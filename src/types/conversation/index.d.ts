@@ -1,7 +1,10 @@
-import { MessageMetaConfig } from "../message/message_meta";
-
-type SerialportConversation = {
-  request: string;
-  response: string;
+export type SerialportConversation = {
+  request: ConversationMessageType;
+  response: ConversationMessageType;
 };
-export { type SerialportConversation };
+
+type ConversationMessageType = {
+  mode: "text" | "script";
+  text: string;
+  script: string;
+};

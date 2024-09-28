@@ -1,6 +1,7 @@
 // import { NamedConfigStoreType } from "@/util/store_types";
+import decodeSerialData from "@/components/message/util";
 import { CheckSumOptions } from "./checksum";
-import { CRLFOptions } from "./crlf";
+import { CRLFOptions, splitMessageByCRLF } from "./crlf";
 import { TextEncodingOptions } from "./encoding";
 import { ViewModeOptions } from "./view_mode";
 
@@ -29,3 +30,14 @@ export const MessageMetaOptions = {
   text_encoding: TextEncodingOptions,
   check_sum: CheckSumOptions,
 } as const;
+
+export const getMessageDecoder = ({
+  view_mode,
+  text_encoding,
+  crlf,
+}: MessageMetaConfig) => {
+  return (message: Buffer) => {
+    const str = decodeSerialData(view_mode, text_encoding, message);
+    return splitMessageByCRLF({ message: str, crlfMode: crlf });
+  };
+};
