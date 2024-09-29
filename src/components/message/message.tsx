@@ -1,36 +1,27 @@
 import { MessageType } from "@/hooks/store/usePortStatus";
 import { Chip, ChipProps, Snippet, Spinner, Tooltip } from "@nextui-org/react";
-import { Buffer } from "buffer";
 import {
   getMessageDecoder,
   MessageMetaConfig,
 } from "@/types/message/message_meta";
-import { checkSumVerifyMessage } from "@/util/checksum";
-import { getCrcBytes } from "@/types/message/checksum";
-import { dropRight } from "es-toolkit";
 import { CircleAlert } from "lucide-react";
+import { bufferToHexStr } from "./util";
 
 const ReadableMessage = ({
-  data,
+  messageLines,
   crlf,
   view_mode: viewMode,
   text_encoding: textEncoding,
   ...props
 }: {
-  data: Buffer;
+  messageLines: string[];
 } & Omit<MessageMetaConfig, "checkSum"> &
   ChipProps) => {
-  const lines = getMessageDecoder({
-    view_mode: viewMode,
-    text_encoding: textEncoding,
-    crlf: crlf,
-    check_sum: props.check_sum,
-  })(data);
   const lineBreak = viewMode === "Text" ? "break-all" : "break-word";
 
   return (
     <div className="flex flex-row items-center">
-      {lines.map((line) => (
+      {messageLines.map((line) => (
         <p
           key={line}
           className={`flex flex-row max-w-full text-wrap ${lineBreak} items-center align-middle`}
@@ -97,23 +88,24 @@ const Message = ({
   data,
   status,
   check_sum,
+  sessionMode,
   ...props
-}: MessageProps & MessageMetaConfig) => {
+}: MessageProps & MessageMetaConfig & { sessionMode?: true }) => {
   const isLocalMsg = sender === "Local";
   const color = isLocalMsg ? "primary" : "warning";
   const isMsgLoading = status === "pending" || status === "sending";
   const isMsgInactive = status === "inactive";
   const isMsgFailed = status === "failed";
-  const isMsgToVerify = props.expectedMessage !== undefined;
   const isMsgWaiting = status === "waiting";
 
-  const checkSumSuccess = checkSumVerifyMessage({
-    message: data,
-    check_sum: check_sum,
-  });
-  const checkSumBytes = getCrcBytes(check_sum);
   const bytesTotal = data.length;
-  data = Buffer.from(dropRight([...data], checkSumBytes));
+  const messageLines = getMessageDecoder({
+    view_mode: props.view_mode,
+    text_encoding: props.text_encoding,
+    crlf: props.crlf,
+    check_sum: check_sum,
+  })(data);
+  const checkSumSuccess = messageLines !== undefined;
 
   return (
     <div
@@ -123,12 +115,20 @@ const Message = ({
     >
       <div>
         {(isMsgLoading || isMsgWaiting) && <Spinner size="sm" color={color} />}
-        {isMsgFailed && (
+        {(isMsgFailed || !checkSumSuccess) && (
           <Tooltip
             content={
-              <div>
+              <div className="flex flex-col">
                 <h4>Error Message</h4>
-                <code className="text-danger">{props.error}</code>
+                <code className="text-danger">
+                  {isMsgFailed && props.error}
+                </code>
+                <code className="text-danger">
+                  {!checkSumSuccess && `${check_sum} checksum verify failed`}
+                </code>
+                <code className="text-danger">{`received data: ${bufferToHexStr(
+                  data
+                )}`}</code>
               </div>
             }
           >
@@ -159,7 +159,8 @@ const Message = ({
             </Chip>
           ) : null}
         </p>
-        {isMsgToVerify && (
+
+        {props.expectedMessage && (
           <div className="flex flex-row items-center text-neutral-500">
             <p
               className={`flex flex-row max-w-full text-wrap break-words items-center align-middle`}
@@ -177,12 +178,14 @@ const Message = ({
             </p>
           </div>
         )}
-        <ReadableMessage
-          data={data}
-          {...props}
-          check_sum={check_sum}
-          color={color}
-        />
+        {checkSumSuccess && (
+          <ReadableMessage
+            messageLines={messageLines}
+            {...props}
+            check_sum={check_sum}
+            color={color}
+          />
+        )}
       </Snippet>
     </div>
   );

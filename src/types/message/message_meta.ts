@@ -1,9 +1,12 @@
 // import { NamedConfigStoreType } from "@/util/store_types";
 import decodeSerialData from "@/components/message/util";
-import { CheckSumOptions } from "./checksum";
+import { CheckSumOptions, getCrcBytes } from "./checksum";
 import { CRLFOptions, splitMessageByCRLF } from "./crlf";
 import { TextEncodingOptions } from "./encoding";
 import { ViewModeOptions } from "./view_mode";
+import { checkSumVerifyMessage } from "@/util/checksum";
+import { dropRight } from "es-toolkit";
+import { Buffer } from "buffer";
 
 export type MessageMetaConfigFields<T extends keyof typeof MessageMetaOptions> =
   (typeof MessageMetaOptions)[T][number];
@@ -35,9 +38,23 @@ export const getMessageDecoder = ({
   view_mode,
   text_encoding,
   crlf,
+  check_sum,
 }: MessageMetaConfig) => {
   return (message: Buffer) => {
-    const str = decodeSerialData(view_mode, text_encoding, message);
+    const checkSumSuccess = checkSumVerifyMessage({
+      message: message,
+      check_sum: check_sum,
+    });
+    if (!checkSumSuccess) {
+      return undefined;
+    }
+    const checkSumBytes = getCrcBytes(check_sum);
+    message = Buffer.from(dropRight([...message], checkSumBytes));
+    const str = decodeSerialData({
+      viewMode: view_mode,
+      textEncoding: text_encoding,
+      data: message,
+    });
     return splitMessageByCRLF({ message: str, crlfMode: crlf });
   };
 };

@@ -1,12 +1,19 @@
 import { useTauriEvents } from "@/bridge/rust_events";
 import RootLayout from "./layout/root";
-import { Combine, FileSliders, Microchip, MonitorCog } from "lucide-react";
+import {
+  Combine,
+  FileSliders,
+  Logs,
+  Microchip,
+  MonitorCog,
+} from "lucide-react";
 import { NavProps } from "./components/shadcn/nav";
 import { useState } from "react";
 import SerialPortMonitorPage from "./pages/serial_port_monitor_page";
 import { v7 as uuid } from "uuid";
 import { ConfigMgrPage } from "./pages/config_mgr_page";
 import { DeviceTesterPage } from "./pages/device_tester_page";
+import { SerialportLogs } from "./pages/serialport_logs";
 
 const links: NavProps["links"] = [
   {
@@ -40,6 +47,14 @@ const links: NavProps["links"] = [
     description: "Application that takes complicated serialport communication",
     variant: "ghost",
     page: () => <div>TBD</div>,
+  },
+  {
+    title: "Logs",
+    id: uuid(),
+    icon: Logs,
+    description: "Serialport communication logs",
+    variant: "ghost",
+    page: SerialportLogs,
   },
 ];
 

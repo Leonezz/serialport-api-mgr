@@ -1,27 +1,43 @@
-import { MessageMetaConfig } from "@/types/message/message_meta";
+import {
+  MessageMetaConfig,
+  MessageMetaConfigFields,
+} from "@/types/message/message_meta";
 import { Buffer } from "buffer";
 
-const decodeSerialData = (
-  viewMode: MessageMetaConfig["view_mode"],
-  textEncoding = "utf-8",
-  data: Buffer
+export const bufferToHexStr = (data: Buffer) =>
+  data.reduce(
+    (str, byte) => str + byte.toString(16).padStart(4, "0x") + " ",
+    ""
+  );
+
+export const bufferToText = (
+  data: Buffer,
+  textEncoding: MessageMetaConfigFields<"text_encoding">
 ) => {
+  const textDecoder = new TextDecoder(textEncoding);
+  return textDecoder.decode(data);
+};
+
+export const bufferToBinStr = (data: Buffer) =>
+  data.reduce((str, byte) => str + byte.toString(2).padStart(8, "0") + " ", "");
+
+const decodeSerialData = ({
+  viewMode,
+  textEncoding,
+  data,
+}: {
+  viewMode: MessageMetaConfig["view_mode"];
+  textEncoding: MessageMetaConfigFields<"text_encoding">;
+  data: Buffer;
+}) => {
   switch (viewMode) {
-    case "Text": {
-      const textDecoder = new TextDecoder(textEncoding);
-      return textDecoder.decode(data);
-    }
+    case "Text":
+      return bufferToText(data, textEncoding);
     case "Hex": {
-      return data.reduce(
-        (str, byte) => str + byte.toString(16).padStart(4, "0x") + " ",
-        ""
-      );
+      return bufferToHexStr(data);
     }
     case "Bin": {
-      return data.reduce(
-        (str, byte) => str + byte.toString(2).padStart(8, "0") + " ",
-        ""
-      );
+      return bufferToBinStr(data);
     }
   }
 };

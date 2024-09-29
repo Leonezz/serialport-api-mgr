@@ -17,6 +17,7 @@ import { DEFAULTSerialportConversation } from "@/types/conversation/default";
 import { useSessionDialogStore } from "@/hooks/store/useSessionDialogMessages";
 import { useSendMessage } from "@/hooks/message/use_send_message";
 import { useToast } from "../shadcn/use-toast";
+import { Buffer } from "buffer";
 
 type ApiConfigSelectorProps = {
   selectRange: NamedSerialportApi[];
@@ -217,7 +218,7 @@ const DeviceApiMonitor = ({
     }
     sendMessageToSerialPort({
       port_name: localSerialportConfig.port_name,
-      data: [...message.data],
+      data: [...Buffer.from(message.expectedMessage || "")],
       messageId: message.id,
     });
   };
@@ -238,6 +239,7 @@ const DeviceApiMonitor = ({
       {messages?.messages && (
         <MessageList
           messages={messages.messages}
+          sessionMode
           {...messageMetaConfig.config}
         />
       )}

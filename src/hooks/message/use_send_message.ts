@@ -7,6 +7,7 @@ import { useSerialportStatus } from "../store/usePortStatus";
 import { Buffer } from "buffer";
 import { useSessionDialogStore } from "../store/useSessionDialogMessages";
 import { getCrlfAppender } from "@/types/message/crlf";
+import { useSerialportLog } from "../store/useSerialportLogStore";
 
 const useSendMessage = ({
   crlf,
@@ -29,6 +30,7 @@ const useSendMessage = ({
   const crlfAppender = getCrlfAppender({ crlf: crlf });
   const { sendMessage } = useSerialportStatus();
   const { sendMessage: sessionSendMessage } = useSessionDialogStore();
+  const { appendLogItem } = useSerialportLog();
   const { loading: sending, runRequest: sendMessageToSerialPort } =
     useRequestState({
       action: async ({
@@ -42,6 +44,7 @@ const useSendMessage = ({
       }) => {
         const msgId = messageId || uuid();
         const dataToSend = crcSigner(crlfAppender(data));
+        const bufferToSend = Buffer.from(dataToSend);
         emitToRustBus("write_port", {
           port_name: port_name,
           data: dataToSend,
@@ -49,12 +52,19 @@ const useSendMessage = ({
         });
         sendMessage({
           port_name: port_name,
-          data: Buffer.from(dataToSend),
+          data: bufferToSend,
           id: msgId,
         });
         sessionSendMessage({
           port_name: port_name,
+          data: bufferToSend,
           message_id: msgId,
+        });
+        appendLogItem({
+          type: "send",
+          message: bufferToSend,
+          time: new Date(),
+          port_name: port_name,
         });
       },
 

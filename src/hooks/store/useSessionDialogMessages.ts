@@ -28,7 +28,8 @@ const makeSessionMessageFromApi = (api: SerialportConversation) => {
       status: "inactive",
       sender: "Local",
       time: new Date(),
-      data: Buffer.from(getRequestMessage(api.request)),
+      data: Buffer.from([]),
+      expectedMessage: getRequestMessage(api.request),
       order: 1,
     },
     {
@@ -71,10 +72,26 @@ type SessionDialogStoreActions = {
   resetSession: ({}: { session_id: string }) => void;
   setPortName: ({}: { sessionId: string; portName: string }) => void;
   query: ({}: { port_name: string }) => SessionDialog | undefined;
-  sendMessage: ({}: { port_name: string; message_id: string }) => void;
-  messageSending: ({}: { port_name: string; message_id: string }) => void;
-  messageSent: ({}: { port_name: string; message_id: string }) => void;
-  messageSendFailed: ({}: { port_name: string; message_id: string }) => void;
+  sendMessage: ({}: {
+    data: Buffer;
+    port_name: string;
+    message_id: string;
+  }) => void;
+  messageSending: ({}: {
+    data: Buffer;
+    port_name: string;
+    message_id: string;
+  }) => void;
+  messageSent: ({}: {
+    data: Buffer;
+    port_name: string;
+    message_id: string;
+  }) => void;
+  messageSendFailed: ({}: {
+    data: Buffer;
+    port_name: string;
+    message_id: string;
+  }) => void;
   receiveMessage: ({}: { port_name: string; data: Buffer }) => void;
 };
 
@@ -114,7 +131,7 @@ const useSessionDialogStore = create<
         ...currentValue,
         messages: currentValue.messages.map((v) => ({
           ...v,
-          data: v.sender === "Remote" ? Buffer.from([]) : v.data,
+          data: Buffer.from([]),
           time: new Date(),
           status: "inactive",
         })),
@@ -138,9 +155,9 @@ const useSessionDialogStore = create<
       .filter(([_, value]) => value.port_name === port_name)
       .at(0)?.[1];
   },
-  sendMessage: ({ port_name, message_id }) => {
+  sendMessage: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
-    console.log(currentValue, message_id);
+    console.log(data);
     if (!currentValue) {
       return;
     }
@@ -149,6 +166,7 @@ const useSessionDialogStore = create<
         return {
           ...v,
           status: "pending",
+          data: data,
           time: new Date(),
         } satisfies MessageType;
       }
@@ -161,7 +179,7 @@ const useSessionDialogStore = create<
       }),
     }));
   },
-  messageSending: ({ port_name, message_id }) => {
+  messageSending: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
     if (!currentValue) {
       return;
@@ -171,6 +189,7 @@ const useSessionDialogStore = create<
         return {
           ...v,
           status: "sending",
+          data: data,
           time: new Date(),
         } satisfies MessageType;
       }
@@ -183,7 +202,7 @@ const useSessionDialogStore = create<
       }),
     }));
   },
-  messageSent: ({ port_name, message_id }) => {
+  messageSent: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
     if (!currentValue) {
       return;
@@ -194,6 +213,7 @@ const useSessionDialogStore = create<
           return {
             ...v,
             status: "sent",
+            data: data,
             time: new Date(),
           } satisfies MessageType;
         }
@@ -222,7 +242,7 @@ const useSessionDialogStore = create<
       }),
     }));
   },
-  messageSendFailed: ({ port_name, message_id }) => {
+  messageSendFailed: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
     if (!currentValue) {
       return;
@@ -232,6 +252,7 @@ const useSessionDialogStore = create<
         return {
           ...v,
           status: "failed",
+          data: data,
           time: new Date(),
         } satisfies MessageType;
       }

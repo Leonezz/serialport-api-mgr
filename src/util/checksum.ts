@@ -12,7 +12,7 @@ export const checkSumVerifyMessage = ({
   message: Buffer;
   check_sum: MessageMetaConfig["check_sum"];
 }) => {
-  if (check_sum === "None") {
+  if (check_sum === "None" || message.length === 0) {
     return true;
   }
   const checkSumBytes = getCrcBytes(check_sum);

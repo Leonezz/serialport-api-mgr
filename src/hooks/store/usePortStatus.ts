@@ -36,9 +36,21 @@ type SerialportStatusStoreActions = {
     port_name: string;
   }) => SerialPortStatus | undefined;
   sendMessage: (props: { port_name: string; data: Buffer; id: string }) => void;
-  messageSent: (props: { port_name: string; message_id: string }) => void;
-  messageSending: (props: { port_name: string; message_id: string }) => void;
-  messageSendFailed: (props: { port_name: string; message_id: string }) => void;
+  messageSent: (props: {
+    port_name: string;
+    data: Buffer;
+    message_id: string;
+  }) => void;
+  messageSending: (props: {
+    port_name: string;
+    data: Buffer;
+    message_id: string;
+  }) => void;
+  messageSendFailed: (props: {
+    port_name: string;
+    data: Buffer;
+    message_id: string;
+  }) => void;
   receiveMessage: (props: { port_name: string; data: Buffer }) => void;
   getPortMessageList: (props: { port_name: string }) => MessageType[];
   portOpened: (props: { port_name: string }) => void;
@@ -107,7 +119,7 @@ const useSerialportStatus = create<
       };
     });
   },
-  messageSent: ({ port_name, message_id }) => {
+  messageSent: ({ port_name, message_id, data }) => {
     set((prev) => {
       console.log(
         `${port_name} successfully sent a message, id: ${message_id}`
@@ -122,6 +134,7 @@ const useSerialportStatus = create<
           ...currentState,
           messages: currentState.messages.set(message_id, {
             ...message,
+            data: data,
             status: "sent",
             time: new Date(),
           }),
@@ -129,7 +142,7 @@ const useSerialportStatus = create<
       };
     });
   },
-  messageSendFailed: ({ port_name, message_id }) => {
+  messageSendFailed: ({ port_name, message_id, data }) => {
     set((prev) => {
       console.error(`${port_name} send message ${message_id} failed`);
       const currentState = prev.data.get(port_name);
@@ -144,6 +157,7 @@ const useSerialportStatus = create<
           messages: currentState.messages.set(message_id, {
             ...message,
             status: "failed",
+            data: data,
             time: new Date(),
           }),
         }),

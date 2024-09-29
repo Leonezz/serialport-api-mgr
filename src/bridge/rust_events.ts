@@ -1,11 +1,12 @@
 "use client";
 import { useSerialportStatus } from "@/hooks/store/usePortStatus";
-import { listen, Event, UnlistenFn, once } from "@tauri-apps/api/event";
+import { listen, Event, UnlistenFn } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { Buffer } from "buffer";
 import { INFO } from "./logging";
 import useAvaliablePorts from "@/hooks/commands/useAvaliablePorts";
 import { useSessionDialogStore } from "@/hooks/store/useSessionDialogMessages";
+import { useSerialportLog } from "@/hooks/store/useSerialportLogStore";
 type TauriSerialEvents = {
   port_name: string;
 };
@@ -66,6 +67,7 @@ export const useTauriEvents = () => {
     messageSendFailed: sessionMessageSendFailed,
     receiveMessage: sessionReceiveMessage,
   } = useSessionDialogStore();
+  const { appendLogItem } = useSerialportLog();
   const { refresh } = useAvaliablePorts();
   useEffect(() => {
     const events: Promise<UnlistenFn>[] = [];
@@ -89,13 +91,22 @@ export const useTauriEvents = () => {
           port_name: port_name,
           event: event,
         });
+        const bufferSent = Buffer.from(event.WriteFinished.data);
         messageSent({
           port_name: port_name,
           message_id: event.WriteFinished.message_id,
+          data: bufferSent,
         });
         sessionMessageSent({
           port_name: port_name,
           message_id: event.WriteFinished.message_id,
+          data: bufferSent,
+        });
+        appendLogItem({
+          type: "sent",
+          port_name: port_name,
+          message: bufferSent,
+          time: new Date(),
         });
 
         refresh();
@@ -104,42 +115,66 @@ export const useTauriEvents = () => {
 
     events.push(
       listenTauriEvent("port_write_sending", ({ event, port_name }) => {
+        const bufferSending = Buffer.from(event.Writing.data);
         messageSending({
           port_name: port_name,
           message_id: event.Writing.message_id,
+          data: bufferSending,
         });
         sessionMessageSending({
           port_name: port_name,
           message_id: event.Writing.message_id,
+          data: bufferSending,
+        });
+        appendLogItem({
+          type: "sending",
+          message: bufferSending,
+          port_name: port_name,
+          time: new Date(),
         });
       })
     );
 
     events.push(
       listenTauriEvent("port_write_failed", ({ port_name, event }) => {
+        const bufferSendFailed = Buffer.from(event.WriteError.data);
         messageSendFailed({
           port_name: port_name,
           message_id: event.WriteError.message_id,
+          data: bufferSendFailed,
         });
         sessionMessageSendFailed({
           port_name: port_name,
           message_id: event.WriteError.message_id,
+          data: bufferSendFailed,
         });
-
+        appendLogItem({
+          type: "send_failed",
+          message: bufferSendFailed,
+          port_name: port_name,
+          time: new Date(),
+        });
         refresh();
       })
     );
 
     events.push(
       listenTauriEvent("port_read", ({ port_name, event }) => {
+        const bufferRead = Buffer.from(event.ReadFinished);
         port_read({ port_name: port_name, event: event });
         reviceMessage({
           port_name: port_name,
-          data: Buffer.from(event.ReadFinished),
+          data: bufferRead,
         });
         sessionReceiveMessage({
           port_name: port_name,
-          data: Buffer.from(event.ReadFinished),
+          data: bufferRead,
+        });
+        appendLogItem({
+          type: "received",
+          message: bufferRead,
+          port_name: port_name,
+          time: new Date(),
         });
         refresh();
       })

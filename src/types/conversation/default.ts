@@ -63,12 +63,16 @@ export const verifyResponse = ({
 }: ConversationMessageType & {
   response: Buffer;
 } & MessageMetaConfig): boolean => {
-  const receivedMessage = getMessageDecoder(messageMeta)(response).join("\n");
+  const receivedMessage = getMessageDecoder(messageMeta)(response)?.join("\n");
+  if (receivedMessage === undefined) {
+    return false;
+  }
   if (mode === "text") {
     return text === receivedMessage;
   }
   try {
     const verifier = new Function("response", getScriptContent(script));
+    console.log(receivedMessage, verifier);
     return verifier(receivedMessage);
   } catch {
     throw "run response script failed";
