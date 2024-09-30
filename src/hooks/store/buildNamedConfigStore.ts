@@ -4,6 +4,7 @@ import { devtools, persist } from "zustand/middleware";
 import mappedDataLocalFileStorage from "./persist/localFile";
 import { omit, uniqWith } from "es-toolkit";
 import { SupportedConfig } from "@/components/config_mgr/util";
+import { DateTime } from "luxon";
 export type BasicConfigInfomation = {
   id: string;
   name: string;
@@ -12,8 +13,8 @@ export type BasicConfigInfomation = {
     type: keyof SupportedConfig;
     id: string;
   }[];
-  createAt: Date;
-  updateAt: Date;
+  createAt: DateTime;
+  updateAt: DateTime;
 };
 
 export const DEFAULTBasicInformation: BasicConfigInfomation = {
@@ -21,8 +22,8 @@ export const DEFAULTBasicInformation: BasicConfigInfomation = {
   name: "",
   comment: "",
   usedBy: [],
-  createAt: new Date(),
-  updateAt: new Date(),
+  createAt: DateTime.now(),
+  updateAt: DateTime.now(),
 };
 
 export type NamedConfigStoreType<T> = {
@@ -150,7 +151,7 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
           add: ({ basicInfo, config }) => {
             const id = uuid();
             set((prev) => {
-              const now = new Date();
+              const now = DateTime.now();
               const newEntry: Omit<
                 Extract<
                   NamedConfigStoreType<Extract<T, T>>,
@@ -238,7 +239,7 @@ const buildNamedConfigStore = <T, Extra, ExtraActions>(
                   config: { ...currentConfig.config, ...config },
                   ...omit(currentConfig, ["id", "config"]),
                   ...basicInfo,
-                  updateAt: new Date(),
+                  updateAt: DateTime.now(),
                 }),
               };
             });

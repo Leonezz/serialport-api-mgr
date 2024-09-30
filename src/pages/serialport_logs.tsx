@@ -20,6 +20,7 @@ import {
 } from "@nextui-org/react";
 import { uniq } from "es-toolkit";
 import { ChevronDownIcon, SearchIcon } from "lucide-react";
+import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 
 const columns = [
@@ -34,7 +35,7 @@ const renderCell = (item: SerialportLogItem, columnKey: string) => {
       return item.port_name;
     }
     case "time": {
-      return item.time.toLocaleTimeString();
+      return item.time.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
     }
     case "type": {
       return item.type;
@@ -81,7 +82,9 @@ export const SerialportLogs = () => {
 
     if (searchText.length > 0) {
       filteredLogs = filteredLogs.filter((log) =>
-        `${log.message}${log.port_name}${log.time}${log.type}`
+        `${log.message}${log.port_name}${log.time.toLocaleString(
+          DateTime.DATETIME_MED_WITH_SECONDS
+        )}${log.type}`
           .toLowerCase()
           .includes(searchText.toLowerCase())
       );

@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { v7 as uuid } from "uuid";
+import { DateTime } from "luxon";
 
 export type SerialportLogItem = {
   id: string;
   port_name: string;
-  time: Date;
+  time: DateTime;
   type:
     | "send"
     | "pending"

@@ -3,6 +3,7 @@ import { useRequestState } from "./useRequestState";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { emitToRustBus } from "@/bridge/call_rust";
 import { useSerialportLog } from "../store/useSerialportLogStore";
+import { DateTime } from "luxon";
 
 const useClosePort = () => {
   const { toastError, toastSuccess } = useToast();
@@ -12,14 +13,14 @@ const useClosePort = () => {
       appendLogItem({
         type: "close_port",
         port_name: config.port_name,
-        time: new Date(),
+        time: DateTime.now(),
       });
       return emitToRustBus("close_port", { port_name: config.port_name });
     },
     onError: (err, payload) => {
       appendLogItem({
         type: "port_close_failed",
-        time: new Date(),
+        time: DateTime.now(),
         port_name: payload?.[0].port_name || "Unknown",
       });
       toastError({
@@ -29,7 +30,7 @@ const useClosePort = () => {
     onSuccess: (_, payload) => {
       appendLogItem({
         type: "port_closed",
-        time: new Date(),
+        time: DateTime.now(),
         port_name: payload?.[0].port_name || "Unknown",
       });
       toastSuccess({

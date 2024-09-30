@@ -6,6 +6,7 @@ import {
 } from "@/types/message/message_meta";
 import { CircleAlert } from "lucide-react";
 import { bufferToHexStr } from "./util";
+import { DateTime } from "luxon";
 
 const ReadableMessage = ({
   messageLines,
@@ -50,10 +51,10 @@ const MessageStatus = ({
   bytes,
 }: {
   status: MessageType["status"];
-  time: Date;
+  time: DateTime;
   bytes: number;
 }) => {
-  const timeStr = time.toLocaleTimeString();
+  const timeStr = time.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
   if (status === "inactive") {
     return <code>{status}</code>;
   }

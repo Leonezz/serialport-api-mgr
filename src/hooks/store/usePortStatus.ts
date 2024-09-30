@@ -2,6 +2,7 @@ import { SerialPortStatus } from "@/types/serialport/serialport_status";
 import { create } from "zustand";
 import { mountStoreDevtool } from "simple-zustand-devtools";
 import { v7 as uuid } from "uuid";
+import { DateTime } from "luxon";
 export type MessageType = {
   id: string;
   status:
@@ -13,7 +14,7 @@ export type MessageType = {
     | "inactive"
     | "waiting";
   sender: "Local" | "Remote";
-  time: Date;
+  time: DateTime;
   data: Buffer;
   expectedMessage?: string;
   order?: number;
@@ -91,7 +92,7 @@ const useSerialportStatus = create<
         id: id,
         status: "pending",
         sender: "Local",
-        time: new Date(),
+        time: DateTime.now(),
         data: data,
       });
       prev.data.set(port_name, currentState);
@@ -113,7 +114,7 @@ const useSerialportStatus = create<
           messages: currentState.messages.set(message_id, {
             ...message,
             status: "sending",
-            time: new Date(),
+            time: DateTime.now(),
           }),
         }),
       };
@@ -136,7 +137,7 @@ const useSerialportStatus = create<
             ...message,
             data: data,
             status: "sent",
-            time: new Date(),
+            time: DateTime.now(),
           }),
         }),
       };
@@ -158,7 +159,7 @@ const useSerialportStatus = create<
             ...message,
             status: "failed",
             data: data,
-            time: new Date(),
+            time: DateTime.now(),
           }),
         }),
       };
@@ -175,7 +176,7 @@ const useSerialportStatus = create<
         id: messageId,
         status: "received",
         sender: "Remote",
-        time: new Date(),
+        time: DateTime.now(),
         data: content,
       });
       prev.data.set(portName, currentState);

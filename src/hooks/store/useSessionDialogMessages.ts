@@ -9,6 +9,7 @@ import {
   getRequestMessage,
   verifyResponse,
 } from "@/types/conversation/default";
+import { DateTime } from "luxon";
 
 type SessionDialogMessageType = (
   | {
@@ -27,7 +28,7 @@ const makeSessionMessageFromApi = (api: SerialportConversation) => {
       id: uuid(),
       status: "inactive",
       sender: "Local",
-      time: new Date(),
+      time: DateTime.now(),
       data: Buffer.from([]),
       expectedMessage: getRequestMessage(api.request),
       order: 1,
@@ -36,7 +37,7 @@ const makeSessionMessageFromApi = (api: SerialportConversation) => {
       id: uuid(),
       status: "inactive",
       sender: "Remote",
-      time: new Date(),
+      time: DateTime.now(),
       data: Buffer.from([]),
       expectedMessage:
         api.response.mode === "script"
@@ -132,7 +133,7 @@ const useSessionDialogStore = create<
         messages: currentValue.messages.map((v) => ({
           ...v,
           data: Buffer.from([]),
-          time: new Date(),
+          time: DateTime.now(),
           status: "inactive",
         })),
       }),
@@ -167,7 +168,7 @@ const useSessionDialogStore = create<
           ...v,
           status: "pending",
           data: data,
-          time: new Date(),
+          time: DateTime.now(),
         } satisfies MessageType;
       }
       return v;
@@ -190,7 +191,7 @@ const useSessionDialogStore = create<
           ...v,
           status: "sending",
           data: data,
-          time: new Date(),
+          time: DateTime.now(),
         } satisfies MessageType;
       }
       return v;
@@ -214,7 +215,7 @@ const useSessionDialogStore = create<
             ...v,
             status: "sent",
             data: data,
-            time: new Date(),
+            time: DateTime.now(),
           } satisfies MessageType;
         }
         return v;
@@ -229,7 +230,7 @@ const useSessionDialogStore = create<
         ) {
           return {
             ...v,
-            time: new Date(),
+            time: DateTime.now(),
             status: "waiting",
           } satisfies MessageType;
         }
@@ -253,7 +254,7 @@ const useSessionDialogStore = create<
           ...v,
           status: "failed",
           data: data,
-          time: new Date(),
+          time: DateTime.now(),
         } satisfies MessageType;
       }
       return v;
@@ -316,7 +317,7 @@ const useSessionDialogStore = create<
         ) {
           return {
             ...v,
-            time: new Date(),
+            time: DateTime.now(),
             status: "waiting",
           } satisfies MessageType;
         }

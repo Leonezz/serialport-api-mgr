@@ -8,6 +8,7 @@ import { Buffer } from "buffer";
 import { useSessionDialogStore } from "../store/useSessionDialogMessages";
 import { getCrlfAppender } from "@/types/message/crlf";
 import { useSerialportLog } from "../store/useSerialportLogStore";
+import { DateTime } from "luxon";
 
 const useSendMessage = ({
   crlf,
@@ -63,7 +64,7 @@ const useSendMessage = ({
         appendLogItem({
           type: "send",
           message: bufferToSend,
-          time: new Date(),
+          time: DateTime.now(),
           port_name: port_name,
         });
       },

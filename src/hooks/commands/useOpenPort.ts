@@ -3,6 +3,7 @@ import { useRequestState } from "./useRequestState";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { useToast } from "@/components/shadcn/use-toast";
 import { useSerialportLog } from "../store/useSerialportLogStore";
+import { DateTime } from "luxon";
 
 const useOpenPort = () => {
   const { toastError, toastSuccess } = useToast();
@@ -11,7 +12,7 @@ const useOpenPort = () => {
     action: (config: SerialportConfig) => {
       appendLogItem({
         type: "open_port",
-        time: new Date(),
+        time: DateTime.now(),
         port_name: config.port_name,
       });
       return emitToRustBus("open_port", config);
@@ -19,7 +20,7 @@ const useOpenPort = () => {
     onError: (err, payload) => {
       appendLogItem({
         type: "port_open_failed",
-        time: new Date(),
+        time: DateTime.now(),
         port_name: payload?.[0].port_name || "Unknown",
       });
       toastError({
@@ -29,7 +30,7 @@ const useOpenPort = () => {
     onSuccess: (_, payload) => {
       appendLogItem({
         type: "port_opened",
-        time: new Date(),
+        time: DateTime.now(),
         port_name: payload?.[0].port_name || "Unknown",
       });
       toastSuccess({

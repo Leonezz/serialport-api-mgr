@@ -15,7 +15,7 @@ const MessageList = ({
     if (a.order && b.order) {
       return b.order - a.order;
     }
-    return b.time.getTime() - a.time.getTime();
+    return b.time.toMillis() - a.time.toMillis();
   });
   return (
     <ScrollShadow

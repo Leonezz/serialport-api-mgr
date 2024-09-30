@@ -7,6 +7,7 @@ import { INFO } from "./logging";
 import useAvaliablePorts from "@/hooks/commands/useAvaliablePorts";
 import { useSessionDialogStore } from "@/hooks/store/useSessionDialogMessages";
 import { useSerialportLog } from "@/hooks/store/useSerialportLogStore";
+import { DateTime } from "luxon";
 type TauriSerialEvents = {
   port_name: string;
 };
@@ -106,7 +107,7 @@ export const useTauriEvents = () => {
           type: "sent",
           port_name: port_name,
           message: bufferSent,
-          time: new Date(),
+          time: DateTime.now(),
         });
 
         refresh();
@@ -130,7 +131,7 @@ export const useTauriEvents = () => {
           type: "sending",
           message: bufferSending,
           port_name: port_name,
-          time: new Date(),
+          time: DateTime.now(),
         });
       })
     );
@@ -152,7 +153,7 @@ export const useTauriEvents = () => {
           type: "send_failed",
           message: bufferSendFailed,
           port_name: port_name,
-          time: new Date(),
+          time: DateTime.now(),
         });
         refresh();
       })
@@ -174,7 +175,7 @@ export const useTauriEvents = () => {
           type: "received",
           message: bufferRead,
           port_name: port_name,
-          time: new Date(),
+          time: DateTime.now(),
         });
         refresh();
       })
