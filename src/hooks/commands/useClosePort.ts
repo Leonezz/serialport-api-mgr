@@ -11,7 +11,7 @@ const useClosePort = () => {
   const { loading: portClosing, runRequest: closePort } = useRequestState({
     action: (config: SerialportConfig) => {
       appendLogItem({
-        type: "close_port",
+        type: "close",
         port_name: config.port_name,
         time: DateTime.now(),
       });
@@ -19,9 +19,10 @@ const useClosePort = () => {
     },
     onError: (err, payload) => {
       appendLogItem({
-        type: "port_close_failed",
+        type: "close_failed",
         time: DateTime.now(),
         port_name: payload?.[0].port_name || "Unknown",
+        error_msg: err?.msg || "Unknown error",
       });
       toastError({
         description: `Closing port ${payload?.[0].port_name} failed: ${err?.msg}`,
@@ -29,7 +30,7 @@ const useClosePort = () => {
     },
     onSuccess: (_, payload) => {
       appendLogItem({
-        type: "port_closed",
+        type: "closed",
         time: DateTime.now(),
         port_name: payload?.[0].port_name || "Unknown",
       });

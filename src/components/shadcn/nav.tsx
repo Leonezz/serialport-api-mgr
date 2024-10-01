@@ -11,7 +11,7 @@ export interface NavProps {
     description?: string;
     icon: LucideIcon;
     variant: "default" | "ghost";
-    page: () => JSX.Element;
+    page: JSX.Element;
   }[];
 }
 

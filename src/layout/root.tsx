@@ -30,10 +30,10 @@ export default function RootLayout({
         <ResizablePanelGroup direction="horizontal" className="p-0 h-full">
           <ResizablePanel
             collapsible
+            maxSize={15}
             collapsedSize={5}
             defaultSize={5}
             minSize={panelMinWidth}
-            maxSize={15}
             className="p-2"
             onCollapse={() => setCollapsed(true)}
             onExpand={() => setCollapsed(false)}

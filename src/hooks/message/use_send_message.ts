@@ -9,6 +9,7 @@ import { useSessionDialogStore } from "../store/useSessionDialogMessages";
 import { getCrlfAppender } from "@/types/message/crlf";
 import { useSerialportLog } from "../store/useSerialportLogStore";
 import { DateTime } from "luxon";
+import { bufferToHexStr } from "@/components/message/util";
 
 const useSendMessage = ({
   crlf,
@@ -63,7 +64,7 @@ const useSendMessage = ({
         });
         appendLogItem({
           type: "send",
-          message: bufferToSend,
+          data: bufferToHexStr(bufferToSend),
           time: DateTime.now(),
           port_name: port_name,
         });

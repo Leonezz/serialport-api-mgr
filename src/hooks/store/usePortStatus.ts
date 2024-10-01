@@ -51,6 +51,7 @@ type SerialportStatusStoreActions = {
     port_name: string;
     data: Buffer;
     message_id: string;
+    error_msg: string;
   }) => void;
   receiveMessage: (props: { port_name: string; data: Buffer }) => void;
   getPortMessageList: (props: { port_name: string }) => MessageType[];
@@ -143,7 +144,7 @@ const useSerialportStatus = create<
       };
     });
   },
-  messageSendFailed: ({ port_name, message_id, data }) => {
+  messageSendFailed: ({ port_name, message_id, data, error_msg }) => {
     set((prev) => {
       console.error(`${port_name} send message ${message_id} failed`);
       const currentState = prev.data.get(port_name);
@@ -160,6 +161,7 @@ const useSerialportStatus = create<
             status: "failed",
             data: data,
             time: DateTime.now(),
+            error: error_msg,
           }),
         }),
       };

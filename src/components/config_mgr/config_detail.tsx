@@ -14,7 +14,7 @@ import DeleteConfirmPopover from "../basics/delete-confirm-popover";
 import { ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 import { SupportedConfig, UseStoreHandles } from "./util";
 import { UsedByTable } from "./used_by_tbl";
-import { DateTime } from "luxon";
+import { DEFAULT_DATETIME_FORMAT } from "@/util/datetime";
 
 type ConfigDetailCommonProps<Key extends keyof SupportedConfig> = {
   configFor: Key;
@@ -106,16 +106,16 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
           <Snippet
             symbol="Create at: "
             size="sm"
-            codeString={value.createAt.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS)}
+            codeString={value.createAt.toFormat(DEFAULT_DATETIME_FORMAT)}
           >
-            {value.createAt.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS)}
+            {value.createAt.toFormat(DEFAULT_DATETIME_FORMAT)}
           </Snippet>
           <Snippet
             symbol="Update at: "
             size="sm"
-            codeString={value.updateAt.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS)}
+            codeString={value.updateAt.toFormat(DEFAULT_DATETIME_FORMAT)}
           >
-            {value.updateAt.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS)}
+            {value.updateAt.toFormat(DEFAULT_DATETIME_FORMAT)}
           </Snippet>
           <Input
             isReadOnly={readonly}

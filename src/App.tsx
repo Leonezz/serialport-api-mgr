@@ -8,7 +8,7 @@ import {
   MonitorCog,
 } from "lucide-react";
 import { NavProps } from "./components/shadcn/nav";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import SerialPortMonitorPage from "./pages/serial_port_monitor_page";
 import { v7 as uuid } from "uuid";
 import { ConfigMgrPage } from "./pages/config_mgr_page";
@@ -22,7 +22,7 @@ const links: NavProps["links"] = [
     id: uuid(),
     icon: MonitorCog,
     variant: "default",
-    page: SerialPortMonitorPage,
+    page: <SerialPortMonitorPage />,
   },
   {
     title: "Configs",
@@ -30,7 +30,7 @@ const links: NavProps["links"] = [
     id: uuid(),
     icon: FileSliders,
     variant: "default",
-    page: ConfigMgrPage,
+    page: <ConfigMgrPage />,
   },
   {
     title: "Devices",
@@ -38,7 +38,7 @@ const links: NavProps["links"] = [
     description: "Serialport Device with configs and conversations",
     icon: Microchip,
     variant: "ghost",
-    page: DeviceTesterPage,
+    page: <DeviceTesterPage />,
   },
   {
     title: "Applications",
@@ -46,7 +46,7 @@ const links: NavProps["links"] = [
     icon: Combine,
     description: "Application that takes complicated serialport communication",
     variant: "ghost",
-    page: () => <div>TBD</div>,
+    page: <div>TBD</div>,
   },
   {
     title: "Logs",
@@ -54,7 +54,7 @@ const links: NavProps["links"] = [
     icon: Logs,
     description: "Serialport communication logs",
     variant: "ghost",
-    page: SerialportLogs,
+    page: <SerialportLogs />,
   },
 ];
 
@@ -63,7 +63,10 @@ const App = () => {
   useTauriEvents();
 
   const [activeLinkId, setActiveLinkId] = useState(links[0].id);
-  const activeLink = links.find((v) => v.id === activeLinkId);
+  const activeLink = useMemo(
+    () => links.find((v) => v.id === activeLinkId),
+    [activeLinkId]
+  );
 
   if (!activeLink) {
     return <div>Oops...</div>;
@@ -75,7 +78,7 @@ const App = () => {
       activeLink={activeLinkId}
       setActiveLink={setActiveLinkId}
     >
-      <activeLink.page />
+      {activeLink.page}
     </RootLayout>
   );
 };

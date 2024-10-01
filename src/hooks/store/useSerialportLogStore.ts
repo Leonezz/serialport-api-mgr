@@ -14,12 +14,13 @@ export type SerialportLogItem = {
     | "send_failed"
     | "received"
     | "open_port"
-    | "port_opened"
-    | "port_open_failed"
-    | "close_port"
-    | "port_closed"
-    | "port_close_failed";
-  message?: Buffer;
+    | "opened"
+    | "open_failed"
+    | "close"
+    | "closed"
+    | "close_failed";
+  data?: string;
+  error_msg?: string;
 };
 
 type SerialportLogStore = {

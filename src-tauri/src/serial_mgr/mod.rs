@@ -435,6 +435,7 @@ impl SerialMgr {
                         }),
                         port_name: port_name.to_string(),
                     });
+                    log::error!(target: port_name, "port wrote timeout signal send to web");
                     Ok(())
                 } else {
                     let mut port_profiles = SerialMgr::global()
@@ -444,7 +445,7 @@ impl SerialMgr {
                                 code: ErrorType::Rust(RustErrorType::ErrorAcquireRwLock),
                                 msg: "error acquire write lock of port_profiles for byte_write accumulate".to_string(),
                             };
-                            error!(target: port_name, "{}", err.msg);
+                            log::error!(target: port_name, "{}", err.msg);
                             Err(err)
                         })?;
                     let profile = port_profiles.get_mut(port_name);
@@ -453,7 +454,7 @@ impl SerialMgr {
                             code: ErrorType::Rust(RustErrorType::HashMapError),
                             msg: "error query port_profiles for byte_write accumulate".to_string(),
                         };
-                        error!(target: port_name, "{}", err.msg);
+                        log::error!(target: port_name, "{}", err.msg);
                         return Err(err);
                     }
                     let profile = profile.unwrap();

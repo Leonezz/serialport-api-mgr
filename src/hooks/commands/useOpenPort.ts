@@ -19,9 +19,10 @@ const useOpenPort = () => {
     },
     onError: (err, payload) => {
       appendLogItem({
-        type: "port_open_failed",
+        type: "open_failed",
         time: DateTime.now(),
         port_name: payload?.[0].port_name || "Unknown",
+        error_msg: err?.msg || "Unknown error",
       });
       toastError({
         description: `Opening port ${payload?.[0].port_name} failed: ${err?.msg}`,
@@ -29,7 +30,7 @@ const useOpenPort = () => {
     },
     onSuccess: (_, payload) => {
       appendLogItem({
-        type: "port_opened",
+        type: "opened",
         time: DateTime.now(),
         port_name: payload?.[0].port_name || "Unknown",
       });

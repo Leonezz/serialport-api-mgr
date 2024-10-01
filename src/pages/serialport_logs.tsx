@@ -2,14 +2,19 @@ import {
   SerialportLogItem,
   useSerialportLog,
 } from "@/hooks/store/useSerialportLogStore";
+import { DEFAULT_DATETIME_FORMAT } from "@/util/datetime";
 import {
   Button,
+  Checkbox,
+  CheckboxGroup,
+  Chip,
   Dropdown,
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
   Input,
   Selection,
+  Snippet,
   SortDescriptor,
   Table,
   TableBody,
@@ -18,30 +23,60 @@ import {
   TableHeader,
   TableRow,
 } from "@nextui-org/react";
-import { uniq } from "es-toolkit";
+import { capitalize, uniq } from "es-toolkit";
 import { ChevronDownIcon, SearchIcon } from "lucide-react";
-import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 
 const columns = [
   { name: "PORT", uid: "port_name", sortable: true },
   { name: "TIME", uid: "time", sortable: true },
   { name: "EVENT", uid: "type", sortable: true },
-  { name: "DATA", uid: "message" },
+  { name: "ERROR", uid: "error" },
+  { name: "DATA", uid: "data" },
 ];
 const renderCell = (item: SerialportLogItem, columnKey: string) => {
   switch (columnKey) {
     case "port_name": {
-      return item.port_name;
+      return <code>{item.port_name}</code>;
     }
     case "time": {
-      return item.time.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
+      return (
+        <code className="min-w-fit">
+          {item.time.toFormat(DEFAULT_DATETIME_FORMAT)}
+        </code>
+      );
     }
     case "type": {
-      return item.type;
+      return (
+        <Chip
+          size="sm"
+          radius="sm"
+          className="h-fit p-1 min-w-fit bg-warning-300"
+        >
+          {capitalize(item.type.split("_").join(" "))}
+        </Chip>
+      );
     }
-    case "message": {
-      return item.message?.toString();
+    case "error": {
+      return <code>{item.error_msg}</code>;
+    }
+    case "data": {
+      if (item.data === undefined) {
+        return null;
+      }
+      return (
+        <Snippet hideSymbol size="sm" className="w-full" codeString={item.data}>
+          <div className="flex flex-row gap-2 items-center">
+            <code className="truncate max-w-[300px]">{item.data}</code>
+            <Chip
+              size="sm"
+              radius="sm"
+              className="text-xs font-mono p-0.5 h-fit bg-success-300"
+              variant="shadow"
+            >{`${item.data?.split(" ").length} bytes`}</Chip>
+          </div>
+        </Snippet>
+      );
     }
   }
 };
@@ -82,8 +117,8 @@ export const SerialportLogs = () => {
 
     if (searchText.length > 0) {
       filteredLogs = filteredLogs.filter((log) =>
-        `${log.message}${log.port_name}${log.time.toLocaleString(
-          DateTime.DATETIME_MED_WITH_SECONDS
+        `${log.data}${log.error_msg}${log.port_name}${log.time.toFormat(
+          DEFAULT_DATETIME_FORMAT
         )}${log.type}`
           .toLowerCase()
           .includes(searchText.toLowerCase())
@@ -110,13 +145,14 @@ export const SerialportLogs = () => {
     <Table
       className="w-full h-full"
       isHeaderSticky
+      isStriped
       sortDescriptor={sortDescriptor}
       onSortChange={setSortDescriptor}
       topContent={
         <div className="flex flex-row gap-2">
           <Input
             isClearable
-            className="w-full sm:max-w-[44%]"
+            className="w-full"
             placeholder="Search"
             startContent={<SearchIcon />}
             value={searchText}
@@ -127,7 +163,8 @@ export const SerialportLogs = () => {
             <DropdownTrigger className="sm:flex">
               <Button
                 endContent={<ChevronDownIcon className="text-small" />}
-                variant="flat"
+                variant="solid"
+                color="primary"
               >
                 PORT
               </Button>
@@ -151,7 +188,8 @@ export const SerialportLogs = () => {
             <DropdownTrigger className="sm:flex">
               <Button
                 endContent={<ChevronDownIcon className="text-small" />}
-                variant="flat"
+                color="primary"
+                variant="solid"
               >
                 EVENT
               </Button>

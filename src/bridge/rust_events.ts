@@ -8,6 +8,7 @@ import useAvaliablePorts from "@/hooks/commands/useAvaliablePorts";
 import { useSessionDialogStore } from "@/hooks/store/useSessionDialogMessages";
 import { useSerialportLog } from "@/hooks/store/useSerialportLogStore";
 import { DateTime } from "luxon";
+import { bufferToHexStr } from "@/components/message/util";
 type TauriSerialEvents = {
   port_name: string;
 };
@@ -106,7 +107,7 @@ export const useTauriEvents = () => {
         appendLogItem({
           type: "sent",
           port_name: port_name,
-          message: bufferSent,
+          data: bufferToHexStr(bufferSent),
           time: DateTime.now(),
         });
 
@@ -129,7 +130,7 @@ export const useTauriEvents = () => {
         });
         appendLogItem({
           type: "sending",
-          message: bufferSending,
+          data: bufferToHexStr(bufferSending),
           port_name: port_name,
           time: DateTime.now(),
         });
@@ -143,6 +144,7 @@ export const useTauriEvents = () => {
           port_name: port_name,
           message_id: event.WriteError.message_id,
           data: bufferSendFailed,
+          error_msg: event.WriteError.error,
         });
         sessionMessageSendFailed({
           port_name: port_name,
@@ -151,7 +153,8 @@ export const useTauriEvents = () => {
         });
         appendLogItem({
           type: "send_failed",
-          message: bufferSendFailed,
+          data: bufferToHexStr(bufferSendFailed),
+          error_msg: event.WriteError.error,
           port_name: port_name,
           time: DateTime.now(),
         });
@@ -173,7 +176,7 @@ export const useTauriEvents = () => {
         });
         appendLogItem({
           type: "received",
-          message: bufferRead,
+          data: bufferToHexStr(bufferRead),
           port_name: port_name,
           time: DateTime.now(),
         });

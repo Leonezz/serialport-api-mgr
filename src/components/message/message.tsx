@@ -7,6 +7,7 @@ import {
 import { CircleAlert } from "lucide-react";
 import { bufferToHexStr } from "./util";
 import { DateTime } from "luxon";
+import { DEFAULT_DATETIME_FORMAT } from "@/util/datetime";
 
 const ReadableMessage = ({
   messageLines,
@@ -54,7 +55,7 @@ const MessageStatus = ({
   time: DateTime;
   bytes: number;
 }) => {
-  const timeStr = time.toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS);
+  const timeStr = time.toFormat(DEFAULT_DATETIME_FORMAT);
   if (status === "inactive") {
     return <code>{status}</code>;
   }
@@ -110,7 +111,7 @@ const Message = ({
 
   return (
     <div
-      className={`flex gap-2 ${
+      className={`flex gap-2 max-w-[75%] ${
         isLocalMsg ? "flex-row self-end " : "flex-row-reverse self-start"
       }`}
     >
@@ -121,15 +122,17 @@ const Message = ({
             content={
               <div className="flex flex-col">
                 <h4>Error Message</h4>
+                <code className="text-danger">{`${
+                  isLocalMsg
+                    ? "send msg failed"
+                    : `received data: ${bufferToHexStr(data)}`
+                }`}</code>
                 <code className="text-danger">
                   {isMsgFailed && props.error}
                 </code>
                 <code className="text-danger">
                   {!checkSumSuccess && `${check_sum} checksum verify failed`}
                 </code>
-                <code className="text-danger">{`received data: ${bufferToHexStr(
-                  data
-                )}`}</code>
               </div>
             }
           >
@@ -141,11 +144,11 @@ const Message = ({
         codeString={String.fromCharCode(...data)}
         hideSymbol
         size="md"
-        className={`max-w-[75%] min-w-fit w-fit items-start text-md text-wrap`}
+        className={`min-w-fit w-fit items-start text-md text-wrap`}
         variant="flat"
         color={color}
       >
-        <p className="text-xs text-neutral-500 font-mono items-center">
+        <div className="text-xs text-neutral-500 font-mono items-center">
           <MessageStatus status={status} bytes={bytesTotal} time={time} />
           {check_sum !== "None" ? (
             <Chip
@@ -159,7 +162,7 @@ const Message = ({
               CRC
             </Chip>
           ) : null}
-        </p>
+        </div>
 
         {props.expectedMessage && (
           <div className="flex flex-row items-center text-neutral-500">
