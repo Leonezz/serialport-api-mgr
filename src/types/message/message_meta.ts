@@ -21,29 +21,29 @@ export type MessageMetaConfig = {
 // export type NamedMessageMetaConfig = NamedConfigStoreType<MessageMetaConfig>;
 
 export const DEFAULTMessageConfig: MessageMetaConfig = {
-  view_mode: "Text",
+  check_sum: "None",
   crlf: "CRLF",
   text_encoding: "utf-8",
-  check_sum: "None",
+  view_mode: "Text",
 };
 
 export const MessageMetaOptions = {
-  view_mode: ViewModeOptions,
+  check_sum: CheckSumOptions,
   crlf: CRLFOptions,
   text_encoding: TextEncodingOptions,
-  check_sum: CheckSumOptions,
+  view_mode: ViewModeOptions,
 } as const;
 
 export const getMessageDecoder = ({
-  view_mode,
-  text_encoding,
-  crlf,
   check_sum,
+  crlf,
+  text_encoding,
+  view_mode,
 }: MessageMetaConfig) => {
   return (message: Buffer) => {
     const checkSumSuccess = checkSumVerifyMessage({
-      message: message,
       check_sum: check_sum,
+      message: message,
     });
     if (!checkSumSuccess) {
       return undefined;

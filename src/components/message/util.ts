@@ -22,13 +22,13 @@ export const bufferToBinStr = (data: Buffer) =>
   data.reduce((str, byte) => str + byte.toString(2).padStart(8, "0") + " ", "");
 
 const decodeSerialData = ({
-  viewMode,
-  textEncoding,
   data,
+  textEncoding,
+  viewMode,
 }: {
-  viewMode: MessageMetaConfig["view_mode"];
-  textEncoding: MessageMetaConfigFields<"text_encoding">;
   data: Buffer;
+  textEncoding: MessageMetaConfigFields<"text_encoding">;
+  viewMode: MessageMetaConfig["view_mode"];
 }) => {
   switch (viewMode) {
     case "Text":

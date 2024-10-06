@@ -1,7 +1,5 @@
 import {
   NodeProps,
-  NodeResizeControl,
-  NodeResizer,
   useHandleConnections,
   useNodesData,
 } from "@xyflow/react";

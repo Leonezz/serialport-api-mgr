@@ -1,5 +1,5 @@
 import { useSerialportStatus } from "@/hooks/store/usePortStatus";
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import SerialPortOpener from "../serialport/port_configer";
 import MessageList from "../message/message_list";
 import { NamedSerialportApi } from "@/hooks/store/useNamedConversationStore";
@@ -9,7 +9,6 @@ import {
   Button,
   Input,
   Progress,
-  Textarea,
 } from "@nextui-org/react";
 import { NamedMessageMetaConfig } from "@/hooks/store/useNamedMessageMetaConfig";
 import { MessageMetaConfiger } from "../message/message_meta_configer";

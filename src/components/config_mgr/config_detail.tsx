@@ -15,7 +15,6 @@ import { ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 import { SupportedConfig, UseStoreHandles } from "./util";
 import { UsedByTable } from "./used_by_tbl";
 import { DEFAULT_DATETIME_FORMAT } from "@/util/datetime";
-import { DateTime } from "luxon";
 
 type ConfigDetailCommonProps<Key extends keyof SupportedConfig> = {
   configFor: Key;

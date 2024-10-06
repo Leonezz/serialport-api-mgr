@@ -4,14 +4,14 @@ export const verifyHexStr = (str: string) => {
   const bytes = chunk(str.split(""), 2);
   return (
     bytes.every((byte) => byte.length === 2) &&
-    bytes.every((byte) => /[0-9a-fA-F]{2}/g.test(byte.join("")))
+    bytes.every((byte) => /[0-9a-f]{2}/i.test(byte.join("")))
   );
 };
 
 export const verifyBinStr = (str: string) => {
   const bytes = chunk(str.split(""), 8);
   return bytes.every(
-    (byte) => byte.length === 8 && /[01]{8}/g.test(byte.join(""))
+    (byte) => byte.length === 8 && /[01]{8}/.test(byte.join(""))
   );
 };
 
