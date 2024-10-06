@@ -14,6 +14,7 @@ import { v7 as uuid } from "uuid";
 import { ConfigMgrPage } from "./pages/config_mgr_page";
 import { DeviceTesterPage } from "./pages/device_tester_page";
 import { SerialportLogs } from "./pages/serialport_logs";
+import { SerialportApplicationPage } from "./pages/serialport_application_page";
 
 const links: NavProps["links"] = [
   {
@@ -46,7 +47,7 @@ const links: NavProps["links"] = [
     icon: Combine,
     description: "Application that takes complicated serialport communication",
     variant: "ghost",
-    page: <div>TBD</div>,
+    page: <SerialportApplicationPage />,
   },
   {
     title: "Logs",

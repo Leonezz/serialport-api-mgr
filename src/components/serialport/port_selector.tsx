@@ -1,21 +1,22 @@
 import { useSerialportStatus } from "@/hooks/store/usePortStatus";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
-import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { convertPortTypeToString } from "@/types/serialport/serialport_status";
 
 type PortSelectorProps = {
   setSelectedPortName: (port: string) => void;
-  serialPortConfig: SerialportConfig;
+  selectedName: string;
   readonly?: boolean;
+  width: "w-full" | "w-fit" | "w-min" | "w-max";
+  height: "h-full" | "h-fit" | "h-min" | "h-max";
 };
 
 const PortSelector = ({
   setSelectedPortName,
-  serialPortConfig,
+  selectedName,
   readonly,
+  width,
+  height,
 }: PortSelectorProps) => {
-  const selectedPortName = serialPortConfig.port_name;
-
   const { data: portStatus, getPortOpened } = useSerialportStatus();
 
   return (
@@ -28,8 +29,8 @@ const PortSelector = ({
       }
       placeholder="Select a port by name"
       size="sm"
-      className="w-min md:min-w-24 hover:w-full"
-      value={selectedPortName}
+      className={`${width} ${height} md:min-w-24 hover:w-full`}
+      value={selectedName}
       onValueChange={(value) => {
         const port = portStatus.get(value);
         if (!port) {

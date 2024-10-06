@@ -1,5 +1,8 @@
 import { SerialportDevice } from "@/types/device";
-import { PresetConfigSelector } from "../serialport/config/config_selector";
+import {
+  MessageMetaPresetConfigSelector,
+  SerialportPresetConfigSelector,
+} from "../serialport/config/config_selector";
 import { useNamedSerialortConfigStore } from "@/hooks/store/useNamedSerialPortConfig";
 import { useNamedMessageMetaConfigStore } from "@/hooks/store/useNamedMessageMetaConfig";
 import {
@@ -201,12 +204,11 @@ const SerialportDeviceConfigDetailView = ({
   const { addUser: apiConfigAddUser, removeUser: apiConfigRemoveUser } =
     useNamedApiStore();
 
-  const SerialportPresetConfigSelector = PresetConfigSelector("serialport");
-  const MessageMetaPresetConfigSelector = PresetConfigSelector("message");
   return (
     <div className="flex flex-col gap-3 w-full">
       <SerialportPresetConfigSelector
-        fullWidth={verticalLayout}
+        width={verticalLayout ? "w-full" : "w-fit"}
+        height="h-full"
         selectedName={defaultSerialportConfig?.name || ""}
         readonly={false}
         setSelectedName={(name: string) => {
@@ -228,7 +230,8 @@ const SerialportDeviceConfigDetailView = ({
         }}
       />
       <MessageMetaPresetConfigSelector
-        fullWidth={verticalLayout}
+        width={verticalLayout ? "w-full" : "w-fit"}
+        height="h-full"
         selectedName={defaultMessageMetaConfig?.name || ""}
         readonly={false}
         setSelectedName={(name: string) => {

@@ -20,7 +20,7 @@ const ESLINT_CONFIG = {
     },
   },
   rules: {
-    ...js.configs.all.rules,
+    ...js.configs.recommended.rules,
     "no-unused-vars": [
       "error",
       { varsIgnorePattern: "[(process_request)(verify_response)]" },

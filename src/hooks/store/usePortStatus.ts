@@ -59,6 +59,7 @@ type SerialportStatusStoreActions = {
   portClosed: (props: { port_name: string }) => void;
   getPortOpened: (props: { port_name: string }) => boolean;
   getOpenedPorts: () => string[];
+  portExists: (props: { port_name: string }) => boolean;
 };
 
 const useSerialportStatus = create<
@@ -246,6 +247,7 @@ const useSerialportStatus = create<
       .filter(([_, info]) => info.info.port_status !== "Closed")
       .map(([portName, _]) => portName);
   },
+  portExists: ({ port_name }) => get().data.has(port_name),
 }));
 
 if (import.meta.env.DEV) {

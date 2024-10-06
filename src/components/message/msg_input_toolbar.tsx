@@ -4,9 +4,9 @@ import { Button, ButtonGroup } from "@nextui-org/react";
 import { useToast } from "../shadcn/use-toast";
 import { MessageMetaConfig } from "@/types/message/message_meta";
 import { MessageMetaConfiger } from "./message_meta_configer";
-import { PresetConfigSelector } from "../serialport/config/config_selector";
 import { useState } from "react";
 import { useNamedMessageMetaConfigStore } from "@/hooks/store/useNamedMessageMetaConfig";
+import { MessageMetaPresetConfigSelector } from "../serialport/config/config_selector";
 
 export type MsgInputToolBarProps = {
   portName: string;
@@ -54,14 +54,14 @@ const MsgInputToolBar = ({
     updateMessageMetaConfig(presetConfig.config);
   };
 
-  const MessageMetaPresetConfigSelector = PresetConfigSelector("message");
-
   return (
     <div className="justify-between w-full flex flex-row gap-2">
       <MessageMetaPresetConfigSelector
         selectedName={presetName}
         setSelectedName={onPresetSelected}
         readonly={false}
+        width="w-fit"
+        height="h-full"
       />
       <MessageMetaConfiger
         value={messageMetaConfig}

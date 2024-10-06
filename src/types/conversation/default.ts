@@ -3,12 +3,15 @@ import { getMessageDecoder, MessageMetaConfig } from "../message/message_meta";
 
 const INITIAL_REQUEST_SCRIPT = `\
 // The function takes a string as argument
-// and returns a string
+// and returns a string.
 //NOTE - DO NOT EDIT THE FIRST AND LAST LINES
 //NOTE - THE FUNCTION BODY SHOULD RETURN A STRING
-const processRequest = () => {
+const processRequest = (message = undefined) => {
   // ...write your function body here
-  return "request";
+  const defaultMessage = "request"; //default message
+  const request = message === undefined ? 
+    defaultMessage : message;
+  return request;
 }
 `;
 
@@ -39,16 +42,17 @@ const getScriptContent = (scriptContent: string) => {
 };
 
 export const getRequestMessage = ({
+  message,
   mode: type,
   text: content,
   script,
-}: ConversationMessageType): string => {
+}: ConversationMessageType & { message?: string }): string => {
   if (type === "text") {
     return content;
   }
   try {
-    const messageBuilder = new Function(getScriptContent(script));
-    return messageBuilder();
+    const messageBuilder = new Function("message", getScriptContent(script));
+    return messageBuilder(message);
   } catch {
     throw "run request script failed";
   }

@@ -22,7 +22,13 @@ type SessionDialogMessageType = (
 ) &
   MessageType;
 
-const makeSessionMessageFromApi = (api: SerialportConversation) => {
+const makeSessionMessageFromApi = ({
+  api,
+  message,
+}: {
+  api: SerialportConversation;
+  message?: string;
+}) => {
   return [
     {
       id: uuid(),
@@ -30,7 +36,7 @@ const makeSessionMessageFromApi = (api: SerialportConversation) => {
       sender: "Local",
       time: DateTime.now(),
       data: Buffer.from([]),
-      expectedMessage: getRequestMessage(api.request),
+      expectedMessage: getRequestMessage({ ...api.request, message: message }),
       order: 1,
     },
     {
@@ -64,7 +70,9 @@ type SessionDialogStore = {
 
 type SessionDialogStoreActions = {
   getMessagesBySessionId: (id: string) => SessionDialog | undefined;
-  addSession: ({}: {
+  setSession: ({}: {
+    id?: string;
+    message?: string;
     port_name: string;
     messages: SerialportConversation;
     message_meta: MessageMetaConfig;
@@ -103,13 +111,13 @@ const useSessionDialogStore = create<
   getMessagesBySessionId: (id) => {
     return get().data.get(id);
   },
-  addSession: ({ port_name, messages, message_meta }) => {
-    const id = uuid();
+  setSession: ({ id, message, port_name, messages, message_meta }) => {
+    id = id === undefined ? uuid() : id;
     const newValue = {
       session_id: id,
       port_name: port_name,
       message_meta: message_meta,
-      messages: makeSessionMessageFromApi(messages),
+      messages: makeSessionMessageFromApi({ api: messages, message: message }),
     };
     set((prev) => ({
       data: prev.data.set(id, newValue),

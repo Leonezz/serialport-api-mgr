@@ -19,8 +19,11 @@ const OpenPortBtn = ({
     <Button
       color="danger"
       onClick={() => {
-        const fn = portOpened ? closePort : openPort;
-        fn(serialport_config);
+        if (portOpened) {
+          closePort({ portName: serialport_config.port_name });
+        } else {
+          openPort(serialport_config);
+        }
       }}
       isLoading={portOpening || portClosing}
       isDisabled={serialport_config.port_name.length === 0}

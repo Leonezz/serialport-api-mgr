@@ -7,9 +7,10 @@ import {
   Autocomplete,
   AutocompleteItem,
   Button,
+  Input,
   Progress,
+  Textarea,
 } from "@nextui-org/react";
-import { PresetConfigSelector } from "../serialport/config/config_selector";
 import { NamedMessageMetaConfig } from "@/hooks/store/useNamedMessageMetaConfig";
 import { MessageMetaConfiger } from "../message/message_meta_configer";
 import { NamedSerialportConfig } from "@/hooks/store/useNamedSerialPortConfig";
@@ -18,6 +19,8 @@ import { useSessionDialogStore } from "@/hooks/store/useSessionDialogMessages";
 import { useSendMessage } from "@/hooks/message/use_send_message";
 import { useToast } from "../shadcn/use-toast";
 import { Buffer } from "buffer";
+import { usePrevious } from "ahooks";
+import { MessageMetaPresetConfigSelector } from "../serialport/config/config_selector";
 
 type ApiConfigSelectorProps = {
   selectRange: NamedSerialportApi[];
@@ -71,8 +74,9 @@ type DeviceApiMonitorInputProps = {
   dialogFinished: boolean;
   onStart: () => void;
   onReset: () => void;
-  messageMetaView: ReactNode;
-  messageMetaPresetSelector: ReactNode;
+  namedMessageMetaConfig: NamedMessageMetaConfig;
+  message: string;
+  onMessageChange: (value: string) => void;
 };
 const DeviceApiMonitorInput = ({
   apiConfigs,
@@ -82,22 +86,37 @@ const DeviceApiMonitorInput = ({
   dialogFinished,
   onStart,
   onReset,
-  messageMetaView,
-  messageMetaPresetSelector,
+  namedMessageMetaConfig,
+  message,
+  onMessageChange,
 }: DeviceApiMonitorInputProps) => {
   return (
     <footer className="flex flex-col gap-1 px-2 sticky bottom-0 mt-auto w-full">
       <div className="flex flex-row gap-2 justify-end sm:flex-wrap">
-        <div className="flex flex-row gap-2">
+        <MessageMetaConfiger
+          value={namedMessageMetaConfig.config}
+          onValueChange={() => {}}
+        />
+        <div className="flex flex-row gap-2 w-full">
           <ApiConfigSelector
             selectRange={apiConfigs}
             selectedId={selectedApiId}
             setSelectedId={setSelectedApiId}
           />
-          {messageMetaPresetSelector}
-        </div>
-        <div className="flex flex-row gap-2">
-          {messageMetaView}
+          <MessageMetaPresetConfigSelector
+            selectedName={namedMessageMetaConfig.name}
+            setSelectedName={() => {}}
+            readonly={true}
+            width="w-min"
+            height="h-full"
+          />
+          <Input
+            size="sm"
+            className="w-full"
+            label="Message"
+            value={message}
+            onValueChange={onMessageChange}
+          />
           <Button
             size="sm"
             color="primary"
@@ -142,11 +161,9 @@ const DeviceApiMonitor = ({
     .filter((v) => v.id === selectedApiId)
     .at(0);
 
-  const MessageMetaPresetConfigSelector = PresetConfigSelector("message");
-
   const {
     getMessagesBySessionId,
-    addSession,
+    setSession,
     removeSession,
     resetSession,
     setPortName,
@@ -157,7 +174,7 @@ const DeviceApiMonitor = ({
     if (sessionId !== undefined) {
       return () => {};
     }
-    const value = addSession({
+    const value = setSession({
       port_name: localSerialportConfig.port_name,
       message_meta: messageMetaConfig.config,
       messages: selectedApiConfig?.config || DEFAULTSerialportConversation,
@@ -169,6 +186,21 @@ const DeviceApiMonitor = ({
       setSessionId(undefined);
     };
   }, []);
+
+  const [message, setMessage] = useState("");
+  const prevMessage = usePrevious(message);
+  useEffect(() => {
+    if (message === prevMessage || sessionId === undefined) {
+      return;
+    }
+    setSession({
+      id: sessionId,
+      port_name: localSerialportConfig.port_name,
+      message_meta: messageMetaConfig.config,
+      messages: selectedApiConfig?.config || DEFAULTSerialportConversation,
+      message: message.length === 0 ? undefined : message,
+    });
+  }, [message]);
 
   useEffect(() => {
     if (!portOpened && sessionId) {
@@ -279,20 +311,9 @@ const DeviceApiMonitor = ({
             resetSession({ session_id: sessionId });
           }
         }}
-        messageMetaPresetSelector={
-          <MessageMetaPresetConfigSelector
-            selectedName={messageMetaConfig.name}
-            setSelectedName={() => {}}
-            readonly={true}
-            fullWidth
-          />
-        }
-        messageMetaView={
-          <MessageMetaConfiger
-            value={messageMetaConfig.config}
-            onValueChange={() => {}}
-          />
-        }
+        namedMessageMetaConfig={messageMetaConfig}
+        message={message}
+        onMessageChange={setMessage}
       />
     </div>
   );

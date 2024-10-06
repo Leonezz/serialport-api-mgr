@@ -8,15 +8,14 @@ import {
 import { PortConfigGroups } from "./port_config_groups";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { useSerialportStatus } from "@/hooks/store/usePortStatus";
-import { singleKeySetter } from "@/util/util";
-import { PresetConfigSelector } from "./config/config_selector";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import RefreshAvaliablePortsBtn from "./refresh_avaliable_ports_btn";
 import OpenPortBtn from "./open_port_btn";
 import { useNamedSerialortConfigStore } from "@/hooks/store/useNamedSerialPortConfig";
 import { useToast } from "../shadcn/use-toast";
 import { useUpdateEffect } from "ahooks";
 import { omit } from "es-toolkit";
+import { SerialportPresetConfigSelector } from "./config/config_selector";
 
 const SerialPortOpener = ({
   serialPortConfig,
@@ -85,7 +84,6 @@ const SerialPortOpener = ({
     }
   };
 
-  const SerialportPresetConfigSelector = PresetConfigSelector("serialport");
   return (
     <Accordion
       variant="splitted"
@@ -131,14 +129,18 @@ const SerialPortOpener = ({
                     setSelectedPortName={(portName) => {
                       setSerialPortConfig({ port_name: portName });
                     }}
-                    serialPortConfig={serialPortConfig}
+                    selectedName={serialPortConfig.port_name}
                     readonly={portOpened}
+                    width="w-fit"
+                    height="h-full"
                   />
                 </div>
                 <SerialportPresetConfigSelector
                   selectedName={newName}
                   setSelectedName={setNewName}
                   readonly={readonly || portOpened}
+                  width="w-fit"
+                  height="h-full"
                 />
               </div>
               <RefreshAvaliablePortsBtn />

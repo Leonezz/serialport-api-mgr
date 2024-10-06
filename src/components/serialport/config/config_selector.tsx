@@ -6,7 +6,8 @@ type PresetConfigSelectorProps = {
   selectedName: string;
   setSelectedName: (name: string) => void;
   readonly: boolean;
-  fullWidth?: boolean;
+  width: "w-full" | "w-fit" | "w-min" | "w-max";
+  height: "h-full" | "h-fit" | "h-min" | "h-max";
 };
 
 const PresetConfigSelector = <Key extends "serialport" | "message" | "api">(
@@ -16,7 +17,8 @@ const PresetConfigSelector = <Key extends "serialport" | "message" | "api">(
     selectedName,
     setSelectedName,
     readonly,
-    fullWidth,
+    width,
+    height,
   }: PresetConfigSelectorProps) => {
     const { getNameList } = UseStoreHandles[selectorFor]();
     const nameList = getNameList();
@@ -50,8 +52,7 @@ const PresetConfigSelector = <Key extends "serialport" | "message" | "api">(
           const value = key.toString();
           onValueChange(value);
         }}
-        className={`text-xs font-mono w-${
-          fullWidth ? "full" : "min md:min-w-24 hover:w-full"
+        className={`text-xs font-mono ${width} ${height} md:min-w-24 hover:w-full"
         }`}
       >
         {nameList.map((n) => (
@@ -64,4 +65,9 @@ const PresetConfigSelector = <Key extends "serialport" | "message" | "api">(
   };
 };
 
-export { PresetConfigSelector };
+export const SerialportPresetConfigSelector =
+  PresetConfigSelector("serialport");
+export const SerialportApiPresetConfigSelector = PresetConfigSelector("api");
+export const MessageMetaPresetConfigSelector = PresetConfigSelector("message");
+
+// export { PresetConfigSelector };

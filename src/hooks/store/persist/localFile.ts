@@ -6,6 +6,7 @@ import {
   writeTextFile,
   remove,
 } from "@tauri-apps/plugin-fs";
+import { DateTime } from "luxon";
 const BASEDIR = BaseDirectory.AppLocalData;
 
 const mappedDataLocalFileStorage = {
@@ -17,7 +18,12 @@ const mappedDataLocalFileStorage = {
     }
     const res = await readTextFile(name, { baseDir: BASEDIR });
     if (!res) return null;
-    const existingValue: { state: T } = JSON.parse(res);
+    const existingValue: { state: T } = JSON.parse(res, (key, value) => {
+      if (key === "createAt" || key === "updateAt") {
+        return DateTime.fromMillis(value);
+      }
+      return value;
+    });
     return {
       ...existingValue,
       state: {
@@ -30,13 +36,21 @@ const mappedDataLocalFileStorage = {
     name: string,
     value: StorageValue<T>
   ) => {
-    const str = JSON.stringify({
-      ...value,
-      state: {
-        ...value.state,
-        data: Array.from(value.state.data.entries()),
+    const str = JSON.stringify(
+      {
+        ...value,
+        state: {
+          ...value.state,
+          data: Array.from(value.state.data.entries()),
+        },
       },
-    });
+      (key, value) => {
+        if (key === "createAt" || key === "updateAt") {
+          return DateTime.fromISO(value).toMillis();
+        }
+        return value;
+      }
+    );
     return await writeTextFile(name, str, {
       baseDir: BASEDIR,
       create: true,

@@ -15,6 +15,7 @@ import { ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 import { SupportedConfig, UseStoreHandles } from "./util";
 import { UsedByTable } from "./used_by_tbl";
 import { DEFAULT_DATETIME_FORMAT } from "@/util/datetime";
+import { DateTime } from "luxon";
 
 type ConfigDetailCommonProps<Key extends keyof SupportedConfig> = {
   configFor: Key;
@@ -106,7 +107,9 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
           <Snippet
             symbol="Create at: "
             size="sm"
-            codeString={value.createAt.toFormat(DEFAULT_DATETIME_FORMAT)}
+            codeString={value.createAt.toFormat(
+              DEFAULT_DATETIME_FORMAT
+            )}
           >
             {value.createAt.toFormat(DEFAULT_DATETIME_FORMAT)}
           </Snippet>

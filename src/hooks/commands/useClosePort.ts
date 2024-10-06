@@ -1,6 +1,5 @@
 import { useToast } from "@/components/shadcn/use-toast";
 import { useRequestState } from "./useRequestState";
-import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { emitToRustBus } from "@/bridge/call_rust";
 import { useSerialportLog } from "../store/useSerialportLogStore";
 import { DateTime } from "luxon";
@@ -9,33 +8,33 @@ const useClosePort = () => {
   const { toastError, toastSuccess } = useToast();
   const { appendLogItem } = useSerialportLog();
   const { loading: portClosing, runRequest: closePort } = useRequestState({
-    action: (config: SerialportConfig) => {
+    action: ({ portName }: { portName: string }) => {
       appendLogItem({
         type: "close",
-        port_name: config.port_name,
+        port_name: portName,
         time: DateTime.now(),
       });
-      return emitToRustBus("close_port", { port_name: config.port_name });
+      return emitToRustBus("close_port", { port_name: portName });
     },
     onError: (err, payload) => {
       appendLogItem({
         type: "close_failed",
         time: DateTime.now(),
-        port_name: payload?.[0].port_name || "Unknown",
+        port_name: payload?.[0].portName || "Unknown",
         error_msg: err?.msg || "Unknown error",
       });
       toastError({
-        description: `Closing port ${payload?.[0].port_name} failed: ${err?.msg}`,
+        description: `Closing port ${payload?.[0].portName} failed: ${err?.msg}`,
       });
     },
     onSuccess: (_, payload) => {
       appendLogItem({
         type: "closed",
         time: DateTime.now(),
-        port_name: payload?.[0].port_name || "Unknown",
+        port_name: payload?.[0].portName || "Unknown",
       });
       toastSuccess({
-        description: `${payload?.[0].port_name} closed`,
+        description: `${payload?.[0].portName} closed`,
       });
     },
   });
