@@ -208,6 +208,7 @@ const DeviceApiMonitor = ({
   }, [portOpened]);
 
   const messages = getMessagesBySessionId(sessionId || "");
+
   const totalTasks = messages?.messages.length || 0;
   const finishedTasks =
     messages?.messages.reduce(

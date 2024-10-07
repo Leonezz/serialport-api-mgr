@@ -7,6 +7,9 @@ import globals from "globals";
 import * as eslint from "eslint-linter-browserify";
 import { vscodeLight } from "@uiw/codemirror-theme-vscode";
 import js from "@eslint/js";
+import { ScriptTester } from "./script_tester";
+import { getScriptContent } from "@/types/conversation/default";
+import { capitalize } from "es-toolkit";
 
 const ESLINT_CONFIG = {
   // eslint configuration
@@ -58,49 +61,60 @@ const ConversationConfiger = ({
   return (
     <div className="flex flex-col gap-2">
       {(["request", "response"] as const).map((type) => (
-        <Tabs
-          selectedKey={value[type].mode}
-          onSelectionChange={(key) =>
-            setMode({ mode: key as "text" | "script", type: type })
-          }
-        >
-          {(["text", "script"] as const).map((mode) => (
-            <Tab title={mode} key={mode}>
-              {mode === "script" ? (
-                <CodeMirror
-                  lang="javascript"
-                  className="border-2 rounded-lg"
-                  indentWithTab
-                  editable
-                  value={value[type][mode]}
-                  onChange={(v) =>
-                    setContentScript({ v: v, type: type, field: "script" })
-                  }
-                  theme={vscodeLight}
-                  extensions={[
-                    javascript(),
-                    linter(esLint(new eslint.Linter(), ESLINT_CONFIG)),
-                  ]}
-                  readOnly={readonly}
-                />
-              ) : (
-                <Textarea
-                  value={value[type][mode]}
-                  onValueChange={(v) =>
-                    setContentScript({ v: v, field: "text", type: type })
-                  }
-                  variant="bordered"
-                  placeholder={`Enter the ${type} content`}
-                  classNames={{
-                    base: "max-w-full",
-                    input: "resize-none min-h-[40px]",
-                  }}
-                  readOnly={readonly}
-                />
-              )}
-            </Tab>
-          ))}
-        </Tabs>
+        <div className="flex flex-col gap-2">
+          <span className="text-large font-bold">{capitalize(type)}</span>
+          <Tabs
+            selectedKey={value[type].mode}
+            onSelectionChange={(key) =>
+              setMode({ mode: key as "text" | "script", type: type })
+            }
+            key={type}
+          >
+            {(["text", "script"] as const).map((mode) => (
+              <Tab title={mode} key={mode}>
+                {mode === "script" ? (
+                  <div className="flex flex-col gap-2">
+                    <CodeMirror
+                      lang="javascript"
+                      className="border-2 rounded-lg"
+                      indentWithTab
+                      editable
+                      value={value[type][mode]}
+                      onChange={(v) =>
+                        setContentScript({ v: v, type: type, field: "script" })
+                      }
+                      theme={vscodeLight}
+                      extensions={[
+                        javascript(),
+                        linter(esLint(new eslint.Linter(), ESLINT_CONFIG)),
+                      ]}
+                      readOnly={readonly}
+                    />
+                    <ScriptTester
+                      input={value[type]["text"]}
+                      script={getScriptContent(value[type]["script"])}
+                      argument={type === "request" ? "message" : "response"}
+                    />
+                  </div>
+                ) : (
+                  <Textarea
+                    value={value[type][mode]}
+                    onValueChange={(v) =>
+                      setContentScript({ v: v, field: "text", type: type })
+                    }
+                    variant="bordered"
+                    placeholder={`Enter the ${type} content`}
+                    classNames={{
+                      base: "max-w-full",
+                      input: "resize-none min-h-[40px]",
+                    }}
+                    readOnly={readonly}
+                  />
+                )}
+              </Tab>
+            ))}
+          </Tabs>
+        </div>
       ))}
     </div>
   );

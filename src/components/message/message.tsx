@@ -117,19 +117,19 @@ const Message = ({
     >
       <div>
         {(isMsgLoading || isMsgWaiting) && <Spinner size="sm" color={color} />}
-        {(isMsgFailed || !checkSumSuccess) && (
+        {(isMsgFailed || !checkSumSuccess || props.error !== undefined) && (
           <Tooltip
             content={
               <div className="flex flex-col">
                 <h4>Error Message</h4>
                 <code className="text-danger">{`${
                   isLocalMsg
-                    ? "send msg failed"
+                    ? isMsgInactive
+                      ? "build message failed"
+                      : "send message failed"
                     : `received data: ${bufferToHexStr(data)}`
                 }`}</code>
-                <code className="text-danger">
-                  {isMsgFailed && props.error}
-                </code>
+                <code className="text-danger">{props.error}</code>
                 <code className="text-danger">
                   {!checkSumSuccess && `${check_sum} checksum verify failed`}
                 </code>

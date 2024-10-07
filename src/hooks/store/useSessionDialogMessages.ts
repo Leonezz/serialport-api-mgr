@@ -10,6 +10,7 @@ import {
   verifyResponse,
 } from "@/types/conversation/default";
 import { DateTime } from "luxon";
+import { match } from "@/types/global";
 
 type SessionDialogMessageType = (
   | {
@@ -29,6 +30,11 @@ const makeSessionMessageFromApi = ({
   api: SerialportConversation;
   message?: string;
 }) => {
+  const messageOrError = getRequestMessage({
+    ...api.request,
+    message: message,
+  });
+
   return [
     {
       id: uuid(),
@@ -36,7 +42,8 @@ const makeSessionMessageFromApi = ({
       sender: "Local",
       time: DateTime.now(),
       data: Buffer.from([]),
-      expectedMessage: getRequestMessage({ ...api.request, message: message }),
+      expectedMessage: messageOrError.ok ? messageOrError.value : undefined,
+      error: !messageOrError.ok ? messageOrError.error.message : undefined,
       order: 1,
     },
     {
@@ -117,7 +124,10 @@ const useSessionDialogStore = create<
       session_id: id,
       port_name: port_name,
       message_meta: message_meta,
-      messages: makeSessionMessageFromApi({ api: messages, message: message }),
+      messages: makeSessionMessageFromApi({
+        api: messages,
+        message: message,
+      }),
     };
     set((prev) => ({
       data: prev.data.set(id, newValue),
@@ -290,28 +300,32 @@ const useSessionDialogStore = create<
     const messages = curMessages
       .map((v, idx) => {
         if (idx === curMessageIdx && v.sender === "Remote") {
-          try {
-            const verified = verifyResponse({
+          return match({
+            ok: (verified) => {
+              return {
+                ...v,
+                status: verified ? "received" : "failed",
+                data: data,
+                error: verified ? undefined : "value not match",
+              } satisfies SessionDialogMessageType;
+            },
+            err: (reason) => {
+              return {
+                ...v,
+                status: "failed",
+                data: data,
+                error: `run verify script failed: ${reason}`,
+              } satisfies SessionDialogMessageType;
+            },
+          })(
+            verifyResponse({
               mode: v.verifyMode,
               text: v.verifyText,
               script: v.verifyScript,
               response: data,
               ...currentValue.message_meta,
-            });
-            return {
-              ...v,
-              status: verified ? "received" : "failed",
-              data: data,
-              error: verified ? undefined : "value not match",
-            } satisfies SessionDialogMessageType;
-          } catch {
-            return {
-              ...v,
-              status: "failed",
-              data: data,
-              error: "run verify script failed",
-            } satisfies SessionDialogMessageType;
-          }
+            })
+          );
         }
         return v;
       })

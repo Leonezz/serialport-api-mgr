@@ -1,5 +1,7 @@
+import { BuildScriptRunner } from "@/components/conversation/script_tester";
 import { ConversationMessageType, SerialportConversation } from ".";
 import { getMessageDecoder, MessageMetaConfig } from "../message/message_meta";
+import { OK, Result } from "../global";
 
 const INITIAL_REQUEST_SCRIPT = `\
 // The function takes a string as argument
@@ -35,7 +37,7 @@ export const DEFAULTSerialportConversation: SerialportConversation = {
   },
 };
 
-const getScriptContent = (scriptContent: string) => {
+export const getScriptContent = (scriptContent: string) => {
   const lines = scriptContent.split("\n").filter((v) => v.length > 0);
   const startIdx = lines.findIndex((v) => !v.startsWith("//"));
   return lines.slice(startIdx + 1, lines.length - 1).join("\n");
@@ -46,16 +48,14 @@ export const getRequestMessage = ({
   mode: type,
   text: content,
   script,
-}: ConversationMessageType & { message?: string }): string => {
+}: ConversationMessageType & { message?: string }): Result<string> => {
   if (type === "text") {
-    return content;
+    return OK(content);
   }
-  try {
-    const messageBuilder = new Function("message", getScriptContent(script));
-    return messageBuilder(message);
-  } catch {
-    throw "run request script failed";
-  }
+  return BuildScriptRunner<string>({
+    argument: "message",
+    script: getScriptContent(script),
+  })(message || "");
 };
 
 export const verifyResponse = ({
@@ -66,19 +66,17 @@ export const verifyResponse = ({
   ...messageMeta
 }: ConversationMessageType & {
   response: Buffer;
-} & MessageMetaConfig): boolean => {
+} & MessageMetaConfig): Result<boolean> => {
   const receivedMessage = getMessageDecoder(messageMeta)(response)?.join("\n");
   if (receivedMessage === undefined) {
-    return false;
+    return OK(false);
   }
   if (mode === "text") {
-    return text === receivedMessage;
+    return OK(text === receivedMessage);
   }
-  try {
-    const verifier = new Function("response", getScriptContent(script));
-    console.log(receivedMessage, verifier);
-    return verifier(receivedMessage);
-  } catch {
-    throw "run response script failed";
-  }
+
+  return BuildScriptRunner<boolean>({
+    argument: "response",
+    script: getScriptContent(script),
+  })(receivedMessage);
 };

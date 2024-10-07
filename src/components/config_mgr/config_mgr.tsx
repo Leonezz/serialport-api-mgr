@@ -88,7 +88,7 @@ const ConfigMgrWrapper = <Key extends keyof SupportedConfig>({
 }: {
   children: ComponentType<ConfigDetailProps<Key>>;
 }) => {
-  const ConfigMgrWrapper = ConfigMgrDetailViewWrapper<Key>({
+  const ConfigMgrViewWrapper = ConfigMgrDetailViewWrapper<Key>({
     children: ConfigDetail,
   });
   return ({ configFor }: { configFor: Key }) => {
@@ -114,7 +114,7 @@ const ConfigMgrWrapper = <Key extends keyof SupportedConfig>({
         defaultSelectId={defaultSelectId}
         detailView={(configItem) => {
           return (
-            <ConfigMgrWrapper
+            <ConfigMgrViewWrapper
               key={configItem.id}
               value={configItem}
               configFor={configFor}
