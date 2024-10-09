@@ -1,6 +1,7 @@
 import { useSerialportStatus } from "@/hooks/store/usePortStatus";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
 import { convertPortTypeToString } from "@/types/serialport/serialport_status";
+import { StyledTitle } from "../basics/styled_title";
 
 type PortSelectorProps = {
   setSelectedPortName: (port: string) => void;
@@ -23,9 +24,9 @@ const PortSelector = ({
     <Autocomplete
       allowsCustomValue={false}
       label={
-        <p className="text-medium font-semibold text-content1-foreground">
+        <StyledTitle size="small" color={readonly ? "default" : "primary"}>
           Port to Open
-        </p>
+        </StyledTitle>
       }
       placeholder="Select a port by name"
       size="sm"

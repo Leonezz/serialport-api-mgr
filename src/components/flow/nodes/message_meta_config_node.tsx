@@ -6,6 +6,7 @@ import { useUpdateNode } from "./useUpdateNode";
 import { Card, CardBody, CardHeader, Chip, Divider } from "@nextui-org/react";
 import { OutputHandle } from "../handles/output_handle";
 import { MessageMetaPresetConfigSelector } from "@/components/serialport/config/config_selector";
+import { StyledTitle } from "@/components/basics/styled_title";
 
 const NodeType = "message-meta-config" as const;
 
@@ -48,7 +49,7 @@ export const MessageMetaConfigFlowNode = ({
   return (
     <Card className="w-72 overflow-hidden">
       <CardHeader className="flex flex-row justify-between">
-        <span className="text-medium font-semibold">Message Config</span>
+        <StyledTitle>Message Config</StyledTitle>
         <div className="flex flex-col gap-1">
           <Chip
             size="sm"

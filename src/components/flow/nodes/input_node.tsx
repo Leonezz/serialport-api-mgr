@@ -1,8 +1,4 @@
-import {
-  NodeProps,
-  useHandleConnections,
-  useNodesData,
-} from "@xyflow/react";
+import { NodeProps, useHandleConnections, useNodesData } from "@xyflow/react";
 import { FlowNode } from ".";
 import { Fragment, useState } from "react";
 import {
@@ -15,6 +11,7 @@ import {
 } from "@nextui-org/react";
 import { useUpdateNode } from "./useUpdateNode";
 import { OutputHandle } from "../handles/output_handle";
+import { StyledTitle } from "@/components/basics/styled_title";
 
 export type InputFlowNodeType = FlowNode<
   { value: string; valid: boolean; active: boolean },
@@ -41,7 +38,7 @@ export const InputFlowNode = ({ id, data }: InputFlowNodeProps) => {
     <Fragment>
       <Card className="w-72 overflow-hidden">
         <CardHeader className="flex flex-row justify-between">
-          <span className="text-medium font-semibold leading-none">Input</span>
+          <StyledTitle>Input</StyledTitle>
           <Chip
             size="sm"
             variant="dot"

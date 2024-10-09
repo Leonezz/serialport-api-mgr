@@ -16,6 +16,7 @@ import { useToast } from "../shadcn/use-toast";
 import { useUpdateEffect } from "ahooks";
 import { omit } from "es-toolkit";
 import { SerialportPresetConfigSelector } from "./config/config_selector";
+import { StyledTitle } from "../basics/styled_title";
 
 const SerialPortOpener = ({
   serialPortConfig,
@@ -97,7 +98,7 @@ const SerialPortOpener = ({
           <div className="flex flex-row gap-2 items-center">
             <LucideSettings size={40} className="stroke-primary" />
             <div className="flex flex-col">
-              <p className="text-lg font-bold text-start">PORT</p>
+              <StyledTitle size="large">PORT</StyledTitle>
               <Chip
                 className="font-mono text-sm"
                 size="sm"

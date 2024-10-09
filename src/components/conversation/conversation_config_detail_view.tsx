@@ -1,35 +1,11 @@
 import { SerialportConversation } from "@/types/conversation";
 import { Tab, Tabs, Textarea } from "@nextui-org/react";
-import CodeMirror from "@uiw/react-codemirror";
-import { esLint, javascript } from "@codemirror/lang-javascript";
-import { linter } from "@codemirror/lint";
-import globals from "globals";
-import * as eslint from "eslint-linter-browserify";
-import { vscodeLight } from "@uiw/codemirror-theme-vscode";
-import js from "@eslint/js";
-import { ScriptTester } from "./script_tester";
-import { getScriptContent } from "@/types/conversation/default";
-import { capitalize } from "es-toolkit";
 
-const ESLINT_CONFIG = {
-  // eslint configuration
-  languageOptions: {
-    globals: {
-      ...globals.node,
-    },
-    parserOptions: {
-      ecmaVersion: 2022,
-      sourceType: "module",
-    },
-  },
-  rules: {
-    ...js.configs.recommended.rules,
-    "no-unused-vars": [
-      "error",
-      { varsIgnorePattern: "[(process_request)(verify_response)]" },
-    ],
-  },
-};
+import { ScriptTester } from "./script_tester";
+import { capitalize } from "es-toolkit";
+import { ScriptCodeMirror } from "./script_code_mirror";
+import { getScriptContent } from "@/util/js_scripts/js_script_util";
+import { StyledTitle } from "../basics/styled_title";
 
 type ConversationConfigerProps = {
   value: SerialportConversation;
@@ -62,7 +38,9 @@ const ConversationConfiger = ({
     <div className="flex flex-col gap-2">
       {(["request", "response"] as const).map((type) => (
         <div className="flex flex-col gap-2">
-          <span className="text-large font-bold">{capitalize(type)}</span>
+          <StyledTitle size="small" color={readonly ? "default" : "primary"}>
+            {capitalize(type)}
+          </StyledTitle>
           <Tabs
             selectedKey={value[type].mode}
             onSelectionChange={(key) =>
@@ -74,22 +52,18 @@ const ConversationConfiger = ({
               <Tab title={mode} key={mode}>
                 {mode === "script" ? (
                   <div className="flex flex-col gap-2">
-                    <CodeMirror
-                      lang="javascript"
-                      className="border-2 rounded-lg"
-                      indentWithTab
-                      editable
+                    <ScriptCodeMirror
                       value={value[type][mode]}
-                      onChange={(v) =>
-                        setContentScript({ v: v, type: type, field: "script" })
-                      }
-                      theme={vscodeLight}
-                      extensions={[
-                        javascript(),
-                        linter(esLint(new eslint.Linter(), ESLINT_CONFIG)),
-                      ]}
-                      readOnly={readonly}
+                      onValudChange={(value) => {
+                        setContentScript({
+                          v: value,
+                          type: type,
+                          field: "script",
+                        });
+                      }}
+                      readonly={!!readonly}
                     />
+
                     <ScriptTester
                       input={value[type]["text"]}
                       script={getScriptContent(value[type]["script"])}

@@ -77,6 +77,8 @@ export const CustomHandler = <NodeType extends Node>({
           return false;
         }
 
+        
+
         const connections =
           ConnectableNodes[outputNodeType as keyof typeof ConnectableNodes];
         return connections.some(

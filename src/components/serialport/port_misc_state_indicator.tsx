@@ -5,6 +5,7 @@ import {
 } from "@/types/serialport/serialport_status";
 import { Checkbox, Snippet } from "@nextui-org/react";
 import { startCase } from "es-toolkit";
+import { StyledTitle } from "../basics/styled_title";
 type OnOffIndicatorProps = {
   value: boolean;
 };
@@ -39,7 +40,10 @@ const SerialPortTypeCard = ({
 }) => {
   const portType = convertPortTypeToString(type);
   const Title = (
-    <p className="w-max text-md font-bold align-top">Port Type: {portType}</p>
+    <div className="flex flex-row gap-5 items-center">
+      <StyledTitle size="medium">Port Type</StyledTitle>
+      <span>{portType}</span>
+    </div>
   );
   if (portType !== "USB") {
     return Title;
@@ -85,7 +89,7 @@ const SerialPortMiscIndicators = ({
   }
   return (
     <div className="flex flex-row flex-wrap gap-2">
-      <p className="w-max text-md font-bold align-top">Port Status</p>
+      <StyledTitle size="medium">Port Status</StyledTitle>
       <CarrireDetectIndicator value={!!status?.Opened.carrire_detect} />
       <ClearToSendIndicator value={!!status?.Opened.clear_to_send} />
       <DataSetReadyIndicator value={!!status?.Opened.data_set_ready} />

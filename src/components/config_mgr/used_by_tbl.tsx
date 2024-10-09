@@ -9,6 +9,7 @@ import {
 } from "@nextui-org/react";
 import { SupportedConfig, UseStoreHandles } from "./util";
 import { useCallback } from "react";
+import { StyledTitle } from "../basics/styled_title";
 
 type UsedByTableProps = {
   usedByList: { id: string; type: keyof SupportedConfig }[];

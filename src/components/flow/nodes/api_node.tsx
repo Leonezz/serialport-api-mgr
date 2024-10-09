@@ -31,6 +31,7 @@ import {
   MessageMetaConfigFlowNodeType,
 } from "./message_meta_config_node";
 import { InputFlowNodeHandles, InputFlowNodeType } from "./input_node";
+import { StyledTitle } from "@/components/basics/styled_title";
 
 const NodeType = "serialport-api-config" as const;
 
@@ -50,7 +51,7 @@ export const SerialportApiFlowNodeHandles = {
       SerialportFlowNodeHandles.output.serialport,
     [MessageMetaConfigFlowNodeHandles.output["message-meta-config"]]:
       MessageMetaConfigFlowNodeHandles.output["message-meta-config"],
-    [InputFlowNodeHandles.output.value]: [InputFlowNodeHandles.output.value],
+    [InputFlowNodeHandles.output.value]: InputFlowNodeHandles.output.value,
   } as const,
 } as const;
 
@@ -58,6 +59,7 @@ type SerialportApiFlowNodeProps = NodeProps<SerialportApiFlowNodeType>;
 export const SerialportApiFlowNode = ({
   id,
   data,
+  selected,
 }: SerialportApiFlowNodeProps) => {
   const [localConfigId, setLocalConfigId] = useState(data.configId);
   const [localPortName, setLocalPortName] = useState("");
@@ -97,7 +99,7 @@ export const SerialportApiFlowNode = ({
 
   return (
     <Fragment>
-      <NodeToolbar isVisible nodeId={id}>
+      <NodeToolbar isVisible={!!selected} nodeId={id}>
         <ButtonGroup size="sm">
           <Button color="primary" isDisabled={!readyToGo}>
             Start
@@ -108,7 +110,7 @@ export const SerialportApiFlowNode = ({
       <CustomHandler type="source" id={outputHandleId} />
       <Card className="w-72 overflow-hidden">
         <CardHeader className="flex flex-row justify-between">
-          <span className="text-medium font-semibold">Api</span>
+          <StyledTitle>Api</StyledTitle>
           <div className="flex flex-col gap-2">
             <Chip
               size="sm"

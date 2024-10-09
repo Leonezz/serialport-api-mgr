@@ -60,6 +60,18 @@ export const SerialportApplicationPage = () => {
       position: { x: 400, y: 400 },
       type: "serialport-api-config",
     },
+    {
+      data: {},
+      id: "script-1",
+      position: { x: 450, y: 450 },
+      type: "script",
+    },
+    {
+      data: {},
+      id: "script-2",
+      position: { x: 500, y: 500 },
+      type: "script",
+    },
   ];
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);

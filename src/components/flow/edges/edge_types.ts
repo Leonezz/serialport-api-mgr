@@ -20,6 +20,13 @@ export const AvaliableFlowEdgeTypes = [
   "serialport@serialportTOtext-preview@value" satisfies FlowEdgeTypePettern<"serialport">,
   "text-input@valueTOtext-preview@value" satisfies FlowEdgeTypePettern<"text-input">,
   "text-input@valueTOserialport-api-config@value" satisfies FlowEdgeTypePettern<"text-input">,
+  "text-input@valueTOscript@script" satisfies FlowEdgeTypePettern<"text-input">,
+  "script@scriptTOserialport-api-config@value" satisfies FlowEdgeTypePettern<"script">,
+  "script@scriptTOtext-preview@value" satisfies FlowEdgeTypePettern<"script">,
+  "script@scriptTOscript@script" satisfies FlowEdgeTypePettern<"script">,
+  "text-preview@valueTOscript@script" satisfies FlowEdgeTypePettern<"text-preview">,
+  "text-preview@valueTOserialport-api-config@value" satisfies FlowEdgeTypePettern<"text-preview">,
+  "text-preview@valueTOtext-preview@value" satisfies FlowEdgeTypePettern<"text-preview">,
 ] as const;
 
 export const FlowEdgeTypes = {
@@ -34,6 +41,13 @@ export const FlowEdgeTypes = {
     DefaultFlowEdge,
   "text-input@valueTOtext-preview@value": DefaultFlowEdge,
   "text-input@valueTOserialport-api-config@value": DefaultFlowEdge,
+  "script@scriptTOserialport-api-config@value": DefaultFlowEdge,
+  "script@scriptTOtext-preview@value": DefaultFlowEdge,
+  "script@scriptTOscript@script": DefaultFlowEdge,
+  "text-input@valueTOscript@script": DefaultFlowEdge,
+  "text-preview@valueTOscript@script": DefaultFlowEdge,
+  "text-preview@valueTOserialport-api-config@value": DefaultFlowEdge,
+  "text-preview@valueTOtext-preview@value": DefaultFlowEdge,
 } as const satisfies Record<(typeof AvaliableFlowEdgeTypes)[number], any>;
 
 export type FlowEdgeCategories = keyof typeof FlowEdgeTypes;

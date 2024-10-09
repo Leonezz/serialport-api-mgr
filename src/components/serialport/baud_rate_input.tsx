@@ -4,6 +4,7 @@ import {
   SerialPortStatus,
 } from "@/types/serialport/serialport_status";
 import { Autocomplete, AutocompleteItem } from "@nextui-org/react";
+import { StyledTitle } from "../basics/styled_title";
 
 type BaudRateInputProps = {
   value: number;
@@ -21,9 +22,9 @@ const BaudRateInput = ({ value, setValue, portStatus }: BaudRateInputProps) => {
       type="number"
       allowsCustomValue
       label={
-        <p className="text-medium font-bold text-content1-foreground">
+        <StyledTitle size="small" color={readonly ? "default" : "primary"}>
           Baud Rate
-        </p>
+        </StyledTitle>
       }
       isClearable={false}
       labelPlacement="outside"

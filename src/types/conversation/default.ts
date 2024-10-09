@@ -2,31 +2,11 @@ import { BuildScriptRunner } from "@/components/conversation/script_tester";
 import { ConversationMessageType, SerialportConversation } from ".";
 import { getMessageDecoder, MessageMetaConfig } from "../message/message_meta";
 import { OK, Result } from "../global";
-
-const INITIAL_REQUEST_SCRIPT = `\
-// The function takes a string as argument
-// and returns a string.
-//NOTE - DO NOT EDIT THE FIRST AND LAST LINES
-//NOTE - THE FUNCTION BODY SHOULD RETURN A STRING
-const processRequest = (message = undefined) => {
-  // ...write your function body here
-  const defaultMessage = "request"; //default message
-  const request = message === undefined ? 
-    defaultMessage : message;
-  return request;
-}
-`;
-
-const INITIAL_RESPONSE_SCRIPT = `\
-// The function takes a string as argument
-// and returns a boolean
-//NOTE - DO NOT EDIT THE FIRST AND LAST LINES
-//NOTE - THE FUNCTION BODY SHOULD RETURN A BOOLEAN
-const verifyResponse = (response) => {
-  // ...write your function body here
-  return true;
-}
-`;
+import {
+  getScriptContent,
+  INITIAL_REQUEST_SCRIPT,
+  INITIAL_RESPONSE_SCRIPT,
+} from "@/util/js_scripts/js_script_util";
 
 export const DEFAULTSerialportConversation: SerialportConversation = {
   request: { mode: "text", text: "resqust", script: INITIAL_REQUEST_SCRIPT },
@@ -35,12 +15,6 @@ export const DEFAULTSerialportConversation: SerialportConversation = {
     text: "response",
     script: INITIAL_RESPONSE_SCRIPT,
   },
-};
-
-export const getScriptContent = (scriptContent: string) => {
-  const lines = scriptContent.split("\n").filter((v) => v.length > 0);
-  const startIdx = lines.findIndex((v) => !v.startsWith("//"));
-  return lines.slice(startIdx + 1, lines.length - 1).join("\n");
 };
 
 export const getRequestMessage = ({

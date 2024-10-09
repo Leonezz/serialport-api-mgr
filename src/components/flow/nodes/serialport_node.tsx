@@ -25,6 +25,7 @@ import useOpenPort from "@/hooks/commands/useOpenPort";
 import useClosePort from "@/hooks/commands/useClosePort";
 import { useUpdateNode } from "./useUpdateNode";
 import { InputHandle } from "../handles/input_handle";
+import { StyledTitle } from "@/components/basics/styled_title";
 
 const NodeType = "serialport";
 
@@ -49,7 +50,11 @@ export const SerialportFlowNodeHandles = {
 
 type SerialportFlowNodeProps = NodeProps<SerialportFlowNodeType>;
 
-export const SerialportFlowNode = ({ data, id }: SerialportFlowNodeProps) => {
+export const SerialportFlowNode = ({
+  data,
+  id,
+  selected,
+}: SerialportFlowNodeProps) => {
   const { portName } = data;
   const [localPortName, setLocalPortName] = useState(portName);
   const { getPortOpened } = useSerialportStatus();
@@ -83,7 +88,7 @@ export const SerialportFlowNode = ({ data, id }: SerialportFlowNodeProps) => {
 
   return (
     <Fragment>
-      <NodeToolbar isVisible nodeId={id}>
+      <NodeToolbar isVisible={selected} nodeId={id}>
         <ButtonGroup size="sm">
           <Button
             color="primary"
@@ -121,9 +126,7 @@ export const SerialportFlowNode = ({ data, id }: SerialportFlowNodeProps) => {
 
       <Card className="w-72 overflow-hidden">
         <CardHeader className="flex flex-row justify-between">
-          <span className="text-medium font-semibold leading-none">
-            Serialport
-          </span>
+          <StyledTitle>Serialport</StyledTitle>
 
           <Chip
             variant="dot"

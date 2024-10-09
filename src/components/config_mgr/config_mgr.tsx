@@ -6,6 +6,7 @@ import ConfigDetailCommon from "./config_detail";
 import { ComponentType, useState } from "react";
 import { DEFAULTConfigs, SupportedConfig, UseStoreHandles } from "./util";
 import { ConfigTitle } from "./config_title";
+import { StyledTitle } from "../basics/styled_title";
 
 type ConfigDetailProps<Key extends keyof SupportedConfig> = {
   value: SupportedConfig[Key]["configType"];
@@ -131,7 +132,7 @@ const ConfigMgrWrapper = <Key extends keyof SupportedConfig>({
         )}
         topContent={
           <div className="flex flex-row gap-1 justify-between items-center w-full">
-            <span className="text-medium font-extrabold">Config List</span>
+            <StyledTitle size="large">Config List</StyledTitle>
             <AddConfigToolBar
               onClick={() => {
                 const NEW_CONFIG_PREFIX = `New ${configFor} Config`;

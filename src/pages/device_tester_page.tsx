@@ -1,4 +1,5 @@
 import ListWithDetail from "@/components/basics/list-with-detail";
+import { StyledTitle } from "@/components/basics/styled_title";
 import { ConfigTitle } from "@/components/config_mgr/config_title";
 import { DeviceTester } from "@/components/device/device_tester";
 import { useNamedSerialportDeviceStore } from "@/hooks/store/useNamedDeviceConfigStore";
@@ -26,9 +27,7 @@ const DeviceTesterPage = () => {
         )}
         topContent={
           <div className="flex flex-row gap-1 justify-between items-center w-full">
-            <span className="text-medium font-extrabold">
-              Device Config List
-            </span>
+            <StyledTitle> Device Config List</StyledTitle>
           </div>
         }
       />

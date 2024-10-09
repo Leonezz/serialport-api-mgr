@@ -20,6 +20,7 @@ import { useToast } from "../shadcn/use-toast";
 import { Buffer } from "buffer";
 import { usePrevious } from "ahooks";
 import { MessageMetaPresetConfigSelector } from "../serialport/config/config_selector";
+import { StyledTitle } from "../basics/styled_title";
 
 type ApiConfigSelectorProps = {
   selectRange: NamedSerialportApi[];
@@ -37,11 +38,7 @@ const ApiConfigSelector = ({
       isReadOnly={false}
       type="text"
       allowsCustomValue
-      label={
-        <p className="text-medium w-fit font-bold text-content1-foreground">
-          Api Config
-        </p>
-      }
+      label={<StyledTitle size="medium">Api Config</StyledTitle>}
       isClearable={false}
       placeholder="Select a preset"
       size="sm"

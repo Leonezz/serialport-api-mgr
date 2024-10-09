@@ -12,6 +12,7 @@ import {
 } from "@/types/serialport/serialport_status";
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { partialSingleKeySetter } from "@/util/util";
+import { StyledTitle } from "../basics/styled_title";
 
 const TimeUnitsOptions = ["s", "ms", "us", "ns"] as const;
 export type TimeUnits = (typeof TimeUnitsOptions)[number];
@@ -54,9 +55,9 @@ const ReadWriteTimeoutInput = <T1 extends "read_timeout" | "write_timeout">(
     return (
       <Input
         label={
-          <p className="text-medium font-bold text-content1-foreground">
+          <StyledTitle size="small" color={portOpened ? "default" : "primary"}>
             {name}
-          </p>
+          </StyledTitle>
         }
         labelPlacement="outside"
         size="sm"

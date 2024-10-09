@@ -13,6 +13,7 @@ import {
   verifyHexStr,
 } from "@/util/message";
 import { useSendMessage } from "@/hooks/message/use_send_message";
+import { StyledTitle } from "../basics/styled_title";
 
 type MessageInputProps = {
   portName: string;
@@ -90,7 +91,14 @@ const MessageInput = ({
           }
           return setVisibleMessage(value);
         }}
-        label={messageError === undefined ? "Message" : messageError}
+        label={
+          <StyledTitle
+            size="small"
+            color={messageError !== undefined ? "danger" : "primary"}
+          >
+            {messageError === undefined ? "Message" : messageError}
+          </StyledTitle>
+        }
         isInvalid={messageError !== undefined}
         variant="bordered"
         placeholder="Enter your message"

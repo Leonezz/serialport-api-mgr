@@ -5,6 +5,7 @@ import {
 } from "@/types/serialport/serialport_status";
 import { Radio, RadioGroup } from "@nextui-org/react";
 import { startCase } from "es-toolkit";
+import { StyledTitle } from "../basics/styled_title";
 
 export type SerialConfigRadioProps<
   T1 extends keyof typeof SERIALPORT.ConfigOptions,
@@ -33,9 +34,9 @@ const RadioBuilder = <
       <RadioGroup
         isReadOnly={readonly}
         label={
-          <p className="text-medium font-bold text-content1-foreground">
+          <StyledTitle size="small" color={readonly ? "default" : "primary"}>
             {name}
-          </p>
+          </StyledTitle>
         }
         orientation="horizontal"
         value={defaultValue.toString()}
@@ -43,7 +44,7 @@ const RadioBuilder = <
           setValue(v as OptionType);
         }}
         classNames={{
-          wrapper: "flex-nowrap"
+          wrapper: "flex-nowrap",
         }}
       >
         {options.map((v) => (

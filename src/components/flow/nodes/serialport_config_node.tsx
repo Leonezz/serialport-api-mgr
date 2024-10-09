@@ -6,6 +6,7 @@ import { SerialportPresetConfigSelector } from "@/components/serialport/config/c
 import { useEffect, useState } from "react";
 import { useUpdateNode } from "./useUpdateNode";
 import { OutputHandle } from "../handles/output_handle";
+import { StyledTitle } from "@/components/basics/styled_title";
 
 const NodeType = "serialport-config";
 
@@ -58,9 +59,7 @@ export const SerialportConfigFlowNode = ({
   return (
     <Card className="w-72 overflow-hidden">
       <CardHeader className="flex flex-row justify-between">
-        <span className="text-medium font-semibold leading-none">
-          Serialport Config
-        </span>
+        <StyledTitle>Serialport Config</StyledTitle>
         <div className="flex flex-col gap-1">
           <Chip
             size="sm"

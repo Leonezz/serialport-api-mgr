@@ -15,6 +15,7 @@ import { ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 import { SupportedConfig, UseStoreHandles } from "./util";
 import { UsedByTable } from "./used_by_tbl";
 import { DEFAULT_DATETIME_FORMAT } from "@/util/datetime";
+import { StyledTitle } from "../basics/styled_title";
 
 type ConfigDetailCommonProps<Key extends keyof SupportedConfig> = {
   configFor: Key;
@@ -56,7 +57,9 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
           }`}
         >
           {!collapsedDetail && (
-            <span className="text-large font-extrabold">Detailed Config</span>
+            <StyledTitle size="large" color={readonly ? "default" : "primary"}>
+              Detailed Config
+            </StyledTitle>
           )}
           <Button
             size="sm"
@@ -83,7 +86,7 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
           }`}
         >
           {!collapsedCommon && (
-            <span className="text-large font-extrabold">Common Config</span>
+            <StyledTitle size="large">Common Config</StyledTitle>
           )}
           <Button
             size="sm"
@@ -106,9 +109,7 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
           <Snippet
             symbol="Create at: "
             size="sm"
-            codeString={value.createAt.toFormat(
-              DEFAULT_DATETIME_FORMAT
-            )}
+            codeString={value.createAt.toFormat(DEFAULT_DATETIME_FORMAT)}
           >
             {value.createAt.toFormat(DEFAULT_DATETIME_FORMAT)}
           </Snippet>
@@ -122,9 +123,9 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
           <Input
             isReadOnly={readonly}
             label={
-              <p className="text-medium font-bold text-content1-foreground">
+              <StyledTitle color={readonly ? "default" : "primary"}>
                 Config Name
-              </p>
+              </StyledTitle>
             }
             size="sm"
             labelPlacement="outside"
@@ -136,11 +137,7 @@ const ConfigDetailCommon = <Key extends keyof SupportedConfig>({
             }}
           />
           <Textarea
-            label={
-              <p className="text-medium font-bold text-content1-foreground">
-                Comment
-              </p>
-            }
+            label={<StyledTitle>Comment</StyledTitle>}
             size="sm"
             labelPlacement="outside"
             value={value.comment}
