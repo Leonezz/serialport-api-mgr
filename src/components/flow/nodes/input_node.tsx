@@ -1,23 +1,19 @@
 import { NodeProps, useHandleConnections, useNodesData } from "@xyflow/react";
 import { FlowNode } from ".";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import {
-  Card,
-  CardBody,
-  CardHeader,
   Chip,
-  Divider,
   Input,
 } from "@nextui-org/react";
 import { useUpdateNode } from "./useUpdateNode";
 import { OutputHandle } from "../handles/output_handle";
 import { StyledTitle } from "@/components/basics/styled_title";
+import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
 
-export type InputFlowNodeType = FlowNode<
-  { value: string; valid: boolean; active: boolean },
-  "text-input"
->;
+const NodeType = "text-input";
+export type InputFlowNodeType = FlowNode<BaseFlowNodeType<{}>, typeof NodeType>;
 type InputFlowNodeProps = NodeProps<InputFlowNodeType>;
+const NodeWrapper = BaseFlowNode<{}>;
 
 export const InputFlowNodeHandles = {
   output: {
@@ -25,7 +21,7 @@ export const InputFlowNodeHandles = {
   },
 } as const;
 
-export const InputFlowNode = ({ id, data }: InputFlowNodeProps) => {
+export const InputFlowNode = ({ id, data, selected }: InputFlowNodeProps) => {
   const [localValue, setLocalValue] = useState(data.value);
   const updateNode = useUpdateNode<InputFlowNodeType>();
 
@@ -35,9 +31,16 @@ export const InputFlowNode = ({ id, data }: InputFlowNodeProps) => {
   const targetNodes = useNodesData(connections.map((v) => v.target));
 
   return (
-    <Fragment>
-      <Card className="w-72 overflow-hidden">
-        <CardHeader className="flex flex-row justify-between">
+    <NodeWrapper
+      value={localValue}
+      valid={localValue.length > 0}
+      active={localValue.length > 0}
+      id={id}
+      selected={!!selected}
+      minHeight={120}
+      minWidth={300}
+      title={
+        <div className="flex flex-row w-full justify-between">
           <StyledTitle>Input</StyledTitle>
           <Chip
             size="sm"
@@ -47,25 +50,24 @@ export const InputFlowNode = ({ id, data }: InputFlowNodeProps) => {
           >
             {`used by ${targetNodes.length}`}
           </Chip>
-        </CardHeader>
-        <Divider />
-        <CardBody>
-          <OutputHandle id={handleId}>
-            <Input
-              type="text"
-              value={localValue}
-              onValueChange={(value) => {
-                setLocalValue(value);
-                updateNode(id, {
-                  value: value,
-                  valid: value.length > 0,
-                  active: value.length > 0,
-                });
-              }}
-            />
-          </OutputHandle>
-        </CardBody>
-      </Card>
-    </Fragment>
+        </div>
+      }
+      body={
+        <OutputHandle id={handleId}>
+          <Input
+            type="text"
+            value={localValue}
+            onValueChange={(value) => {
+              setLocalValue(value);
+              updateNode(id, {
+                value: value,
+                valid: value.length > 0,
+                active: value.length > 0,
+              });
+            }}
+          />
+        </OutputHandle>
+      }
+    />
   );
 };

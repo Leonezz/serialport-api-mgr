@@ -1,6 +1,5 @@
-import { NodeProps, NodeToolbar } from "@xyflow/react";
-import { BasicFlowNodeStatus, FlowNode } from ".";
-import { FlowNodeCategories } from "./node_types";
+import { NodeToolbar, useEdges, useNodes, useReactFlow } from "@xyflow/react";
+import { BasicFlowNodeStatus } from ".";
 import { Fragment, ReactNode } from "react";
 import {
   Button,
@@ -10,18 +9,15 @@ import {
   CardHeader,
   Divider,
 } from "@nextui-org/react";
-import { InputHandle } from "../handles/input_handle";
 import { CustomHandler } from "../handles/custom_handle";
 import { DefaultResizer } from "../resizer/default_resizer";
 
-export type BaseFlowNodeType<
-  Data,
-  NodeType extends FlowNodeCategories
-> = FlowNode<BasicFlowNodeStatus & Data, NodeType>;
+export type BaseFlowNodeType<Data> = BasicFlowNodeStatus & Data;
 
-type BaseFlowNodeProps<Data, NodeType extends FlowNodeCategories> = NodeProps<
-  BaseFlowNodeType<Data, NodeType>
->;
+type BaseFlowNodeProps<Data> = BaseFlowNodeType<Data> & {
+  id: string;
+  selected: boolean;
+};
 
 type InputHandleType = {
   handleId: `${string}-${string}-input`;
@@ -30,10 +26,9 @@ type InputHandleType = {
 
 type OutputHandleType = {
   handleId: `${string}-${string}-output`;
-  connectionLimit: number;
 };
 
-export const BaseFlowNode = <Data, NodeType extends FlowNodeCategories>({
+export const BaseFlowNode = <Data extends Record<string, unknown>>({
   id,
   selected,
   inputHandle,
@@ -43,22 +38,40 @@ export const BaseFlowNode = <Data, NodeType extends FlowNodeCategories>({
   extraToolBar,
   minWidth,
   minHeight,
-}: BaseFlowNodeProps<Data, NodeType> & {
+}: BaseFlowNodeProps<Data> & {
   inputHandle?: InputHandleType;
   outputHandle?: OutputHandleType;
   title: ReactNode;
   body: ReactNode;
-  extraToolBar: ReactNode;
+  extraToolBar?: ReactNode;
   minWidth: number;
   minHeight: number;
 }) => {
+  const { deleteElements } = useReactFlow();
+  const edges = useEdges()
+    .filter((edge) => edge.target === id || edge.source === id)
+    .map((edge) => edge.id);
+  const deleteNode = () => {
+    deleteElements({ nodes: [{ id: id }] });
+  };
+  const curEdges = () => {
+    deleteElements({ edges: edges.map((edgeId) => ({ id: edgeId })) });
+  };
   return (
     <Fragment>
-      <NodeToolbar isVisible={selected} nodeId={id}>
+      <NodeToolbar
+        isVisible={selected}
+        nodeId={id}
+        className="flex flex-col gap-2"
+      >
+        {extraToolBar}
         <ButtonGroup size="sm">
-          <Button color="danger">Delete Node</Button>
-          <Button color="danger">Cut Edges</Button>
-          {extraToolBar}
+          <Button color="danger" onClick={deleteNode}>
+            Delete Node
+          </Button>
+          <Button color="danger" onClick={curEdges}>
+            Cut Edges
+          </Button>
         </ButtonGroup>
       </NodeToolbar>
 
@@ -73,23 +86,20 @@ export const BaseFlowNode = <Data, NodeType extends FlowNodeCategories>({
           id={inputHandle.handleId}
           type="target"
           onChange={inputHandle.onValueChange}
+          connectionLimit={1}
         />
       )}
 
       {outputHandle && (
-        <CustomHandler
-          id={outputHandle.handleId}
-          type="source"
-          connectionLimit={outputHandle.connectionLimit}
-        />
+        <CustomHandler id={outputHandle.handleId} type="source" />
       )}
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden w-full h-full">
         <CardHeader>{title}</CardHeader>
 
         <Divider />
 
-        <CardBody>{body}</CardBody>
+        <CardBody className="h-full w-full">{body}</CardBody>
       </Card>
     </Fragment>
   );

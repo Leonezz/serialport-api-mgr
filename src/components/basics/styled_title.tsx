@@ -16,7 +16,7 @@ export const StyledTitle = ({
   children,
 }: StyledTitleProps & Readonly<{ children: ReactNode }>) => {
   return (
-    <div className="flex flex-row">
+    <div className="flex flex-row h-fit">
       <span
         className={`flex flex-row text-${size} font-semibold items-center before:flex before:h-[77%] before:contents-[''] before:w-1 before:mr-1 before:rounded-sm before:bg-${color}`}
       >

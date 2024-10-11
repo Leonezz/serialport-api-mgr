@@ -1,25 +1,19 @@
 import {
   NodeProps,
-  NodeToolbar,
   useHandleConnections,
   useNodesData,
 } from "@xyflow/react";
 import { FlowNode } from ".";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNamedApiStore } from "@/hooks/store/useNamedConversationStore";
 import { useUpdateNode } from "./useUpdateNode";
 import {
   Button,
   ButtonGroup,
-  Card,
-  CardBody,
-  CardHeader,
   Chip,
-  Divider,
   Snippet,
 } from "@nextui-org/react";
 import { SerialportApiPresetConfigSelector } from "@/components/serialport/config/config_selector";
-import { CustomHandler } from "../handles/custom_handle";
 import { InputHandle } from "../handles/input_handle";
 import {
   SerialportFlowNodeHandles,
@@ -32,18 +26,15 @@ import {
 } from "./message_meta_config_node";
 import { InputFlowNodeHandles, InputFlowNodeType } from "./input_node";
 import { StyledTitle } from "@/components/basics/styled_title";
+import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
 
 const NodeType = "serialport-api-config" as const;
 
 type SerialportApiFlowNodeType = FlowNode<
-  {
-    configId: string;
-    value: string;
-    valid: boolean;
-    active: boolean;
-  },
+  BaseFlowNodeType<{ configId: string }>,
   typeof NodeType
 >;
+const NodeWrapper = BaseFlowNode<{ configId: string }>;
 
 export const SerialportApiFlowNodeHandles = {
   input: {
@@ -98,18 +89,17 @@ export const SerialportApiFlowNode = ({
   }, [updateNode, localConfigId, localPortName, readyToGo]);
 
   return (
-    <Fragment>
-      <NodeToolbar isVisible={!!selected} nodeId={id}>
-        <ButtonGroup size="sm">
-          <Button color="primary" isDisabled={!readyToGo}>
-            Start
-          </Button>
-          <Button color="danger">Reset</Button>
-        </ButtonGroup>
-      </NodeToolbar>
-      <CustomHandler type="source" id={outputHandleId} />
-      <Card className="w-72 overflow-hidden">
-        <CardHeader className="flex flex-row justify-between">
+    <NodeWrapper
+      id={id}
+      selected={!!selected}
+      value={data.value}
+      valid={data.valid}
+      active={data.active}
+      configId={data.configId}
+      minWidth={310}
+      minHeight={310}
+      title={
+        <div className="flex w-full flex-row justify-between">
           <StyledTitle>Api</StyledTitle>
           <div className="flex flex-col gap-2">
             <Chip
@@ -129,11 +119,10 @@ export const SerialportApiFlowNode = ({
               {`${activeTargets.length} active`}
             </Chip>
           </div>
-        </CardHeader>
-
-        <Divider />
-
-        <CardBody className="flex flex-col gap-2">
+        </div>
+      }
+      body={
+        <div className="flex flex-col gap-2">
           <SerialportApiPresetConfigSelector
             width="w-full"
             height="h-full"
@@ -194,8 +183,16 @@ export const SerialportApiFlowNode = ({
               {localInputText}
             </Snippet>
           </InputHandle>
-        </CardBody>
-      </Card>
-    </Fragment>
+        </div>
+      }
+      extraToolBar={
+        <ButtonGroup size="sm">
+          <Button color="primary" isDisabled={!readyToGo}>
+            Start
+          </Button>
+          <Button color="danger">Reset</Button>
+        </ButtonGroup>
+      }
+    />
   );
 };

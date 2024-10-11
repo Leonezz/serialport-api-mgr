@@ -7,14 +7,9 @@ import {
 import { BasicFlowNodeStatus, FlowNode } from ".";
 import { Fragment, useEffect, useState } from "react";
 import {
-  Card,
-  CardBody,
-  CardHeader,
   Chip,
-  Divider,
   Snippet,
 } from "@nextui-org/react";
-import { CustomHandler } from "../handles/custom_handle";
 import { InputHandle } from "../handles/input_handle";
 import { ScriptCodeMirror } from "@/components/conversation/script_code_mirror";
 import {
@@ -22,20 +17,15 @@ import {
   ScriptTester,
 } from "@/components/conversation/script_tester";
 import { OK, Result } from "@/types/global";
-import { getScriptContent, trimScript } from "@/util/js_scripts/js_script_util";
+import { getScriptContent } from "@/util/js_scripts/js_script_util";
 import { StyledTitle } from "@/components/basics/styled_title";
 import { useUpdateNode } from "./useUpdateNode";
-import { DefaultResizer } from "../resizer/default_resizer";
+import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
 
 const NodeType = "script";
 
 export type ScriptFlowNodeType = FlowNode<
-  {
-    // script: string;
-    value: string;
-    valid: boolean;
-    active: boolean;
-  },
+  BaseFlowNodeType<{}>,
   typeof NodeType
 >;
 
@@ -47,6 +37,8 @@ export const ScriptFlowNodeHandles = {
     [NodeType]: NodeType,
   },
 };
+
+const NodeWrapper = BaseFlowNode<{}>;
 
 type ScriptFlowNodeProps = NodeProps<ScriptFlowNodeType>;
 
@@ -63,7 +55,8 @@ export const ScriptFlowNode = ({ id, data, selected }: ScriptFlowNodeProps) => {
   const [localOutput, setLocaloutput] = useState<Result<string>>(OK(""));
 
   const inputHandleId = `${id}-${ScriptFlowNodeHandles.input[NodeType]}-input`;
-  const outputHandleId = `${id}-${ScriptFlowNodeHandles.output[NodeType]}-output`;
+  const outputHandleId =
+    `${id}-${ScriptFlowNodeHandles.output[NodeType]}-output` as const;
 
   const outConnections = useHandleConnections({
     type: "source",
@@ -89,52 +82,59 @@ export const ScriptFlowNode = ({ id, data, selected }: ScriptFlowNodeProps) => {
 
   return (
     <Fragment>
-      <DefaultResizer minWidth={400} minHeight={320} visible={!!selected} />
-      <CustomHandler type="source" id={outputHandleId} />
-      <Card className="scrollbar-hide h-full">
-        <CardHeader className="flex flex-row justify-between">
-          <StyledTitle>Script</StyledTitle>
-          <div className="flex flex-col gap-1">
-            <Chip
-              size="sm"
-              variant="dot"
-              color="default"
-              className="font-mono text-sm"
-            >
-              {`used by ${targetNodes.length}`}
-            </Chip>
-            <Chip
-              size="sm"
-              variant="dot"
-              color={activeTargeets.length > 0 ? "primary" : "default"}
-            >{`${activeTargeets.length} active`}</Chip>
+      <NodeWrapper
+        id={id}
+        selected={!!selected}
+        value={localOutput.ok ? localOutput.value : localOutput.error.message}
+        valid={localOutput.ok}
+        active={false}
+        minWidth={440}
+        minHeight={330}
+        title={
+          <div className="flex flex-row justify-between w-full">
+            <StyledTitle>Script</StyledTitle>
+            <div className="flex flex-col gap-1">
+              <Chip
+                size="sm"
+                variant="dot"
+                color="default"
+                className="font-mono text-sm"
+              >
+                {`used by ${targetNodes.length}`}
+              </Chip>
+              <Chip
+                size="sm"
+                variant="dot"
+                color={activeTargeets.length > 0 ? "primary" : "default"}
+              >{`${activeTargeets.length} active`}</Chip>
+            </div>
           </div>
-        </CardHeader>
-
-        <Divider />
-
-        <CardBody className="flex flex-col gap-2 w-full h-full scrollbar-hide">
-          <InputHandle
-            id={inputHandleId}
-            onValueChange={(data: { value: string } | undefined) => {
-              setLocalInput(data?.value || "");
-            }}
-            connectionLimit={1}
-          >
-            <ScriptCodeMirror
-              value={localScript}
-              onValudChange={(value) => {
-                setLocalScript(value);
+        }
+        body={
+          <div className="flex flex-col gap-2">
+            <InputHandle
+              id={inputHandleId}
+              onValueChange={(data: { value: string } | undefined) => {
+                setLocalInput(data?.value || "");
               }}
-              readonly={false}
-            />
-          </InputHandle>
-          <Snippet color={localOutput.ok ? "success" : "danger"}>
-            {localOutput.ok ? localOutput.value : localOutput.error.message}
-          </Snippet>
-          <ScriptTester script={localScript} input={""} argument="input" />
-        </CardBody>
-      </Card>
+              connectionLimit={1}
+            >
+              <ScriptCodeMirror
+                value={localScript}
+                onValudChange={(value) => {
+                  setLocalScript(value);
+                }}
+                readonly={false}
+              />
+            </InputHandle>
+            <Snippet color={localOutput.ok ? "success" : "danger"}>
+              {localOutput.ok ? localOutput.value : localOutput.error.message}
+            </Snippet>
+            <ScriptTester script={localScript} input={""} argument="input" />
+          </div>
+        }
+        outputHandle={{ handleId: outputHandleId }}
+      />
     </Fragment>
   );
 };

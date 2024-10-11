@@ -26,16 +26,14 @@ import useClosePort from "@/hooks/commands/useClosePort";
 import { useUpdateNode } from "./useUpdateNode";
 import { InputHandle } from "../handles/input_handle";
 import { StyledTitle } from "@/components/basics/styled_title";
+import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
 
 const NodeType = "serialport";
 
 export type SerialportFlowNodeType = FlowNode<
-  {
+  BaseFlowNodeType<{
     portName: string;
-    value: string;
-    active: boolean;
-    valid: boolean;
-  },
+  }>,
   typeof NodeType
 >;
 export const SerialportFlowNodeHandles = {
@@ -47,6 +45,8 @@ export const SerialportFlowNodeHandles = {
     [NodeType]: NodeType,
   } as const,
 } as const;
+
+const NodeWrapper = BaseFlowNode<{ portName: string }>;
 
 type SerialportFlowNodeProps = NodeProps<SerialportFlowNodeType>;
 
@@ -87,8 +87,59 @@ export const SerialportFlowNode = ({
   );
 
   return (
-    <Fragment>
-      <NodeToolbar isVisible={selected} nodeId={id}>
+    <NodeWrapper
+      id={id}
+      selected={!!selected}
+      portName={portOpened ? localPortName : ""}
+      value={localPortName}
+      valid={localPortName.length > 0}
+      active={portOpened}
+      minWidth={300}
+      minHeight={175}
+      title={
+        <div className="flex flex-row justify-between w-full">
+          <StyledTitle>Serialport</StyledTitle>
+          <Chip
+            variant="dot"
+            color={portOpened ? "primary" : "default"}
+            className="font-mono text-sm"
+            size="sm"
+          >
+            {portOpened ? "opened" : "closed"}
+          </Chip>
+        </div>
+      }
+      body={
+        <div className="flex flex-col gap-2">
+          <PortSelector
+            selectedName={localPortName}
+            setSelectedPortName={(port) => {
+              setLocalPortName(port);
+            }}
+            width="w-full"
+            height="h-min"
+          />
+          <InputHandle
+            id={`${id}-${SerialportFlowNodeHandles.input["serialport-config"]}-input`}
+            connectionLimit={1}
+            onValueChange={(data?: SerialportConfigFlowNodeType["data"]) => {
+              setSerialportConfigId(data ? data.configId : "");
+            }}
+          >
+            <Snippet
+              variant="flat"
+              className="w-full truncate"
+              symbol={<span className="font-semibold">Config: </span>}
+            >
+              {serialportConfig?.name}
+            </Snippet>
+          </InputHandle>
+        </div>
+      }
+      outputHandle={{
+        handleId: `${id}-${SerialportFlowNodeHandles.output[NodeType]}-output`,
+      }}
+      extraToolBar={
         <ButtonGroup size="sm">
           <Button
             color="primary"
@@ -117,53 +168,7 @@ export const SerialportFlowNode = ({
             Refresh
           </Button>
         </ButtonGroup>
-      </NodeToolbar>
-
-      <CustomHandler
-        type="source"
-        id={`${id}-${SerialportFlowNodeHandles.output[NodeType]}-output`}
-      />
-
-      <Card className="w-72 overflow-hidden">
-        <CardHeader className="flex flex-row justify-between">
-          <StyledTitle>Serialport</StyledTitle>
-
-          <Chip
-            variant="dot"
-            color={portOpened ? "primary" : "default"}
-            className="font-mono text-sm"
-            size="sm"
-          >
-            {portOpened ? "opened" : "closed"}
-          </Chip>
-        </CardHeader>
-        <Divider />
-        <CardBody className="flex flex-col gap-2">
-          <PortSelector
-            selectedName={localPortName}
-            setSelectedPortName={(port) => {
-              setLocalPortName(port);
-            }}
-            width="w-full"
-            height="h-min"
-          />
-          <InputHandle
-            id={`${id}-${SerialportFlowNodeHandles.input["serialport-config"]}-input`}
-            connectionLimit={1}
-            onValueChange={(data?: SerialportConfigFlowNodeType["data"]) => {
-              setSerialportConfigId(data ? data.configId : "");
-            }}
-          >
-            <Snippet
-              variant="flat"
-              className="w-full truncate"
-              symbol={<span className="font-semibold">Config: </span>}
-            >
-              {serialportConfig?.name}
-            </Snippet>
-          </InputHandle>
-        </CardBody>
-      </Card>
-    </Fragment>
+      }
+    />
   );
 };

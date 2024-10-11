@@ -3,23 +3,22 @@ import { FlowNode } from ".";
 import { useState } from "react";
 import { useNamedMessageMetaConfigStore } from "@/hooks/store/useNamedMessageMetaConfig";
 import { useUpdateNode } from "./useUpdateNode";
-import { Card, CardBody, CardHeader, Chip, Divider } from "@nextui-org/react";
+import { Chip } from "@nextui-org/react";
 import { OutputHandle } from "../handles/output_handle";
 import { MessageMetaPresetConfigSelector } from "@/components/serialport/config/config_selector";
 import { StyledTitle } from "@/components/basics/styled_title";
+import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
 
 const NodeType = "message-meta-config" as const;
 
 export type MessageMetaConfigFlowNodeType = FlowNode<
-  {
+  BaseFlowNodeType<{
     configId: string;
-    value: string;
-    valid: boolean;
-    active: boolean;
-  },
+  }>,
   typeof NodeType
 >;
 type MessageMetaConfigFlowNodeProps = NodeProps<MessageMetaConfigFlowNodeType>;
+const NodeWrapper = BaseFlowNode<{ configId: string }>;
 
 export const MessageMetaConfigFlowNodeHandles = {
   output: {
@@ -30,6 +29,7 @@ export const MessageMetaConfigFlowNodeHandles = {
 export const MessageMetaConfigFlowNode = ({
   id,
   data,
+  selected,
 }: MessageMetaConfigFlowNodeProps) => {
   const [localConfigId, setLocalConfigId] = useState(data.configId);
 
@@ -47,32 +47,39 @@ export const MessageMetaConfigFlowNode = ({
   const activeNodes = targetNodes.filter((node) => node.data.active);
 
   return (
-    <Card className="w-72 overflow-hidden">
-      <CardHeader className="flex flex-row justify-between">
-        <StyledTitle>Message Config</StyledTitle>
-        <div className="flex flex-col gap-1">
-          <Chip
-            size="sm"
-            variant="dot"
-            color="default"
-            className="font-mono text-sm"
-          >
-            {`used by ${targetNodes.length}`}
-          </Chip>
-          <Chip
-            size="sm"
-            variant="dot"
-            color={activeNodes.length > 0 ? "primary" : "default"}
-            className="font-mono text-sm"
-          >
-            {`${activeNodes.length} active`}
-          </Chip>
+    <NodeWrapper
+      id={id}
+      configId={localConfigId}
+      value={selectedConfig?.name || ""}
+      valid={selectedConfig !== undefined}
+      active={selectedConfig !== undefined}
+      minWidth={300}
+      minHeight={150}
+      selected={!!selected}
+      title={
+        <div className="flex flex-row justify-between w-full">
+          <StyledTitle>Message Config</StyledTitle>
+          <div className="flex flex-col gap-1">
+            <Chip
+              size="sm"
+              variant="dot"
+              color="default"
+              className="font-mono text-sm"
+            >
+              {`used by ${targetNodes.length}`}
+            </Chip>
+            <Chip
+              size="sm"
+              variant="dot"
+              color={activeNodes.length > 0 ? "primary" : "default"}
+              className="font-mono text-sm"
+            >
+              {`${activeNodes.length} active`}
+            </Chip>
+          </div>
         </div>
-      </CardHeader>
-
-      <Divider />
-
-      <CardBody>
+      }
+      body={
         <OutputHandle id={handleId}>
           <MessageMetaPresetConfigSelector
             width="w-full"
@@ -91,7 +98,7 @@ export const MessageMetaConfigFlowNode = ({
             }}
           />
         </OutputHandle>
-      </CardBody>
-    </Card>
+      }
+    />
   );
 };
