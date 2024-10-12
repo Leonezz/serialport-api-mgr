@@ -14,13 +14,10 @@ import { NamedMessageMetaConfig } from "@/hooks/store/useNamedMessageMetaConfig"
 import { MessageMetaConfiger } from "../message/message_meta_configer";
 import { NamedSerialportConfig } from "@/hooks/store/useNamedSerialPortConfig";
 import { DEFAULTSerialportConversation } from "@/types/conversation/default";
-import { useSessionDialogStore } from "@/hooks/store/useSessionDialogMessages";
-import { useSendMessage } from "@/hooks/message/use_send_message";
-import { useToast } from "../shadcn/use-toast";
-import { Buffer } from "buffer";
-import { usePrevious } from "ahooks";
 import { MessageMetaPresetConfigSelector } from "../serialport/config/config_selector";
 import { StyledTitle } from "../basics/styled_title";
+import { useDialogSession } from "@/hooks/dialog_session/useDialogSession";
+import { useUpdateEffect } from "ahooks";
 
 type ApiConfigSelectorProps = {
   selectRange: NamedSerialportApi[];
@@ -67,6 +64,7 @@ type DeviceApiMonitorInputProps = {
   selectedApiId: string;
   setSelectedApiId: (v: string) => void;
   portOpened: boolean;
+  sending: boolean;
   dialogFinished: boolean;
   onStart: () => void;
   onReset: () => void;
@@ -79,6 +77,7 @@ const DeviceApiMonitorInput = ({
   selectedApiId,
   setSelectedApiId,
   portOpened,
+  sending,
   dialogFinished,
   onStart,
   onReset,
@@ -103,7 +102,7 @@ const DeviceApiMonitorInput = ({
             selectedName={namedMessageMetaConfig.name}
             setSelectedName={() => {}}
             readonly={true}
-            width="w-min"
+            width="w-fit"
             height="h-full"
           />
           <Input
@@ -118,6 +117,7 @@ const DeviceApiMonitorInput = ({
             color="primary"
             className="h-full"
             onClick={dialogFinished ? onReset : onStart}
+            isLoading={sending}
             isDisabled={!portOpened}
           >
             {dialogFinished ? "Reset" : "Start"}
@@ -152,105 +152,54 @@ const DeviceApiMonitor = ({
   });
 
   const [selectedApiId, setSelectedId] = useState(apiConfigs.at(0)?.id || "");
+  const [message, setMessage] = useState("");
 
   const selectedApiConfig = apiConfigs
     .filter((v) => v.id === selectedApiId)
     .at(0);
 
+  const [localSessionId, setLocalSessionId] = useState<string | undefined>(
+    undefined
+  );
+
   const {
-    getMessagesBySessionId,
-    setSession,
-    removeSession,
-    resetSession,
+    sessionId,
+    totalTasks,
+    finishedTasks,
+    failedTasks,
+    sessionFinished,
+    runNext,
+    sending,
+    messages,
     setPortName,
-  } = useSessionDialogStore();
-
-  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    if (sessionId !== undefined) {
-      return () => {};
-    }
-    const value = setSession({
-      port_name: localSerialportConfig.port_name,
-      message_meta: messageMetaConfig.config,
-      messages: selectedApiConfig?.config || DEFAULTSerialportConversation,
-    });
-    setSessionId(value.session_id);
-
-    return () => {
-      removeSession({ session_id: value.session_id });
-      setSessionId(undefined);
-    };
-  }, []);
-
-  const [message, setMessage] = useState("");
-  const prevMessage = usePrevious(message);
-  useEffect(() => {
-    if (message === prevMessage || sessionId === undefined) {
-      return;
-    }
-    setSession({
-      id: sessionId,
-      port_name: localSerialportConfig.port_name,
-      message_meta: messageMetaConfig.config,
-      messages: selectedApiConfig?.config || DEFAULTSerialportConversation,
-      message: message.length === 0 ? undefined : message,
-    });
-  }, [message]);
-
-  useEffect(() => {
-    if (!portOpened && sessionId) {
-      resetSession({ session_id: sessionId });
-    }
-  }, [portOpened]);
-
-  const messages = getMessagesBySessionId(sessionId || "");
-
-  const totalTasks = messages?.messages.length || 0;
-  const finishedTasks =
-    messages?.messages.reduce(
-      (prev, cur) =>
-        prev + (cur.status === "received" || cur.status === "sent" ? 1 : 0),
-      0
-    ) || 0;
-  const failedTasks =
-    messages?.messages.reduce(
-      (prev, cur) => prev + (cur.status === "failed" ? 1 : 0),
-      0
-    ) || 0;
-  const sessionFinished = totalTasks === finishedTasks + failedTasks;
-  const getNextIdx = () => {
-    return messages?.messages.findIndex(
-      (v) => v.sender === "Local" && v.status === "inactive"
-    );
-  };
-  const { toastError } = useToast();
-  const { sendMessageToSerialPort } = useSendMessage({
-    crlf: messageMetaConfig.config.crlf,
-    checkSum: messageMetaConfig.config.check_sum,
-    onError: (err, payload) => {
-      toastError({
-        description: `send data to port: ${payload?.[0].port_name} failed, ${err}`,
-      });
-    },
-    onSuccess: () => {},
+    reset,
+  } = useDialogSession({
+    sessionId: localSessionId,
+    messageMetaConfig: messageMetaConfig.config,
+    apiConfig: selectedApiConfig?.config || DEFAULTSerialportConversation,
+    message: message,
+    portName: localSerialportConfig.port_name,
   });
 
-  const runAction = () => {
-    const idx = getNextIdx();
-    if (idx === undefined) {
-      return;
+
+  useUpdateEffect(() => {
+    if (localSessionId !== undefined) {
+      setPortName({
+        sessionId: localSessionId,
+        portName: localSerialportConfig.port_name,
+      });
     }
-    const message = messages?.messages.at(idx);
-    if (!message) {
-      return;
+  }, [localSessionId, localSerialportConfig.port_name, setPortName]);
+
+  useUpdateEffect(() => {
+    setLocalSessionId(sessionId);
+  }, [sessionId]);
+
+  useUpdateEffect(() => {
+    if (!portOpened && sessionId) {
+      reset();
     }
-    sendMessageToSerialPort({
-      port_name: localSerialportConfig.port_name,
-      data: [...Buffer.from(message.expectedMessage || "")],
-      messageId: message.id,
-    });
-  };
+  }, [portOpened]);
 
   return (
     <div className="h-full relative gap-2 flex flex-col">
@@ -259,9 +208,6 @@ const DeviceApiMonitor = ({
         presetConfigName={serialportConfig.name}
         setSerialPortConfig={(v) => {
           setLocalSerialportConfig((prev) => ({ ...prev, ...v }));
-          if (v.port_name && v.port_name.length > 0 && sessionId) {
-            setPortName({ sessionId: sessionId, portName: v.port_name });
-          }
         }}
         readonly
       />
@@ -301,12 +247,13 @@ const DeviceApiMonitor = ({
         selectedApiId={selectedApiId}
         setSelectedApiId={setSelectedId}
         portOpened={portOpened}
+        sending={sending}
         dialogFinished={sessionFinished}
-        onStart={runAction}
+        onStart={() => {
+          console.log(runNext());
+        }}
         onReset={() => {
-          if (sessionId) {
-            resetSession({ session_id: sessionId });
-          }
+          console.log(reset());
         }}
         namedMessageMetaConfig={messageMetaConfig}
         message={message}

@@ -1,21 +1,10 @@
 import { FlowNode } from ".";
-import { NodeProps, NodeToolbar } from "@xyflow/react";
+import { NodeProps } from "@xyflow/react";
 import { useSerialportStatus } from "@/hooks/store/usePortStatus";
-import { Fragment } from "react/jsx-runtime";
-import {
-  Button,
-  ButtonGroup,
-  Card,
-  CardBody,
-  CardHeader,
-  Chip,
-  Divider,
-  Snippet,
-} from "@nextui-org/react";
+import { Button, ButtonGroup, Chip, Snippet } from "@nextui-org/react";
 import PortSelector from "@/components/serialport/port_selector";
 import { useEffect, useState } from "react";
 import useAvaliablePorts from "@/hooks/commands/useAvaliablePorts";
-import { CustomHandler } from "../handles/custom_handle";
 import { useNamedSerialortConfigStore } from "@/hooks/store/useNamedSerialPortConfig";
 import {
   SerialportConfigFlowNodeHandles,
@@ -27,6 +16,7 @@ import { useUpdateNode } from "./useUpdateNode";
 import { InputHandle } from "../handles/input_handle";
 import { StyledTitle } from "@/components/basics/styled_title";
 import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
+import { OutputHandle } from "../handles/output_handle";
 
 const NodeType = "serialport";
 
@@ -111,14 +101,18 @@ export const SerialportFlowNode = ({
       }
       body={
         <div className="flex flex-col gap-2">
-          <PortSelector
-            selectedName={localPortName}
-            setSelectedPortName={(port) => {
-              setLocalPortName(port);
-            }}
-            width="w-full"
-            height="h-min"
-          />
+          <OutputHandle
+            id={`${id}-${SerialportFlowNodeHandles.output[NodeType]}-output`}
+          >
+            <PortSelector
+              selectedName={localPortName}
+              setSelectedPortName={(port) => {
+                setLocalPortName(port);
+              }}
+              width="w-full"
+              height="h-min"
+            />
+          </OutputHandle>
           <InputHandle
             id={`${id}-${SerialportFlowNodeHandles.input["serialport-config"]}-input`}
             connectionLimit={1}
@@ -136,9 +130,6 @@ export const SerialportFlowNode = ({
           </InputHandle>
         </div>
       }
-      outputHandle={{
-        handleId: `${id}-${SerialportFlowNodeHandles.output[NodeType]}-output`,
-      }}
       extraToolBar={
         <ButtonGroup size="sm">
           <Button

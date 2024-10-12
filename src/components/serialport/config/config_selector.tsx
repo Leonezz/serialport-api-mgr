@@ -53,7 +53,7 @@ const PresetConfigSelector = <Key extends "serialport" | "message" | "api">(
           const value = key.toString();
           onValueChange(value);
         }}
-        className={`text-xs font-mono ${width} ${height} md:min-w-24 hover:w-full"
+        className={`text-xs font-mono ${width} ${height} min-w-fit hover:w-full"
         }`}
       >
         {nameList.map((n) => (

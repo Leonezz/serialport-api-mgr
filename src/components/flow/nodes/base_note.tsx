@@ -94,7 +94,7 @@ export const BaseFlowNode = <Data extends Record<string, unknown>>({
         <CustomHandler id={outputHandle.handleId} type="source" />
       )}
 
-      <Card className="overflow-hidden w-full h-full">
+      <Card className="overflow-hidden w-full h-full min-w-72">
         <CardHeader>{title}</CardHeader>
 
         <Divider />

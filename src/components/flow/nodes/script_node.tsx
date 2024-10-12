@@ -6,10 +6,7 @@ import {
 } from "@xyflow/react";
 import { BasicFlowNodeStatus, FlowNode } from ".";
 import { Fragment, useEffect, useState } from "react";
-import {
-  Chip,
-  Snippet,
-} from "@nextui-org/react";
+import { Chip, Snippet } from "@nextui-org/react";
 import { InputHandle } from "../handles/input_handle";
 import { ScriptCodeMirror } from "@/components/conversation/script_code_mirror";
 import {
@@ -21,6 +18,7 @@ import { getScriptContent } from "@/util/js_scripts/js_script_util";
 import { StyledTitle } from "@/components/basics/styled_title";
 import { useUpdateNode } from "./useUpdateNode";
 import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
+import { OutputHandle } from "../handles/output_handle";
 
 const NodeType = "script";
 
@@ -127,13 +125,17 @@ export const ScriptFlowNode = ({ id, data, selected }: ScriptFlowNodeProps) => {
                 readonly={false}
               />
             </InputHandle>
-            <Snippet color={localOutput.ok ? "success" : "danger"}>
-              {localOutput.ok ? localOutput.value : localOutput.error.message}
-            </Snippet>
+            <OutputHandle id={outputHandleId}>
+              <Snippet
+                color={localOutput.ok ? "success" : "danger"}
+                className="w-full"
+              >
+                {localOutput.ok ? localOutput.value : localOutput.error.message}
+              </Snippet>
+            </OutputHandle>
             <ScriptTester script={localScript} input={""} argument="input" />
           </div>
         }
-        outputHandle={{ handleId: outputHandleId }}
       />
     </Fragment>
   );

@@ -1,13 +1,12 @@
 import { NodeProps } from "@xyflow/react";
 import { FlowNode } from ".";
-import {
-  Snippet,
-} from "@nextui-org/react";
+import { Snippet } from "@nextui-org/react";
 import { InputHandle } from "../handles/input_handle";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useUpdateNode } from "./useUpdateNode";
 import { StyledTitle } from "@/components/basics/styled_title";
 import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
+import { OutputHandle } from "../handles/output_handle";
 
 const NodeType = "text-preview";
 export type PreviewFlowNodeType = FlowNode<
@@ -49,21 +48,24 @@ export const PreviewFlowNode = ({ id, selected }: PreviewFlowNodeProps) => {
       minHeight={120}
       title={<StyledTitle>Preview</StyledTitle>}
       body={
-        <InputHandle
-          id={`${id}-${PreviewFlowNodeHandles.input.value}-input`}
-          connectionLimit={1}
-          onValueChange={(data: { value: string } | undefined) =>
-            setLocalValue(data ? data.value : "")
-          }
-        >
-          <Snippet variant="flat" className="w-full truncate">
-            {localValue}
-          </Snippet>
-        </InputHandle>
+        <Fragment>
+          <OutputHandle
+            id={`${id}-${PreviewFlowNodeHandles.output.value}-output`}
+          >
+            <InputHandle
+              id={`${id}-${PreviewFlowNodeHandles.input.value}-input`}
+              connectionLimit={1}
+              onValueChange={(data: { value: string } | undefined) =>
+                setLocalValue(data ? data.value : "")
+              }
+            >
+              <Snippet variant="flat" className="w-full truncate">
+                {localValue}
+              </Snippet>
+            </InputHandle>
+          </OutputHandle>
+        </Fragment>
       }
-      outputHandle={{
-        handleId: `${id}-${PreviewFlowNodeHandles.output.value}-output`,
-      }}
     />
   );
 };

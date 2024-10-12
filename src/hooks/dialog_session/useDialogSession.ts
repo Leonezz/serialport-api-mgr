@@ -1,119 +1,115 @@
-// import { SerialportConversation } from "@/types/conversation";
-// import { MessageMetaConfig } from "@/types/message/message_meta";
-// import { SerialportConfig } from "@/types/serialport/serialport_config";
-// import { useCallback, useState } from "react";
-// import { MessageType } from "../store/usePortStatus";
-// import { v7 as uuid } from "uuid";
-// import { useUpdateEffect } from "ahooks";
-// import { useSendMessageAwaitable } from "../message/use_send_message";
-// import { useExpectMessage } from "../message/use_expect_message";
+import { MessageMetaConfig } from "@/types/message/message_meta";
+import { useSessionDialogStore } from "../store/useSessionDialogMessages";
+import { SerialportConversation } from "@/types/conversation";
+import { useEffect, useState } from "react";
+import { ERR, OK, Result } from "@/types/global";
+import { useSendMessage } from "../message/use_send_message";
+import { useToast } from "@/components/shadcn/use-toast";
+import { Buffer } from "buffer";
 
-// const useDialogSession = ({
-//   messageMetaConfig,
-//   serialportConfig,
-//   expectedDialog,
-// }: {
-//   messageMetaConfig: MessageMetaConfig;
-//   serialportConfig: SerialportConfig;
-//   expectedDialog: SerialportConversation;
-// }) => {
-//   const makeMessagesFromApi = useCallback(
-//     (): MessageType[] =>
-//       [
-//         {
-//           id: uuid(),
-//           status: "pending",
-//           sender: "Local",
-//           time: new Date(),
-//           data: Buffer.from(expectedDialog.request),
-//         },
-//         {
-//           id: uuid(),
-//           status: "pending",
-//           sender: "Remote",
-//           time: new Date(),
-//           data: Buffer.from(expectedDialog.response),
-//           expectedData: Buffer.from(expectedDialog.response),
-//         },
-//       ] satisfies MessageType[],
-//     [expectedDialog]
-//   );
-//   const [expectedMessages, setExpectedMessages] = useState(makeMessagesFromApi);
+export const useDialogSession = ({
+  sessionId,
+  messageMetaConfig,
+  apiConfig,
+  message,
+  portName,
+}: {
+  sessionId?: string;
+  messageMetaConfig: MessageMetaConfig;
+  apiConfig: SerialportConversation;
+  message?: string;
+  portName: string;
+}) => {
+  const {
+    getMessagesBySessionId,
+    setSession,
+    resetSession,
+    removeSession,
+    setPortName,
+  } = useSessionDialogStore();
+  const [localSessionId, setLocalSessionId] = useState(sessionId);
+  useEffect(() => {
+    if (sessionId !== undefined) {
+      return () => {};
+    }
+    const session = setSession({
+      port_name: portName,
+      message_meta: messageMetaConfig,
+      messages: apiConfig,
+      message: message,
+    });
+    const generatedSessionId = session.session_id;
+    setLocalSessionId(generatedSessionId);
 
-//   useUpdateEffect(() => {
-//     setExpectedMessages(makeMessagesFromApi);
-//   }, [makeMessagesFromApi]);
+    return () => removeSession({ session_id: generatedSessionId });
+  }, []);
 
-//   const setMessageStatus = ({
-//     idx,
-//     status,
-//   }: {
-//     idx: number;
-//     status: MessageType["status"];
-//   }) => {
-//     setExpectedMessages((prev) => {
-//       if (prev.length <= idx) {
-//         return prev;
-//       }
-//       prev[idx].status = status;
-//       return [...prev];
-//     });
-//   };
+  const messages = getMessagesBySessionId(localSessionId || "");
 
-//   const setReceiveFailedMessage = ({
-//     idx,
-//     realMessage,
-//   }: {
-//     idx: number;
-//     realMessage: number[];
-//   }) => {
-//     setExpectedMessages((prev) => {
-//       if (prev.length <= idx || prev[idx].sender !== "Remote") {
-//         return prev;
-//       }
-//       prev[idx].data = Buffer.from(realMessage);
-//       return [...prev];
-//     });
-//   };
+  const totalTasks = messages?.messages.length || 0;
+  const finishedTasks =
+    messages?.messages.reduce(
+      (prev, cur) =>
+        prev + (cur.status === "received" || cur.status === "sent" ? 1 : 0),
+      0
+    ) || 0;
+  const failedTasks =
+    messages?.messages.reduce(
+      (prev, cur) => prev + (cur.status === "failed" ? 1 : 0),
+      0
+    ) || 0;
+  const sessionFinished = totalTasks === failedTasks + finishedTasks;
 
-//   const { sendMessageToSerialport } =
-//     useSendMessageAwaitable(messageMetaConfig);
-//   const { receivedData, waitMessage } = useExpectMessage({
-//     port_name: serialportConfig.port_name,
-//   });
+  const nextMessage = messages?.messages
+    .sort((a, b) => (a.order || 0) - (b.order || 1))
+    .find((v) => v.sender === "Local" && v.status === "inactive");
 
-//   const runSession = () => {
-//     console.log("run session");
-//     return expectedMessages.reduce((prev: Promise<void>, cur, idx) => {
-//       console.log("step " + idx);
-//       return prev
-//         .then(() => {
-//           console.log(cur);
-//           if (cur.sender === "Local") {
-//             return sendMessageToSerialport({
-//               port_name: serialportConfig.port_name,
-//               data: [...cur.data],
-//             })
-//               .then(() => setMessageStatus({ idx: idx, status: "sent" }))
-//               .catch(() => setMessageStatus({ idx: idx, status: "failed" }));
-//           } else {
-//             return waitMessage([...cur.data])
-//               .then(() => setMessageStatus({ idx: idx, status: "received" }))
-//               .catch(() => {
-//                 setMessageStatus({ idx: idx, status: "failed" });
-//                 setReceiveFailedMessage({
-//                   idx: idx,
-//                   realMessage: receivedData || [],
-//                 });
-//               });
-//           }
-//         })
-//         .catch(() => new Promise<void>((rsv, rej) => rej()))
-//         .finally(() => new Promise<void>((rsv, rej) => rej()));
-//     }, new Promise<void>((rsv, rej) => rsv()));
-//   };
+  const [sendResult, setSendResult] = useState<
+    Result<"pending" | "sending" | "success">
+  >(OK("pending"));
 
-//   return { messages: expectedMessages, runSession };
-// };
+  const { toastError } = useToast();
+  const { sendMessageToSerialPort, sending } = useSendMessage({
+    crlf: messageMetaConfig.crlf,
+    checkSum: messageMetaConfig.check_sum,
+    onError: (err, payload) => {
+      const errorMsg = `send data to port: ${payload?.[0].port_name} failed, ${err}`;
+      toastError({
+        description: errorMsg,
+      });
+      setSendResult(ERR(new Error(errorMsg)));
+    },
+    onSuccess: () => setSendResult(OK("success")),
+  });
+  const runNext = () => {
+    if (!nextMessage) {
+      return ERR(new Error("get next message failed"));
+    }
 
-// export { useDialogSession };
+    setSendResult(OK("sending"));
+
+    sendMessageToSerialPort({
+      port_name: portName,
+      data: [...Buffer.from(nextMessage.expectedMessage || "")],
+      messageId: nextMessage.id,
+    });
+  };
+
+  const reset = () => {
+    localSessionId && resetSession({ session_id: localSessionId });
+  };
+
+  return {
+    sessionId: localSessionId,
+    setPortName,
+    messages,
+    totalTasks,
+    finishedTasks,
+    failedTasks,
+    sessionFinished,
+    runNext,
+    sending,
+    sendResult,
+    reset,
+  };
+};

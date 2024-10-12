@@ -116,25 +116,41 @@ const useSessionDialogStore = create<
 >((set, get) => ({
   data: new Map(),
   getMessagesBySessionId: (id) => {
-    return get().data.get(id);
+    const res = get().data.get(id);
+    if (res === undefined) {
+      return res;
+    }
+    res.messages = res.messages.sort((a, b) => (a.order || 0) - (b.order || 0));
+    return res;
   },
   setSession: ({ id, message, port_name, messages, message_meta }) => {
-    id = id === undefined ? uuid() : id;
-    const newValue = {
-      session_id: id,
+    const sessionId = id === undefined ? uuid() : id;
+    console.log(
+      `${
+        id === undefined ? "create new session" : "updating session"
+      }, session_id: ${sessionId}, message: ${message}, 
+      port_name: ${port_name}, messages: ${JSON.stringify(messages)},
+      message_meta: ${JSON.stringify(message_meta)}`
+    );
+
+    const sessionMessages = makeSessionMessageFromApi({
+      api: messages,
+      message: message,
+    });
+
+    const newValue: SessionDialog = {
+      session_id: sessionId,
       port_name: port_name,
       message_meta: message_meta,
-      messages: makeSessionMessageFromApi({
-        api: messages,
-        message: message,
-      }),
+      messages: sessionMessages,
     };
     set((prev) => ({
-      data: prev.data.set(id, newValue),
+      data: prev.data.set(sessionId, newValue),
     }));
     return newValue;
   },
   removeSession: ({ session_id }) => {
+    console.log(`remove session: ${session_id}`);
     set((prev) => {
       prev.data.delete(session_id);
       return { data: prev.data };
@@ -176,7 +192,12 @@ const useSessionDialogStore = create<
   },
   sendMessage: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
-    console.log(data);
+    console.log(
+      `session send, port_name: ${port_name},
+       session: ${JSON.stringify(
+         currentValue
+       )}, message_id: ${message_id} data: ${data}`
+    );
     if (!currentValue) {
       return;
     }
@@ -200,6 +221,12 @@ const useSessionDialogStore = create<
   },
   messageSending: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
+    console.log(
+      `session sending, port_name: ${port_name},
+       session: ${JSON.stringify(
+         currentValue
+       )}, message_id: ${message_id} data: ${data}`
+    );
     if (!currentValue) {
       return;
     }
@@ -223,6 +250,11 @@ const useSessionDialogStore = create<
   },
   messageSent: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
+    console.log(
+      `session sent, port_name: ${port_name}, session: ${JSON.stringify(
+        currentValue
+      )}, message_id: ${message_id} data: ${data}`
+    );
     if (!currentValue) {
       return;
     }
@@ -263,6 +295,9 @@ const useSessionDialogStore = create<
   },
   messageSendFailed: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
+    console.log(
+      `session send failed, session: ${currentValue}, message_id: ${message_id} data: ${data}`
+    );
     if (!currentValue) {
       return;
     }
