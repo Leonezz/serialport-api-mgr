@@ -11,6 +11,7 @@ import {
 } from "@/types/conversation/default";
 import { DateTime } from "luxon";
 import { match } from "@/types/global";
+import { ERROR, TRACE } from "@/bridge/logging";
 
 type SessionDialogMessageType = (
   | {
@@ -125,7 +126,8 @@ const useSessionDialogStore = create<
   },
   setSession: ({ id, message, port_name, messages, message_meta }) => {
     const sessionId = id === undefined ? uuid() : id;
-    console.log(
+    TRACE(
+      "dialog session",
       `${
         id === undefined ? "create new session" : "updating session"
       }, session_id: ${sessionId}, message: ${message}, 
@@ -150,7 +152,7 @@ const useSessionDialogStore = create<
     return newValue;
   },
   removeSession: ({ session_id }) => {
-    console.log(`remove session: ${session_id}`);
+    TRACE("dialog session", `remove session: ${session_id}`);
     set((prev) => {
       prev.data.delete(session_id);
       return { data: prev.data };
@@ -192,8 +194,9 @@ const useSessionDialogStore = create<
   },
   sendMessage: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
-    console.log(
-      `session send, port_name: ${port_name},
+    TRACE(
+      "session send",
+      `port_name: ${port_name},
        session: ${JSON.stringify(
          currentValue
        )}, message_id: ${message_id} data: ${data}`
@@ -221,8 +224,9 @@ const useSessionDialogStore = create<
   },
   messageSending: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
-    console.log(
-      `session sending, port_name: ${port_name},
+    TRACE(
+      "session sending",
+      `port_name: ${port_name},
        session: ${JSON.stringify(
          currentValue
        )}, message_id: ${message_id} data: ${data}`
@@ -250,8 +254,9 @@ const useSessionDialogStore = create<
   },
   messageSent: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
-    console.log(
-      `session sent, port_name: ${port_name}, session: ${JSON.stringify(
+    TRACE(
+      "session sent",
+      `port_name: ${port_name}, session: ${JSON.stringify(
         currentValue
       )}, message_id: ${message_id} data: ${data}`
     );
@@ -295,8 +300,9 @@ const useSessionDialogStore = create<
   },
   messageSendFailed: ({ port_name, message_id, data }) => {
     const currentValue = get().query({ port_name: port_name });
-    console.log(
-      `session send failed, session: ${currentValue}, message_id: ${message_id} data: ${data}`
+    ERROR(
+      "session send failed",
+      `session: ${currentValue}, message_id: ${message_id} data: ${data}`
     );
     if (!currentValue) {
       return;

@@ -13,7 +13,7 @@ const NodeType = "serialport-config";
 
 export type SerialportConfigFlowNodeType = FlowNode<
   BaseFlowNodeType<{
-    configId: string;
+    configId?: string;
   }>,
   typeof NodeType
 >;
@@ -24,7 +24,7 @@ export const SerialportConfigFlowNodeHandles = {
   },
 } as const;
 
-const NodeWrapper = BaseFlowNode<{ configId: string }>;
+const NodeWrapper = BaseFlowNode<{ configId?: string }>;
 
 type SerialportConfigFlowNodeProps = NodeProps<SerialportConfigFlowNodeType>;
 
@@ -38,7 +38,7 @@ export const SerialportConfigFlowNode = ({
   const { getByName } = useNamedSerialortConfigStore();
 
   const selectedConfig = useNamedSerialortConfigStore((state) =>
-    state.get({ id: localConfigId })
+    localConfigId !== undefined ? state.get({ id: localConfigId }) : undefined
   );
   const handleId = `${id}-${SerialportConfigFlowNodeHandles.output[NodeType]}-output`;
 
@@ -52,8 +52,8 @@ export const SerialportConfigFlowNode = ({
     updateNode(id, {
       configId: localConfigId,
       value: selectedConfig?.name,
-      valid: localConfigId?.length > 0,
-      active: localConfigId?.length > 0,
+      valid: localConfigId !== undefined && localConfigId?.length > 0,
+      active: localConfigId !== undefined && localConfigId?.length > 0,
     });
   }, [updateNode, localConfigId, selectedConfig]);
 

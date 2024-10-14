@@ -7,6 +7,7 @@ import { MessageMetaConfiger } from "./message_meta_configer";
 import { useState } from "react";
 import { useNamedMessageMetaConfigStore } from "@/hooks/store/useNamedMessageMetaConfig";
 import { MessageMetaPresetConfigSelector } from "../serialport/config/config_selector";
+import { ERROR } from "@/bridge/logging";
 
 export type MsgInputToolBarProps = {
   portName: string;
@@ -35,7 +36,7 @@ const MsgInputToolBar = ({
     action: (rts: boolean) =>
       emitToRustBus("write_rts", { port_name: portName, rts: rts }),
     onError: (err) => {
-      console.log(err);
+      ERROR("write rts", JSON.stringify(err));
       toastError({
         description: `write rts to ${portName} failed: ${err?.msg}`,
       });
@@ -47,7 +48,7 @@ const MsgInputToolBar = ({
   const onPresetSelected = (name: string) => {
     setPresetName(name);
     const presetConfig = getByName({ name: name });
-    console.log(presetConfig);
+
     if (!presetConfig) {
       return;
     }

@@ -1,10 +1,7 @@
 import { NodeProps, useHandleConnections, useNodesData } from "@xyflow/react";
 import { FlowNode } from ".";
 import { useState } from "react";
-import {
-  Chip,
-  Input,
-} from "@nextui-org/react";
+import { Chip, Input } from "@nextui-org/react";
 import { useUpdateNode } from "./useUpdateNode";
 import { OutputHandle } from "../handles/output_handle";
 import { StyledTitle } from "@/components/basics/styled_title";
@@ -33,8 +30,8 @@ export const InputFlowNode = ({ id, data, selected }: InputFlowNodeProps) => {
   return (
     <NodeWrapper
       value={localValue}
-      valid={localValue.length > 0}
-      active={localValue.length > 0}
+      valid={localValue !== undefined && localValue.length > 0}
+      active={localValue !== undefined && localValue.length > 0}
       id={id}
       selected={!!selected}
       minHeight={120}
@@ -45,7 +42,11 @@ export const InputFlowNode = ({ id, data, selected }: InputFlowNodeProps) => {
           <Chip
             size="sm"
             variant="dot"
-            color={localValue.length > 0 ? "primary" : "default"}
+            color={
+              localValue !== undefined && localValue.length > 0
+                ? "primary"
+                : "default"
+            }
             className="font-mono text-sm"
           >
             {`used by ${targetNodes.length}`}

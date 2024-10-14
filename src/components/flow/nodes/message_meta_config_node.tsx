@@ -13,12 +13,12 @@ const NodeType = "message-meta-config" as const;
 
 export type MessageMetaConfigFlowNodeType = FlowNode<
   BaseFlowNodeType<{
-    configId: string;
+    configId?: string;
   }>,
   typeof NodeType
 >;
 type MessageMetaConfigFlowNodeProps = NodeProps<MessageMetaConfigFlowNodeType>;
-const NodeWrapper = BaseFlowNode<{ configId: string }>;
+const NodeWrapper = BaseFlowNode<{ configId?: string }>;
 
 export const MessageMetaConfigFlowNodeHandles = {
   output: {
@@ -34,7 +34,7 @@ export const MessageMetaConfigFlowNode = ({
   const [localConfigId, setLocalConfigId] = useState(data.configId);
 
   const selectedConfig = useNamedMessageMetaConfigStore((state) =>
-    state.get({ id: localConfigId })
+    localConfigId !== undefined ? state.get({ id: localConfigId }) : undefined
   );
   const { getByName } = useNamedMessageMetaConfigStore();
 

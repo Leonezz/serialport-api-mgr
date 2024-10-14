@@ -29,11 +29,11 @@ export const DEFAULTBasicInformation: BasicConfigInfomation = {
 export type NamedConfigStoreType<T> = {
   config: Extract<T, T>;
 } & BasicConfigInfomation;
-type NamedConfigStore<T> = {
+export type NamedConfigStore<T> = {
   data: Map<string, NamedConfigStoreType<T>>;
 };
 
-type NamedConfigStoreCURDActions<T> = {
+export type NamedConfigStoreCURDActions<T> = {
   get: ({
     id,
   }: {
@@ -107,145 +107,138 @@ type NamedConfigStoreCURDActions<T> = {
   }) => boolean;
 };
 
-const buildNamedConfigStore = <T, Extra, ExtraActions>(
-  storageName: string,
-  extraInit: Extra,
-  actions: ExtraActions
-) => {
+const buildNamedConfigStore = <T>(storageName: string) => {
   return create<
-    NamedConfigStore<Extract<T, T>> &
-      Extra &
-      NamedConfigStoreCURDActions<T> &
-      ExtraActions
+    NamedConfigStore<Extract<T, T>> & NamedConfigStoreCURDActions<T>
   >()(
     devtools(
       persist(
-        (set, get) => ({
-          ...extraInit,
-          ...actions,
-          data: new Map(),
-          get: ({ id }) => {
-            return get().data.get(id);
-          },
-          getByName: ({ name }) => {
-            const data = get().data;
-            return [...data.values()].find((value) => value.name === name);
-          },
-          getIdList: () => [...get().data.keys()],
-          getNameList: () =>
-            [...get().data.values()].map((value) => value.name),
-          getAll: () => [...get().data.values()],
-          delete: ({ id }) => {
-            if (!get().data.has(id)) {
-              return false;
-            }
-            set((prev) => {
-              prev.data.delete(id);
-              return {
-                ...prev,
-                data: prev.data,
-              };
-            });
-            return true;
-          },
-          add: ({ basicInfo, config }) => {
-            const id = uuid();
-            set((prev) => {
-              const now = DateTime.now();
-              const newEntry: Omit<
-                Extract<
-                  NamedConfigStoreType<Extract<T, T>>,
-                  NamedConfigStoreType<Extract<T, T>>
-                >,
-                "config"
-              > = {
-                ...basicInfo,
-                id: id,
-                createAt: now,
-                updateAt: now,
-                usedBy: [],
-              };
-              return {
-                ...prev,
-                data: prev.data.set(id, {
-                  ...newEntry,
-                  config: config,
-                }),
-              };
-            });
-            return id;
-          },
-          addUser: ({ id, type, userId }) => {
-            if (!get().data.has(id)) {
-              return false;
-            }
-            set((prev) => {
-              const currentConfig = prev.data.get(id);
-              if (!currentConfig) {
-                return prev;
+        (set, get) => {
+          return {
+            data: new Map(),
+            get: ({ id }) => {
+              return get().data.get(id);
+            },
+            getByName: ({ name }) => {
+              const data = get().data;
+              return [...data.values()].find((value) => value.name === name);
+            },
+            getIdList: () => [...get().data.keys()],
+            getNameList: () =>
+              [...get().data.values()].map((value) => value.name),
+            getAll: () => [...get().data.values()],
+            delete: ({ id }) => {
+              if (!get().data.has(id)) {
+                return false;
               }
-              const usedBy = uniqWith(
-                [...currentConfig.usedBy, { type: type, id: userId }],
-                (a, b) => a.id === b.id && a.type === b.type
-              );
-              return {
-                ...prev,
-                data: prev.data.set(id, {
-                  ...currentConfig,
-                  usedBy: [...usedBy],
-                }),
-              };
-            });
-            return true;
-          },
-          removeUser: ({ id, type, userId }) => {
-            if (!get().data.has(id)) {
-              return false;
-            }
-            set((prev) => {
-              const currentConfig = prev.data.get(id);
-              if (!currentConfig) {
-                return prev;
-              }
-              return {
-                ...prev,
-                data: prev.data.set(id, {
-                  ...currentConfig,
-                  usedBy: [
-                    ...new Set([
-                      ...currentConfig.usedBy.filter(
-                        (v) => v.type === type && v.id !== userId
-                      ),
-                    ]),
-                  ],
-                }),
-              };
-            });
-            return true;
-          },
-          update: ({ id, basicInfo, config }) => {
-            if (!get().data.has(id)) {
-              return false;
-            }
-            set((prev) => {
-              const currentConfig = prev.data.get(id);
-              if (!currentConfig) {
-                return prev;
-              }
-              return {
-                ...prev,
-                data: prev.data.set(id, {
-                  id: id,
-                  config: { ...currentConfig.config, ...config },
-                  ...omit(currentConfig, ["id", "config"]),
+              set((prev) => {
+                prev.data.delete(id);
+                return {
+                  ...prev,
+                  data: prev.data,
+                };
+              });
+              return true;
+            },
+            add: ({ basicInfo, config }) => {
+              const id = uuid();
+              set((prev) => {
+                const now = DateTime.now();
+                const newEntry: Omit<
+                  Extract<
+                    NamedConfigStoreType<Extract<T, T>>,
+                    NamedConfigStoreType<Extract<T, T>>
+                  >,
+                  "config"
+                > = {
                   ...basicInfo,
-                  updateAt: DateTime.now(),
-                }),
-              };
-            });
-            return true;
-          },
-        }),
+                  id: id,
+                  createAt: now,
+                  updateAt: now,
+                  usedBy: [],
+                };
+                return {
+                  ...prev,
+                  data: prev.data.set(id, {
+                    ...newEntry,
+                    config: config,
+                  }),
+                };
+              });
+              return id;
+            },
+            addUser: ({ id, type, userId }) => {
+              if (!get().data.has(id)) {
+                return false;
+              }
+              set((prev) => {
+                const currentConfig = prev.data.get(id);
+                if (!currentConfig) {
+                  return prev;
+                }
+                const usedBy = uniqWith(
+                  [...currentConfig.usedBy, { type: type, id: userId }],
+                  (a, b) => a.id === b.id && a.type === b.type
+                );
+                return {
+                  ...prev,
+                  data: prev.data.set(id, {
+                    ...currentConfig,
+                    usedBy: [...usedBy],
+                  }),
+                };
+              });
+              return true;
+            },
+            removeUser: ({ id, type, userId }) => {
+              if (!get().data.has(id)) {
+                return false;
+              }
+              set((prev) => {
+                const currentConfig = prev.data.get(id);
+                if (!currentConfig) {
+                  return prev;
+                }
+                return {
+                  ...prev,
+                  data: prev.data.set(id, {
+                    ...currentConfig,
+                    usedBy: [
+                      ...new Set([
+                        ...currentConfig.usedBy.filter(
+                          (v) => v.type === type && v.id !== userId
+                        ),
+                      ]),
+                    ],
+                  }),
+                };
+              });
+              return true;
+            },
+            update: ({ id, basicInfo, config }) => {
+              if (!get().data.has(id)) {
+                return false;
+              }
+              set((prev) => {
+                const currentConfig = prev.data.get(id);
+                if (!currentConfig) {
+                  return prev;
+                }
+                return {
+                  ...prev,
+                  data: prev.data.set(id, {
+                    id: id,
+                    config: { ...currentConfig.config, ...config },
+                    ...omit(currentConfig, ["id", "config"]),
+                    ...basicInfo,
+                    updateAt: DateTime.now(),
+                  }),
+                };
+              });
+              return true;
+            },
+          };
+        },
         {
           name: storageName,
           storage: mappedDataLocalFileStorage,

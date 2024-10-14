@@ -1,10 +1,17 @@
 import { Avatar } from "@nextui-org/react";
-import { Handshake, MessagesSquare, Microchip, Usb } from "lucide-react";
+import {
+  Combine,
+  Handshake,
+  MessagesSquare,
+  Microchip,
+  Usb,
+} from "lucide-react";
 export const ConfigIcons = {
   serialport: Usb,
   message: Handshake,
   api: MessagesSquare,
   device: Microchip,
+  flow: Combine,
 };
 
 export type ConfigTitleProps = {

@@ -181,15 +181,11 @@ const DeviceApiMonitor = ({
     portName: localSerialportConfig.port_name,
   });
 
-
   useUpdateEffect(() => {
     if (localSessionId !== undefined) {
-      setPortName({
-        sessionId: localSessionId,
-        portName: localSerialportConfig.port_name,
-      });
+      setPortName(localSerialportConfig.port_name);
     }
-  }, [localSessionId, localSerialportConfig.port_name, setPortName]);
+  }, [localSessionId, localSerialportConfig.port_name]);
 
   useUpdateEffect(() => {
     setLocalSessionId(sessionId);
@@ -250,10 +246,10 @@ const DeviceApiMonitor = ({
         sending={sending}
         dialogFinished={sessionFinished}
         onStart={() => {
-          console.log(runNext());
+          runNext();
         }}
         onReset={() => {
-          console.log(reset());
+          reset();
         }}
         namedMessageMetaConfig={messageMetaConfig}
         message={message}

@@ -63,6 +63,7 @@ const ListWithDetail = <Key extends keyof SupportedConfig>({
               classNames={{
                 base: "scrollbar-hide min-w-fit min-w-[200px] max-w-max",
               }}
+              label={"label"}
               selectionMode="single"
               disallowEmptySelection
               shouldHighlightOnFocus
@@ -98,6 +99,7 @@ const ListWithDetail = <Key extends keyof SupportedConfig>({
                         </span>
                       ) : null
                     }
+                    textValue={item.name}
                   >
                     <div className="flex flex-row justify-between">
                       <Title item={item} />

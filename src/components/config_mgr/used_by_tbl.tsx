@@ -9,7 +9,6 @@ import {
 } from "@nextui-org/react";
 import { SupportedConfig, UseStoreHandles } from "./util";
 import { useCallback } from "react";
-import { StyledTitle } from "../basics/styled_title";
 
 type UsedByTableProps = {
   usedByList: { id: string; type: keyof SupportedConfig }[];
@@ -57,6 +56,7 @@ const UsedByTable = ({ usedByList }: UsedByTableProps) => {
   return (
     <Table
       className="w-full"
+      aria-label="used by table"
       removeWrapper
       isCompact
       topContent={
@@ -80,9 +80,11 @@ const UsedByTable = ({ usedByList }: UsedByTableProps) => {
       </TableHeader>
       <TableBody emptyContent={"Not used by any other config."}>
         {usedByList.map((item) => (
-          <TableRow>
+          <TableRow key={item.id}>
             {(columnKey) => (
-              <TableCell>{renderCell(item, columnKey.toString())}</TableCell>
+              <TableCell key={item.id}>
+                {renderCell(item, columnKey.toString())}
+              </TableCell>
             )}
           </TableRow>
         ))}

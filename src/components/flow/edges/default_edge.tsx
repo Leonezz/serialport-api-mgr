@@ -21,8 +21,6 @@ export const DefaultFlowEdge = ({ ...edgeProps }: EdgeProps) => {
 
   const sourceStatus = useNodesData<Node<BasicFlowNodeStatus>>(source);
   const targetStatus = useNodesData<Node<BasicFlowNodeStatus>>(target);
-  console.log(sourceStatus, targetStatus);
-
   const sourceActive = sourceStatus?.data?.active;
   const targetActive = targetStatus?.data?.active;
   const sourceValid = sourceStatus?.data?.valid;

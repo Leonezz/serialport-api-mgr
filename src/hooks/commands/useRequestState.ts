@@ -1,6 +1,7 @@
 import { useRequest, useResetState } from "ahooks";
 import { ActionResState } from "./util";
 import { AppError } from "@/bridge/call_rust";
+import { ERROR } from "@/bridge/logging";
 
 const useRequestState = <Res, Payload extends any[]>({
   action,
@@ -36,7 +37,7 @@ const useRequestState = <Res, Payload extends any[]>({
       if (onError) {
         onError(e, p);
       }
-      console.error(e);
+      ERROR("run request", `${JSON.stringify(e)}, ${JSON.stringify(p)}`);
     },
     onSuccess: (d: Res, p: Payload) => {
       setSuccess(d);

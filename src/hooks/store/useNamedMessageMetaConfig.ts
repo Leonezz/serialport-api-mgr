@@ -6,10 +6,8 @@ import {
 
 export type NamedMessageMetaConfig = NamedConfigStoreType<MessageMetaConfig>;
 
-const useNamedMessageMetaConfigStore = buildNamedConfigStore<
-  MessageMetaConfig,
-  {},
-  {}
->("messagemeta-config.json", {}, {});
+const useNamedMessageMetaConfigStore = buildNamedConfigStore<MessageMetaConfig>(
+  "messagemeta-config.json"
+);
 
 export { useNamedMessageMetaConfigStore };

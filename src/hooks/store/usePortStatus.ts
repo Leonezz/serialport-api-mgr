@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { mountStoreDevtool } from "simple-zustand-devtools";
 import { v7 as uuid } from "uuid";
 import { DateTime } from "luxon";
+import { ERROR, INFO, TRACE } from "@/bridge/logging";
 export type MessageType = {
   id: string;
   status:
@@ -84,9 +85,9 @@ const useSerialportStatus = create<
   },
   sendMessage: ({ port_name, data, id }) =>
     set((prev) => {
-      console.log(`${port_name} - ${data}`);
+      TRACE("send message", `${port_name}, ${JSON.stringify(data)}, ${id}`);
       const currentState = prev.data.get(port_name);
-      console.log(`current state: ${currentState}`);
+      INFO("send message", JSON.stringify(currentState));
       if (!currentState) {
         return { data: prev.data };
       }
@@ -104,7 +105,7 @@ const useSerialportStatus = create<
     }),
   messageSending: ({ port_name, message_id }) => {
     set((prev) => {
-      console.log(`${port_name} message ${message_id} sending`);
+      TRACE("message sending", `${port_name}, ${message_id}`);
       const currentState = prev.data.get(port_name);
       const message = currentState?.messages.get(message_id);
       if (!currentState || !message) {
@@ -124,9 +125,7 @@ const useSerialportStatus = create<
   },
   messageSent: ({ port_name, message_id, data }) => {
     set((prev) => {
-      console.log(
-        `${port_name} successfully sent a message, id: ${message_id}`
-      );
+      TRACE("message sent", `${port_name}, ${message_id}`);
       const currentState = prev.data.get(port_name);
       const message = currentState?.messages.get(message_id);
       if (!currentState || !message) {
@@ -147,7 +146,7 @@ const useSerialportStatus = create<
   },
   messageSendFailed: ({ port_name, message_id, data, error_msg }) => {
     set((prev) => {
-      console.error(`${port_name} send message ${message_id} failed`);
+      ERROR("message send failed", `${port_name}, ${message_id}`);
       const currentState = prev.data.get(port_name);
       const message = currentState?.messages.get(message_id);
       if (!currentState || !message) {

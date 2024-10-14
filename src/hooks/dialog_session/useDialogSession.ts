@@ -97,11 +97,20 @@ export const useDialogSession = ({
 
   const reset = () => {
     localSessionId && resetSession({ session_id: localSessionId });
+    setSendResult(OK("pending"));
+  };
+
+  const setPort = (portName: string) => {
+    if (localSessionId === undefined) {
+      return ERR(new Error("session not set up"));
+    }
+    setPortName({ sessionId: localSessionId, portName: portName });
+    return OK("");
   };
 
   return {
     sessionId: localSessionId,
-    setPortName,
+    setPortName: setPort,
     messages,
     totalTasks,
     finishedTasks,

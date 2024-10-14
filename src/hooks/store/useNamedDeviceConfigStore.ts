@@ -7,10 +7,8 @@ import {
 export type NamedSerialportDeviceConfig =
   NamedConfigStoreType<SerialportDevice>;
 
-const useNamedSerialportDeviceStore = buildNamedConfigStore<
-  SerialportDevice,
-  {},
-  {}
->("serialport-device.json", {}, {});
+const useNamedSerialportDeviceStore = buildNamedConfigStore<SerialportDevice>(
+  "serialport-device.json"
+);
 
 export { useNamedSerialportDeviceStore };

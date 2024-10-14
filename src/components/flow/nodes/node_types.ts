@@ -1,21 +1,37 @@
 import {
   SerialportApiFlowNode,
   SerialportApiFlowNodeHandles,
+  SerialportApiFlowNodeType,
 } from "./api_node";
-import { InputFlowNode, InputFlowNodeHandles } from "./input_node";
+import {
+  InputFlowNode,
+  InputFlowNodeHandles,
+  InputFlowNodeType,
+} from "./input_node";
 import {
   MessageMetaConfigFlowNode,
   MessageMetaConfigFlowNodeHandles,
+  MessageMetaConfigFlowNodeType,
 } from "./message_meta_config_node";
-import { PreviewFlowNode, PreviewFlowNodeHandles } from "./preview_node";
-import { ScriptFlowNode, ScriptFlowNodeHandles } from "./script_node";
+import {
+  PreviewFlowNode,
+  PreviewFlowNodeHandles,
+  PreviewFlowNodeType,
+} from "./preview_node";
+import {
+  ScriptFlowNode,
+  ScriptFlowNodeHandles,
+  ScriptFlowNodeType,
+} from "./script_node";
 import {
   SerialportConfigFlowNode,
   SerialportConfigFlowNodeHandles,
+  SerialportConfigFlowNodeType,
 } from "./serialport_config_node";
 import {
   SerialportFlowNode,
   SerialportFlowNodeHandles,
+  SerialportFlowNodeType,
 } from "./serialport_node";
 
 export const FlowNodeTypes = {
@@ -28,6 +44,14 @@ export const FlowNodeTypes = {
   "text-preview": PreviewFlowNode,
 };
 export type FlowNodeCategories = keyof typeof FlowNodeTypes;
+export type FlowNodeTypes =
+  | SerialportFlowNodeType
+  | SerialportConfigFlowNodeType
+  | MessageMetaConfigFlowNodeType
+  | SerialportApiFlowNodeType
+  | ScriptFlowNodeType
+  | InputFlowNodeType
+  | PreviewFlowNodeType;
 
 const FlowNodeHandles = {
   "serialport-config": SerialportConfigFlowNodeHandles,
@@ -180,5 +204,27 @@ export const ConnectableNodes = {
       targetHandle: "script",
     } satisfies ConnectionType<"text-preview", "script">,
   ],
-  "serialport-api-config": [],
+  "serialport-api-config": [
+    {
+      sourceNode: "serialport-api-config",
+      targetNode: "serialport-api-config",
+      souceHandle: "value",
+      targetHandle: "value",
+    } satisfies ConnectionType<
+      "serialport-api-config",
+      "serialport-api-config"
+    >,
+    {
+      sourceNode: "serialport-api-config",
+      targetNode: "script",
+      souceHandle: "value",
+      targetHandle: "script",
+    } satisfies ConnectionType<"serialport-api-config", "script">,
+    {
+      sourceNode: "serialport-api-config",
+      targetNode: "text-preview",
+      souceHandle: "value",
+      targetHandle: "value",
+    } satisfies ConnectionType<"serialport-api-config", "text-preview">,
+  ],
 } as const satisfies Record<FlowNodeCategories, any>;

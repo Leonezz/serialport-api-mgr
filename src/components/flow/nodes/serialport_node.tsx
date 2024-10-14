@@ -22,7 +22,7 @@ const NodeType = "serialport";
 
 export type SerialportFlowNodeType = FlowNode<
   BaseFlowNodeType<{
-    portName: string;
+    portName?: string;
   }>,
   typeof NodeType
 >;
@@ -36,7 +36,7 @@ export const SerialportFlowNodeHandles = {
   } as const,
 } as const;
 
-const NodeWrapper = BaseFlowNode<{ portName: string }>;
+const NodeWrapper = BaseFlowNode<{ portName?: string }>;
 
 type SerialportFlowNodeProps = NodeProps<SerialportFlowNodeType>;
 
@@ -49,15 +49,18 @@ export const SerialportFlowNode = ({
   const [localPortName, setLocalPortName] = useState(portName);
   const { getPortOpened } = useSerialportStatus();
 
-  const portOpened = getPortOpened({ port_name: localPortName });
+  const portOpened =
+    localPortName !== undefined && getPortOpened({ port_name: localPortName });
 
   const { refresh, refreshing } = useAvaliablePorts();
   const [serialportConfigId, setSerialportConfigId] = useState("");
   const serialportConfig = useNamedSerialortConfigStore((state) =>
     state.get({ id: serialportConfigId })
   );
-  const portExists = useSerialportStatus((state) =>
-    state.portExists({ port_name: localPortName })
+  const portExists = useSerialportStatus(
+    (state) =>
+      localPortName !== undefined &&
+      state.portExists({ port_name: localPortName })
   );
   const configExists = serialportConfig !== undefined;
 
@@ -70,7 +73,7 @@ export const SerialportFlowNode = ({
       updateNode(id, {
         portName: portOpened ? localPortName : "",
         active: portOpened,
-        valid: localPortName.length > 0,
+        valid: localPortName !== undefined && localPortName.length > 0,
         value: localPortName,
       }),
     [updateNode, localPortName, portOpened]
@@ -82,7 +85,7 @@ export const SerialportFlowNode = ({
       selected={!!selected}
       portName={portOpened ? localPortName : ""}
       value={localPortName}
-      valid={localPortName.length > 0}
+      valid={localPortName !== undefined && localPortName.length > 0}
       active={portOpened}
       minWidth={300}
       minHeight={175}
@@ -103,9 +106,10 @@ export const SerialportFlowNode = ({
         <div className="flex flex-col gap-2">
           <OutputHandle
             id={`${id}-${SerialportFlowNodeHandles.output[NodeType]}-output`}
+            connectionLimit={1}
           >
             <PortSelector
-              selectedName={localPortName}
+              selectedName={localPortName || ""}
               setSelectedPortName={(port) => {
                 setLocalPortName(port);
               }}
@@ -117,7 +121,9 @@ export const SerialportFlowNode = ({
             id={`${id}-${SerialportFlowNodeHandles.input["serialport-config"]}-input`}
             connectionLimit={1}
             onValueChange={(data?: SerialportConfigFlowNodeType["data"]) => {
-              setSerialportConfigId(data ? data.configId : "");
+              setSerialportConfigId(
+                data?.configId !== undefined ? data.configId : ""
+              );
             }}
           >
             <Snippet
@@ -136,7 +142,10 @@ export const SerialportFlowNode = ({
             color="primary"
             isDisabled={!portExists || !configExists || portOpened}
             onClick={() => {
-              if (serialportConfig !== undefined) {
+              if (
+                serialportConfig !== undefined &&
+                localPortName !== undefined
+              ) {
                 openPort({
                   ...serialportConfig?.config,
                   port_name: localPortName,
@@ -150,7 +159,10 @@ export const SerialportFlowNode = ({
           <Button
             color="danger"
             isDisabled={!portOpened || !portExists}
-            onClick={() => closePort({ portName: localPortName })}
+            onClick={() =>
+              localPortName !== undefined &&
+              closePort({ portName: localPortName })
+            }
             isLoading={portClosing}
           >
             Close

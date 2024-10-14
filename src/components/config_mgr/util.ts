@@ -1,4 +1,9 @@
 import {
+  FlowConfigStore,
+  NamedFlowConfigStore,
+  useNamedFlowConfigStore,
+} from "@/hooks/store/useFlowConfigStore";
+import {
   useNamedApiStore,
   NamedSerialportApi,
 } from "@/hooks/store/useNamedConversationStore";
@@ -32,6 +37,7 @@ export const UseStoreHandles = {
   message: useNamedMessageMetaConfigStore,
   api: useNamedApiStore,
   device: useNamedSerialportDeviceStore,
+  flow: useNamedFlowConfigStore,
 } as const;
 
 export type SupportedConfig = {
@@ -51,10 +57,18 @@ export type SupportedConfig = {
     configType: SerialportDevice;
     namedConfigType: NamedSerialportDeviceConfig;
   };
+  flow: {
+    configType: FlowConfigStore;
+    namedConfigType: NamedFlowConfigStore;
+  };
 };
 export const DEFAULTConfigs = {
   serialport: DEFAULTSerialportConfig,
   message: DEFAULTMessageConfig,
   api: DEFAULTSerialportConversation,
   device: DEFAULTSerialportDeviceConfig,
+  flow: {
+    nodes: [],
+    edges: [],
+  },
 } as const;

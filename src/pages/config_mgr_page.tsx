@@ -2,6 +2,7 @@ import ConfigMgrWrapper from "@/components/config_mgr/config_mgr";
 import { ConfigIcons } from "@/components/config_mgr/config_title";
 import { ConversationConfigMgr } from "@/components/conversation/config_mgr_wrapper";
 import { SerialportDeviceConfigMgr } from "@/components/device/config_mgr_wrapper";
+import { SerialportFlowConfigMgrDetail } from "@/components/flow/flow_config_mgr";
 import MessageMetaConfigMgrDetail from "@/components/message/config_mgr/wrapper";
 import SerialportConfigMgrDetail from "@/components/serialport/config_mgr/wrapper";
 import { Tabs, Tab } from "@nextui-org/react";
@@ -19,6 +20,10 @@ const ConfigMgrPage = () => {
   const DeviceConfigMgr = ConfigMgrWrapper<"device">({
     children: SerialportDeviceConfigMgr,
   });
+  const FlowConfigMgr = ConfigMgrWrapper<"flow">({
+    children: SerialportFlowConfigMgrDetail,
+  });
+
   return (
     <div className="flex h-full w-full flex-col max-h-full ">
       <Tabs
@@ -73,6 +78,17 @@ const ConfigMgrPage = () => {
           }
         >
           <DeviceConfigMgr configFor="device" />
+        </Tab>
+        <Tab
+          key={"flow"}
+          title={
+            <div className="flex items-center space-x-2">
+              <ConfigIcons.flow />
+              <span>Application</span>
+            </div>
+          }
+        >
+          <FlowConfigMgr configFor="flow" />
         </Tab>
       </Tabs>
     </div>

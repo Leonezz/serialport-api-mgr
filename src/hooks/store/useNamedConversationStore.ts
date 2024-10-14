@@ -6,10 +6,8 @@ import {
 
 export type NamedSerialportApi = NamedConfigStoreType<SerialportConversation>;
 
-const useNamedApiStore = buildNamedConfigStore<SerialportConversation, {}, {}>(
+const useNamedApiStore = buildNamedConfigStore<SerialportConversation>(
   "serialport-conversation.json",
-  {},
-  {}
 );
 
 export { useNamedApiStore };
