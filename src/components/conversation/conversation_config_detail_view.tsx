@@ -66,7 +66,7 @@ const ConversationConfiger = ({
 
                     <ScriptTester
                       input={value[type]["text"]}
-                      script={getScriptContent(value[type]["script"])}
+                      script={value[type]["script"]}
                       argument={type === "request" ? "message" : "response"}
                     />
                   </div>

@@ -1,6 +1,7 @@
 import { SerialportConfig } from "@/types/serialport/serialport_config";
 import { SerialPortStatus } from "@/types/serialport/serialport_status";
 import { invoke } from "@tauri-apps/api/core";
+import { INFO } from "./logging";
 
 export class AppError {
   code: string;
@@ -14,14 +15,10 @@ export class AppError {
 }
 
 type CommandArgBase = { port_name: string };
-
+type LogArgs = { prefix: string; content: string };
 export type RustBus = {
-  hello: {
-    args: { param: string };
-    returns: string;
-  };
   get_all_port_info: {
-    args: undefined;
+    args: {};
     returns: SerialPortStatus[];
   };
   open_port: {
@@ -31,10 +28,6 @@ export type RustBus = {
   close_port: {
     args: CommandArgBase;
     returns: void;
-  };
-  test_async: {
-    args: undefined;
-    returns: any;
   };
   write_port: {
     args: CommandArgBase & { data: number[]; message_id: string };
@@ -48,6 +41,26 @@ export type RustBus = {
     args: CommandArgBase & { rts: boolean };
     returns: void;
   };
+  log: {
+    args: LogArgs,
+    returns: void;
+  };
+  info: {
+    args: LogArgs,
+    returns: void;
+  };
+  warn: {
+    args: LogArgs,
+    returns: void;
+  };
+  error: {
+    args: LogArgs,
+    returns: void;
+  };
+  debug: {
+    args: LogArgs,
+    returns: void;
+  }
 };
 // type TupleToObject<T extends readonly any[]> = { [K in T[number]]: K };
 // type ParameterType<T extends keyof interfaces> = Parameters<interfaces[T]>;

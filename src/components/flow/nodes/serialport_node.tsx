@@ -17,6 +17,7 @@ import { InputHandle } from "../handles/input_handle";
 import { StyledTitle } from "@/components/basics/styled_title";
 import { BaseFlowNode, BaseFlowNodeType } from "./base_note";
 import { OutputHandle } from "../handles/output_handle";
+import RefreshAvaliablePortsBtn from "@/components/serialport/refresh_avaliable_ports_btn";
 
 const NodeType = "serialport";
 
@@ -52,7 +53,6 @@ export const SerialportFlowNode = ({
   const portOpened =
     localPortName !== undefined && getPortOpened({ port_name: localPortName });
 
-  const { refresh, refreshing } = useAvaliablePorts();
   const [serialportConfigId, setSerialportConfigId] = useState("");
   const serialportConfig = useNamedSerialortConfigStore((state) =>
     state.get({ id: serialportConfigId })
@@ -167,9 +167,7 @@ export const SerialportFlowNode = ({
           >
             Close
           </Button>
-          <Button color="primary" onClick={refresh} isLoading={refreshing}>
-            Refresh
-          </Button>
+          <RefreshAvaliablePortsBtn />
         </ButtonGroup>
       }
     />

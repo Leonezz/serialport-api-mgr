@@ -1,16 +1,4 @@
-import {
-  warn,
-  debug,
-  trace,
-  info,
-  error,
-  attachConsole,
-  attachLogger,
-} from "@tauri-apps/plugin-log";
-
-type LogLevels = "log" | "debug" | "info" | "warn" | "error";
-
-const detachConsole = await attachConsole();
+import { emitToRustBus } from "./call_rust";
 
 const getStackTrace = (err: Error, trimedStack: string) => {
   let stack = err.stack?.split("\n");
@@ -23,31 +11,46 @@ const getStackTrace = (err: Error, trimedStack: string) => {
 };
 
 export const INFO = (target: string, msg: string, _TRACE = new Error()) => {
-  const logMsg = `$[${target}] ${msg} \n ${getStackTrace(_TRACE, "at INFO")}`;
+  const content = `${msg} \n ${getStackTrace(_TRACE, "at INFO")}`;
+  const logMsg = `$[${target}] ${content}`;
   console.info(logMsg);
-  info(logMsg);
+  emitToRustBus("info", {
+    prefix: target,
+    content: content,
+  });
 };
 
 export const WARN = (target: string, msg: string, _TRACE = new Error()) => {
-  const logMsg = `$[${target}] ${msg} \n ${getStackTrace(_TRACE, "at WARN")}`;
+  const content = `${msg} \n ${getStackTrace(_TRACE, "at WARN")}`;
+  const logMsg = `$[${target}] ${content}`;
   console.info(logMsg);
-  warn(logMsg);
+  emitToRustBus("warn", {
+    prefix: target,
+    content: content,
+  });
 };
 
 export const DEBUG = (target: string, msg: string, _TRACE = new Error()) => {
-  const logMsg = `$[${target}] ${msg} \n ${getStackTrace(_TRACE, "at DEBUG")}`;
+  const content = `${msg} \n ${getStackTrace(_TRACE, "at DEBUG")}`;
+  const logMsg = `$[${target}] ${content}`;
   console.debug(logMsg);
-  debug(logMsg);
+  emitToRustBus("debug", {
+    prefix: target,
+    content: content,
+  });
 };
 
 export const ERROR = (target: string, msg: string, _TRACE = new Error()) => {
-  const logMsg = `$[${target}] ${msg} \n ${getStackTrace(_TRACE, "at ERROR")}`;
+  const content = `${msg} \n ${getStackTrace(_TRACE, "at ERROR")}`;
+  const logMsg = `$[${target}] ${content}`;
   console.error(logMsg);
-  error(logMsg);
+  emitToRustBus("error", {
+    prefix: target,
+    content: content
+  });
 };
 
 export const TRACE = (target: string, msg: string, _TRACE = new Error()) => {
   const logMsg = `[${target}] ${msg} \n ${getStackTrace(_TRACE, "at TRACE")}`;
   console.log(logMsg);
-  trace(logMsg);
 };

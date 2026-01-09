@@ -10,8 +10,8 @@ export type SerialportConfig = {
   flow_control: SERIALPORT.ConfigTypes<"flow_control">;
   parity: SERIALPORT.ConfigTypes<"parity">;
   stop_bits: SERIALPORT.ConfigTypes<"stop_bits">;
-  read_timeout: number;
-  write_timeout: number;
+  data_terminal_ready: boolean,
+  timeout_ms: number;
 };
 
 export const DEFAULTSerialportConfig: SerialportConfig = {
@@ -21,6 +21,6 @@ export const DEFAULTSerialportConfig: SerialportConfig = {
   flow_control: SERIALPORT.ConfigOptions["flow_control"][0],
   parity: SERIALPORT.ConfigOptions["parity"][0],
   stop_bits: SERIALPORT.ConfigOptions["stop_bits"][0],
-  read_timeout: 0,
-  write_timeout: 0,
+  data_terminal_ready: false,
+  timeout_ms: 0,
 };

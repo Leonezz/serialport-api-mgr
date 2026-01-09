@@ -30,8 +30,8 @@ const useSendMessage = ({
 }) => {
   const crcSigner = getSumCheckSigner({ checkSum: checkSum });
   const crlfAppender = getCrlfAppender({ crlf: crlf });
-  const { sendMessage } = useSerialportStatus();
-  const { sendMessage: sessionSendMessage } = useSessionDialogStore();
+  const { sendMessage, messageSent, messageSendFailed } = useSerialportStatus();
+  const { sendMessage: sessionSendMessage, messageSent: sessionMessageSent, messageSendFailed: sessionMessageSendFailed } = useSessionDialogStore();
   const { appendLogItem } = useSerialportLog();
   const { loading: sending, runRequest: sendMessageToSerialPort } =
     useRequestState({
@@ -51,6 +51,41 @@ const useSendMessage = ({
           port_name: port_name,
           data: dataToSend,
           message_id: msgId,
+        }).then(() => {
+          messageSent({
+            port_name: port_name,
+            data: bufferToSend,
+            message_id: msgId,
+          });
+          sessionMessageSent({
+            port_name: port_name,
+            data: bufferToSend,
+            message_id: msgId,
+          });
+          appendLogItem({
+            type: "sent",
+            data: bufferToHexStr(bufferToSend),
+            time: DateTime.now(),
+            port_name: port_name,
+          });
+        }).catch((err) => {
+          messageSendFailed({
+            port_name: port_name,
+            data: bufferToSend,
+            message_id: msgId,
+            error_msg: err,
+          });
+          sessionMessageSendFailed({
+            port_name: port_name,
+            data: bufferToSend,
+            message_id: msgId,
+          });
+          appendLogItem({
+            type: "send_failed",
+            data: bufferToHexStr(bufferToSend),
+            time: DateTime.now(),
+            port_name: port_name,
+          });
         });
         sendMessage({
           port_name: port_name,

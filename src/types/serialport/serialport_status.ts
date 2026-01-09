@@ -15,17 +15,18 @@ export type USBPortInfo = {
   serial_number: string | null;
   manufacturer: string | null;
   product: string | null;
+  interface: number | null;
 };
 
 export type SerialPortStatus = {
   port_name: string;
   port_type:
-    | "Unknown"
-    | "PciPort"
-    | "BluetoothPort"
-    | {
-        UsbPort: USBPortInfo;
-      };
+  | "Unknown"
+  | "PciPort"
+  | "BluetoothPort"
+  | {
+    UsbPort: USBPortInfo;
+  };
   port_status: "Closed" | OpenedPortStatus;
   bytes_read: number;
   bytes_write: number;

@@ -211,8 +211,8 @@ const useSerialportStatus = create<
           clear_to_send: false,
           data_set_ready: false,
           ring_indicator: false,
-          read_timeout: 0,
-          write_timeout: 0,
+          data_terminal_ready: false,
+          timeout_ms: 100,
         },
       };
       prev.data.set(portName, currentState);

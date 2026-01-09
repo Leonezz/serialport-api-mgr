@@ -8,7 +8,7 @@ const useAvaliablePorts = () => {
   const { toastError, toastWarn } = useToast();
   const { updateAvaliablePorts } = useSerialportStatus();
   const { runRequest, loading } = useRequestState({
-    action: () => emitToRustBus("get_all_port_info", undefined),
+    action: () => emitToRustBus("get_all_port_info", {}),
     onError: (err) =>
       toastError({
         description: `refresh avaliable ports failed: ${err?.msg}`,
