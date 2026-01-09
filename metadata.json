@@ -1,0 +1,7 @@
+{
+  "name": "SerialMan AI",
+  "description": "A Postman-like tool for Serial Port communication, enhanced with Gemini AI for protocol analysis and debugging.",
+  "requestFramePermissions": [
+    "serial"
+  ]
+}

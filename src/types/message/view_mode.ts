@@ -1,1 +1,0 @@
-export const ViewModeOptions = ["Text", "Hex", "Bin"] as const;
