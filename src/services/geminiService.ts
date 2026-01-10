@@ -1,9 +1,10 @@
 
-import { GoogleGenAI, Tool, FunctionDeclaration, Type } from "@google/genai";
+import { GoogleGenAI, Tool, FunctionDeclaration, Type, GenerateContentResponse, Part } from "@google/genai";
 import { SavedCommand, SerialConfig, LogEntry, ProjectContext, SerialSequence, SerialPreset, DashboardWidget } from "../types";
 import { formatContent } from "../lib/utils";
 import { useStore } from "../lib/store";
 import { AIProjectResultSchema } from "../lib/schemas"; // Import Zod schema
+import { getErrorMessage } from "../lib/utils";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -223,7 +224,7 @@ const TOOLS: Tool[] = [
 ];
 
 // --- Helper to record tokens ---
-const recordUsage = (response: any) => {
+const recordUsage = (response: GenerateContentResponse) => {
     if (response?.usageMetadata) {
         useStore.getState().addTokenUsage({
             prompt: response.usageMetadata.promptTokenCount || 0,
@@ -246,12 +247,28 @@ export interface ProjectSummary {
     widgets?: DashboardWidget[]; // Optional widgets from active session
 }
 
+// AI-specific types for sequences that use commandName instead of commandId
+export interface AISequenceStep {
+  commandName: string;  // AI references by name
+  delay: number;
+  stopOnError: boolean;
+}
+
+export interface AISerialSequence {
+  name: string;
+  group?: string;
+  description?: string;
+  steps: AISequenceStep[];
+  repeatCount?: number;
+  usedBy?: string[];
+}
+
 export interface AIProjectResult {
   deviceName?: string;
   config?: Partial<SerialConfig>;
   sourceText?: string;
-  commands: any[];
-  sequences: any[];
+  commands: Omit<SavedCommand, 'id' | 'createdAt' | 'updatedAt' | 'creator'>[];
+  sequences: AISerialSequence[];
   usage?: { prompt: number; response: number; total: number };
 }
 
@@ -456,7 +473,7 @@ export const generateProjectFromDescription = async (
     }
   `;
 
-  const parts: any[] = [{ text: promptText }];
+  const parts: Part[] = [{ text: promptText }];
 
   if (attachment) {
     parts.push({
@@ -493,12 +510,13 @@ export const generateProjectFromDescription = async (
         usage
     } as AIProjectResult;
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini Project Gen Error:", error);
-    if (error.issues) {
+    if (error && typeof error === 'object' && 'issues' in error) {
         // Zod Error
-        throw new Error(`AI generated invalid configuration structure: ${error.issues.map((i: any) => i.message).join(', ')}`);
+        const zodError = error as { issues: Array<{ message: string }> };
+        throw new Error(`AI generated invalid configuration structure: ${zodError.issues.map((i) => i.message).join(', ')}`);
     }
-    throw new Error("Failed to generate project configuration. Please check the input/file and try again.");
+    throw new Error("Failed to generate project configuration: " + getErrorMessage(error));
   }
 };

@@ -94,9 +94,9 @@ const RightSidebar: React.FC = () => {
         >
             {/* Resize Handle */}
             {!isCollapsed && (
-                <div 
+                <div
                     onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
-                    className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/20 transition-colors z-50 flex items-center justify-center group/handle"
+                    className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 transition-colors z-50 flex items-center justify-center group/handle"
                 >
                     <div className="h-10 w-0.5 bg-border rounded-full group-hover/handle:bg-primary/50 transition-colors" />
                 </div>
@@ -132,9 +132,9 @@ const RightSidebar: React.FC = () => {
                         >
                             <Icon className="w-5 h-5" />
                             {isActive && (
-                                <div className="absolute left-[-1px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary-foreground rounded-full" />
+                                <div className="absolute -left-px top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary-foreground rounded-full" />
                             )}
-                            <div className="absolute right-full mr-2 px-2 py-1 bg-popover border border-border text-[10px] font-bold rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-[100] translate-x-1 group-hover:translate-x-0">
+                            <div className="absolute right-full mr-2 px-2 py-1 bg-popover border border-border text-[10px] font-bold rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-100 translate-x-1 group-hover:translate-x-0">
                                 {tab.label}
                             </div>
                         </button>

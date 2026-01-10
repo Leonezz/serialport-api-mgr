@@ -13,7 +13,6 @@ import { useTranslation } from 'react-i18next';
 
 interface Props {
   onSendCommand: (cmd: SavedCommand) => void;
-  onNewCommand: (group?: string) => void;
   onRunSequence: (seq: SerialSequence) => void;
 }
 
@@ -25,7 +24,6 @@ interface ConfirmationState {
 
 const Sidebar: React.FC<Props> = ({
   onSendCommand,
-  onNewCommand,
   onRunSequence,
 }) => {
   const { t } = useTranslation();
@@ -165,7 +163,7 @@ const Sidebar: React.FC<Props> = ({
 
   return (
     <div 
-        className="flex flex-col bg-card border-r border-border h-full relative z-40 shadow-xl flex-shrink-0 transition-[width] ease-out duration-75"
+        className="flex flex-col bg-card border-r border-border h-full relative z-40 shadow-xl shrink-0 transition-[width] ease-out duration-75"
         style={{ width: sidebarWidth }}
     >
       <div className="flex items-center p-2 border-b border-border gap-1 shrink-0">
@@ -232,7 +230,7 @@ const Sidebar: React.FC<Props> = ({
                                                 <Badge variant="outline" className="text-[8px] h-3.5 px-1 py-0 border-border/60 text-muted-foreground uppercase">{cmd.mode}</Badge>
                                                 <code className="text-[10px] text-muted-foreground truncate font-mono flex-1 opacity-70">{(cmd.payload || '').replace(/\r/g, 'CR').replace(/\n/g, 'LF')}</code>
                                             </div>
-                                            {isSelected && <div className="absolute left-[-1px] top-2 bottom-2 w-1 bg-primary rounded-full" />}
+                                            {isSelected && <div className="absolute -left-px top-2 bottom-2 w-1 bg-primary rounded-full" />}
                                         </div>
                                     );
                                 })}
@@ -292,7 +290,13 @@ const Sidebar: React.FC<Props> = ({
           </div>
       </div>
 
-      <div className="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-50" onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }} />
+      {/* Resize Handle */}
+      <div
+        onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
+        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-50 flex items-center justify-center group/handle"
+      >
+        <div className="h-10 w-0.5 bg-border rounded-full group-hover/handle:bg-primary/50 transition-colors" />
+      </div>
 
       {isSeqModalOpen && <SequenceFormModal initialData={editingSequence || {}} availableCommands={commands} onSave={handleSaveSeqWrapper} onClose={() => { setIsSeqModalOpen(false); setEditingSequence(undefined); }} />}
       {isSavePresetModalOpen && <SimpleInputModal title={t('cp.save_as')} placeholder="Enter preset name..." onSave={(name) => { handleSaveNewPreset(name); setIsSavePresetModalOpen(false); }} onClose={() => setIsSavePresetModalOpen(false)} />}

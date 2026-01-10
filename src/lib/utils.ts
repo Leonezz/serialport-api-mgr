@@ -44,5 +44,14 @@ export const generateId = (): string => {
     return crypto.randomUUID();
   }
   // Fallback for non-secure contexts (e.g. http://ip-address)
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 11);
 };
+
+/**
+ * Safely extract error message from unknown error
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'An unknown error occurred';
+}

@@ -101,68 +101,68 @@ const InputPanel: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex flex-col border-t border-border bg-background shadow-[0_-4px_20px_rgba(0,0,0,0.2)] z-30 relative">
-        <div 
-            className="group absolute top-0 left-0 right-0 h-2 -mt-1 cursor-row-resize z-50 flex items-center justify-center hover:bg-primary/5 transition-colors"
+    <div className="flex flex-col border-t border-border bg-card/50 backdrop-blur-sm shadow-[0_-2px_12px_rgba(0,0,0,0.08)] dark:shadow-[0_-2px_12px_rgba(0,0,0,0.3)] z-30 relative">
+        <div
+            className="group absolute top-0 left-0 right-0 h-2 -mt-1 cursor-row-resize z-50 flex items-center justify-center hover:bg-primary/10 transition-colors"
             onMouseDown={startResize}
             title="Drag to resize input area"
         >
-            <div className="w-12 h-1 rounded-full bg-border/80 group-hover:bg-primary/50 transition-colors shadow-sm"></div>
+            <div className="w-16 h-1 rounded-full bg-border group-hover:bg-primary/50 transition-colors shadow-sm"></div>
         </div>
 
-        <div className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border/50">
-             <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
-                 <div className="flex flex-col gap-1.5 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-muted/10 border-b border-border/50">
+             <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
+                 <div className="flex flex-col gap-1 shrink-0">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Format</span>
-                    <div className="flex bg-muted rounded-md p-1 h-8 items-center border border-border/50">
+                    <div className="flex bg-muted/50 rounded-lg p-0.5 h-9 items-center border border-border/50 shadow-sm">
                         {(['TEXT', 'HEX', 'BINARY'] as DataMode[]).map((m) => (
-                            <button key={m} onClick={() => setSendMode(m)} className={cn("px-3 py-0.5 text-[10px] font-bold rounded-sm transition-all h-full", sendMode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10")}>{m}</button>
+                            <button key={m} onClick={() => setSendMode(m)} className={cn("px-3 py-0.5 text-[10px] font-bold rounded-md transition-all h-full min-w-15", sendMode === m ? "bg-background text-foreground shadow-md" : "text-muted-foreground hover:text-foreground hover:bg-background/50")}>{m}</button>
                         ))}
                     </div>
                  </div>
-                 <div className="w-px h-8 bg-border/60 flex-shrink-0"></div>
+                 <div className="w-px h-9 bg-border/60 shrink-0"></div>
 
                  {sendMode === 'TEXT' && (
                     <>
-                     <div className="flex flex-col gap-1.5 flex-shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Encoding</span><div className="w-28"><Select value={encoding} onChange={(e) => setEncoding(e.target.value as TextEncoding)} className="h-8 text-[11px] bg-background border-border focus:ring-primary/20"><option value="UTF-8">UTF-8</option><option value="ASCII">ASCII (7-bit)</option><option value="ISO-8859-1">ISO-8859-1</option></Select></div></div>
-                     <div className="w-px h-8 bg-border/60 flex-shrink-0"></div>
-                     <div className="flex flex-col gap-1.5 flex-shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Line Ending</span><div className="w-28"><Select value={config.lineEnding} onChange={(e) => setLineEnding(e.target.value as LineEnding)} className="h-8 text-[11px] bg-background border-border focus:ring-primary/20"><option value="NONE">None</option><option value="LF">LF (\n)</option><option value="CR">CR (\r)</option><option value="CRLF">CRLF (\r\n)</option></Select></div></div>
-                     <div className="w-px h-8 bg-border/60 flex-shrink-0"></div>
+                     <div className="flex flex-col gap-1 shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Encoding</span><div className="w-32"><Select value={encoding} onChange={(e) => setEncoding(e.target.value as TextEncoding)} className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"><option value="UTF-8">UTF-8</option><option value="ASCII">ASCII (7-bit)</option><option value="ISO-8859-1">ISO-8859-1</option></Select></div></div>
+                     <div className="w-px h-9 bg-border/60 shrink-0"></div>
+                     <div className="flex flex-col gap-1 shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Line Ending</span><div className="w-32"><Select value={config.lineEnding} onChange={(e) => setLineEnding(e.target.value as LineEnding)} className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"><option value="NONE">None</option><option value="LF">LF (\n)</option><option value="CR">CR (\r)</option><option value="CRLF">CRLF (\r\n)</option></Select></div></div>
+                     <div className="w-px h-9 bg-border/60 shrink-0"></div>
                     </>
                  )}
 
-                 <div className="flex flex-col gap-1.5 flex-shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Checksum</span><div className="w-28"><Select value={checksum} onChange={(e) => setChecksum(e.target.value as ChecksumAlgorithm)} className="h-8 text-[11px] bg-background border-border focus:ring-primary/20"><option value="NONE">None</option><option value="MOD256">Mod 256 (Sum)</option><option value="XOR">XOR 8-bit</option><option value="CRC16">CRC16 (Modbus)</option></Select></div></div>
-                 <div className="w-px h-8 bg-border/60 flex-shrink-0"></div>
+                 <div className="flex flex-col gap-1 shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Checksum</span><div className="w-32"><Select value={checksum} onChange={(e) => setChecksum(e.target.value as ChecksumAlgorithm)} className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"><option value="NONE">None</option><option value="MOD256">Mod 256 (Sum)</option><option value="XOR">XOR 8-bit</option><option value="CRC16">CRC16 (Modbus)</option></Select></div></div>
+                 <div className="w-px h-9 bg-border/60 shrink-0"></div>
 
-                 <div className="flex flex-col gap-1.5 flex-shrink-0">
+                 <div className="flex flex-col gap-1 shrink-0">
                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Control Signals</span>
                      <div className="flex items-center gap-2">
-                         <button onClick={() => onToggleSignal('dtr')} disabled={!isConnected} title="Data Terminal Ready" className={cn("flex items-center gap-1.5 text-[10px] font-bold px-3 h-8 rounded-md transition-all border", dtr ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" : "text-muted-foreground bg-background border-border hover:bg-muted hover:text-foreground")}><Zap className={cn("w-3 h-3", dtr && "fill-current")} /> DTR</button>
-                         <button onClick={() => onToggleSignal('rts')} disabled={!isConnected} title="Request To Send" className={cn("flex items-center gap-1.5 text-[10px] font-bold px-3 h-8 rounded-md transition-all border", rts ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" : "text-muted-foreground bg-background border-border hover:bg-muted hover:text-foreground")}><ArrowDownToLine className={cn("w-3 h-3", rts && "fill-current")} /> RTS</button>
+                         <button onClick={() => onToggleSignal('dtr')} disabled={!isConnected} title="Data Terminal Ready" className={cn("flex items-center gap-1.5 text-[10px] font-bold px-3 h-9 rounded-md transition-all border shadow-sm", dtr ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 shadow-emerald-500/20" : "text-muted-foreground bg-background/80 border-border/60 hover:bg-muted hover:text-foreground hover:border-primary/30")}><Zap className={cn("w-3 h-3", dtr && "fill-current")} /> DTR</button>
+                         <button onClick={() => onToggleSignal('rts')} disabled={!isConnected} title="Request To Send" className={cn("flex items-center gap-1.5 text-[10px] font-bold px-3 h-9 rounded-md transition-all border shadow-sm", rts ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 shadow-emerald-500/20" : "text-muted-foreground bg-background/80 border-border/60 hover:bg-muted hover:text-foreground hover:border-primary/30")}><ArrowDownToLine className={cn("w-3 h-3", rts && "fill-current")} /> RTS</button>
                      </div>
                  </div>
              </div>
-             
-             <div className="flex flex-col gap-1.5 items-end opacity-50 ml-4 hidden md:flex"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Buffer</span><span className="text-[10px] font-mono text-foreground">{inputBuffer.length} chars</span></div>
+
+             <div className="flex-col gap-1 items-end ml-4 hidden md:flex"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Buffer</span><span className="text-[11px] font-mono text-foreground/80">{inputBuffer.length} chars</span></div>
         </div>
 
-        <div className="p-4 bg-background relative">
-            <div className="relative w-full">
-                <Textarea 
+        <div className="p-4 bg-background/50 relative">
+            <div className="flex flex-col gap-3 w-full">
+                <Textarea
                     value={inputBuffer}
                     onChange={(e) => setInputBuffer(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="font-mono text-sm resize-none border-border bg-muted/20 focus-visible:ring-primary/30 p-3 pb-14 leading-relaxed transition-none custom-scrollbar"
+                    className="font-mono text-sm resize-none border-border bg-background focus-visible:border-primary focus-visible:ring-primary/30 p-3 leading-relaxed transition-all custom-scrollbar shadow-sm"
                     style={{ height: `${textareaHeight}px` }}
                     placeholder={sendMode === 'TEXT' ? `Enter text...` : sendMode === 'HEX' ? `Enter Hex (e.g. AA BB 0D 0A for \\r\\n)...` : `Enter Binary (e.g. 01010101 00001101)...`}
                     spellCheck={false}
                 />
-                <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center p-1.5 gap-2 bg-background/60 backdrop-blur-md border border-border/40 rounded-lg transition-all hover:bg-background/80 hover:shadow-sm">
-                    <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-primary/10" onClick={() => alert("File selection to be implemented.")} title="Attach File (Upcoming)"><Paperclip className="w-4 h-4" /></Button>
-                        {inputBuffer.length > 0 && <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => setInputBuffer('')} title="Clear Input"><X className="w-4 h-4" /></Button>}
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-primary/10 rounded-lg" onClick={() => alert("File selection to be implemented.")} title="Attach File (Upcoming)"><Paperclip className="w-4 h-4" /></Button>
+                        {inputBuffer.length > 0 && <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg" onClick={() => setInputBuffer('')} title="Clear Input"><X className="w-4 h-4" /></Button>}
                     </div>
-                    <Button onClick={handleSend} disabled={!isConnected} className="h-8 px-4 rounded-md bg-primary hover:bg-primary/90 shadow-sm flex items-center justify-center gap-2 font-bold tracking-wide transition-all active:scale-95"><span className="text-[11px]">SEND</span><Send className="w-3.5 h-3.5" /></Button>
+                    <Button onClick={handleSend} disabled={!isConnected} className="h-10 px-6 rounded-lg bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg flex items-center justify-center gap-2 font-bold tracking-wide transition-all active:scale-95"><span className="text-sm">SEND</span><Send className="w-4 h-4" /></Button>
                 </div>
             </div>
         </div>

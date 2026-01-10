@@ -1,25 +1,24 @@
-
 import React, { useState, useEffect } from 'react';
 import { CommandParameter, SavedCommand } from '../types';
-import { X, Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
 import { Select } from './ui/Select';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './ui/Card';
+import { Modal } from './ui/Modal';
 
 interface Props {
   command: SavedCommand;
-  onSend: (values: Record<string, any>) => void;
+  onSend: (values: Record<string, unknown>) => void;
   onClose: () => void;
 }
 
 const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
-  const [values, setValues] = useState<Record<string, any>>({});
+  const [values, setValues] = useState<Record<string, unknown>>({});
 
   // Initialize defaults
   useEffect(() => {
-    const initial: Record<string, any> = {};
+    const initial: Record<string, unknown> = {};
     command.parameters?.forEach(p => {
         if (p.defaultValue !== undefined) {
             initial[p.name] = p.defaultValue;
@@ -32,7 +31,7 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
     setValues(initial);
   }, [command]);
 
-  const handleChange = (name: string, val: any) => {
+  const handleChange = (name: string, val: unknown) => {
       setValues(prev => ({ ...prev, [name]: val }));
   };
 
@@ -48,8 +47,8 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
       switch(param.type) {
           case 'ENUM':
               return (
-                  <Select 
-                    value={val} 
+                  <Select
+                    value={val as string}
                     onChange={e => handleChange(param.name, e.target.value)}
                     className="w-full"
                   >
@@ -61,9 +60,9 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
           case 'BOOLEAN':
               return (
                   <div className="flex items-center h-10">
-                      <input 
-                        type="checkbox" 
-                        checked={!!val} 
+                      <input
+                        type="checkbox"
+                        checked={!!val}
                         onChange={e => handleChange(param.name, e.target.checked)}
                         className="w-5 h-5 rounded border-input text-primary focus:ring-primary"
                         id={`param-${param.id}`}
@@ -75,9 +74,9 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
               );
           case 'INTEGER':
               return (
-                  <Input 
+                  <Input
                     type="number"
-                    value={val} 
+                    value={val as number}
                     onChange={e => handleChange(param.name, parseInt(e.target.value))}
                     min={param.min}
                     max={param.max}
@@ -87,9 +86,9 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
               );
           case 'FLOAT':
               return (
-                  <Input 
+                  <Input
                     type="number"
-                    value={val} 
+                    value={val as number}
                     onChange={e => handleChange(param.name, parseFloat(e.target.value))}
                     min={param.min}
                     max={param.max}
@@ -99,8 +98,8 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
               );
           default: // STRING
               return (
-                  <Input 
-                    value={val} 
+                  <Input
+                    value={val as string}
                     onChange={e => handleChange(param.name, e.target.value)}
                     maxLength={param.maxLength}
                     placeholder="Enter text..."
@@ -109,53 +108,57 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
       }
   };
 
-  return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border bg-muted/20">
-          <div>
-              <CardTitle className="text-lg">Command Parameters</CardTitle>
-              <div className="text-xs text-muted-foreground font-mono mt-1">{command.name}</div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 -mr-2">
-            <X className="w-4 h-4" />
-          </Button>
-        </CardHeader>
-        
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-          <CardContent className="pt-6 space-y-5 overflow-y-auto custom-scrollbar">
-             {command.parameters && command.parameters.length > 0 ? (
-                 command.parameters.map(param => (
-                     <div key={param.id} className="space-y-1.5">
-                         <div className="flex justify-between items-baseline">
-                             <Label htmlFor={`param-${param.id}`} className="text-sm font-semibold">{param.label || param.name}</Label>
-                             <span className="text-[10px] text-muted-foreground font-mono opacity-70">{param.name} ({param.type})</span>
-                         </div>
-                         {renderInput(param)}
-                         {param.description && (
-                             <div className="text-[10px] text-muted-foreground">{param.description}</div>
-                         )}
-                     </div>
-                 ))
-             ) : (
-                 <div className="text-center text-muted-foreground py-4">No parameters defined.</div>
-             )}
-          </CardContent>
-
-          <CardFooter className="flex justify-between bg-muted/20 border-t border-border p-4 gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => setValues({})} title="Clear all">
-                <RotateCcw className="w-4 h-4" />
-            </Button>
-            <div className="flex gap-2">
-                <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-                <Button type="submit" className="gap-2">
-                    <Play className="w-4 h-4" /> Send Command
-                </Button>
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
+  const titleSection = (
+    <div>
+      <div className="text-lg font-semibold">Command Parameters</div>
+      <div className="text-xs text-muted-foreground font-mono mt-1">{command.name}</div>
     </div>
+  );
+
+  const footer = (
+    <>
+      <Button type="button" variant="ghost" size="sm" onClick={() => setValues({})} title="Clear all">
+        <RotateCcw className="w-4 h-4" />
+      </Button>
+      <div className="flex gap-2 ml-auto">
+        <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button type="submit" form="param-input-form" className="gap-2">
+          <Play className="w-4 h-4" /> Send Command
+        </Button>
+      </div>
+    </>
+  );
+
+  return (
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={titleSection}
+      size="md"
+      footer={footer}
+      className="flex flex-col max-h-[90vh]"
+      contentClassName="overflow-y-auto custom-scrollbar"
+      footerClassName="justify-between"
+    >
+      <form id="param-input-form" onSubmit={handleSubmit} className="space-y-5">
+        {command.parameters && command.parameters.length > 0 ? (
+          command.parameters.map(param => (
+            <div key={param.id} className="space-y-1.5">
+              <div className="flex justify-between items-baseline">
+                <Label htmlFor={`param-${param.id}`} className="text-sm font-semibold">{param.label || param.name}</Label>
+                <span className="text-[10px] text-muted-foreground font-mono opacity-70">{param.name} ({param.type})</span>
+              </div>
+              {renderInput(param)}
+              {param.description && (
+                <div className="text-[10px] text-muted-foreground">{param.description}</div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="text-center text-muted-foreground py-4">No parameters defined.</div>
+        )}
+      </form>
+    </Modal>
   );
 };
 

@@ -57,7 +57,7 @@ const ConsoleViewer: React.FC = () => {
   const getContext = (id?: string) => contexts.find(c => c.id === id);
 
   return (
-    <div className="flex-1 relative bg-zinc-50/50 dark:bg-zinc-950/50 flex flex-col min-h-0 transition-colors duration-300">
+    <div className="flex-1 relative bg-background flex flex-col min-h-0 transition-colors duration-300">
       
       {/* Global View Controls - Floating Top Left */}
       <div className="absolute top-2 left-4 z-10 flex gap-2">

@@ -10,7 +10,7 @@ import { ProjectSlice } from './projectSlice'; // Used for types or cross-slice 
 
 const HISTORY_BUFFER_SIZE = 200;
 
-// Helper
+// Helper to create a new session
 const createSession = (name: string): Session => ({
     id: generateId(),
     name,
@@ -28,6 +28,24 @@ const createSession = (name: string): Session => ({
     aiMessages: [],
     aiTokenUsage: { prompt: 0, response: 0, total: 0 }
 });
+
+/**
+ * Helper function to update active session with partial updates
+ * Reduces verbose nested spread operators throughout the slice
+ */
+const updateActiveSession = <T extends Record<string, Session>>(
+  state: { sessions: T; activeSessionId: string },
+  updates: Partial<Session>
+): { sessions: T } => {
+  const sessionId = state.activeSessionId;
+  const session = state.sessions[sessionId];
+  return {
+    sessions: {
+      ...state.sessions,
+      [sessionId]: { ...session, ...updates }
+    } as T
+  };
+};
 
 const initialSession = createSession('Session 1');
 
@@ -123,33 +141,19 @@ export const createSessionSlice: StateCreator<StoreState, [], [], SessionSlice> 
         };
     }),
 
-    setConnectionType: (type) => set(state => ({
-        sessions: { ...state.sessions, [state.activeSessionId]: { ...state.sessions[state.activeSessionId], connectionType: type } }
-    })),
+    setConnectionType: (type) => set(state => updateActiveSession(state, { connectionType: type })),
 
-    setIsConnected: (connected) => set(state => ({
-        sessions: { ...state.sessions, [state.activeSessionId]: { ...state.sessions[state.activeSessionId], isConnected: connected } }
-    })),
+    setIsConnected: (connected) => set(state => updateActiveSession(state, { isConnected: connected })),
 
-    setInputBuffer: (buffer) => set(state => ({
-        sessions: { ...state.sessions, [state.activeSessionId]: { ...state.sessions[state.activeSessionId], inputBuffer: buffer } }
-    })),
+    setInputBuffer: (buffer) => set(state => updateActiveSession(state, { inputBuffer: buffer })),
 
-    setSendMode: (mode) => set(state => ({
-        sessions: { ...state.sessions, [state.activeSessionId]: { ...state.sessions[state.activeSessionId], sendMode: mode } }
-    })),
+    setSendMode: (mode) => set(state => updateActiveSession(state, { sendMode: mode })),
 
-    setEncoding: (enc) => set(state => ({
-        sessions: { ...state.sessions, [state.activeSessionId]: { ...state.sessions[state.activeSessionId], encoding: enc } }
-    })),
+    setEncoding: (enc) => set(state => updateActiveSession(state, { encoding: enc })),
 
-    setChecksum: (algo) => set(state => ({
-        sessions: { ...state.sessions, [state.activeSessionId]: { ...state.sessions[state.activeSessionId], checksum: algo } }
-    })),
+    setChecksum: (algo) => set(state => updateActiveSession(state, { checksum: algo })),
 
-    setFramingOverride: (framing) => set(state => ({
-        sessions: { ...state.sessions, [state.activeSessionId]: { ...state.sessions[state.activeSessionId], framingOverride: framing } }
-    })),
+    setFramingOverride: (framing) => set(state => updateActiveSession(state, { framingOverride: framing })),
 
     addLog: (data, direction, contextId, sessionId, commandParams, payloadStart, payloadLength) => {
         const id = generateId();
