@@ -2,12 +2,12 @@ use rootcause::Report;
 
 use crate::state::{AppState, PortInfo, PortStatus};
 
-pub async fn update_avaliable_ports<'a>(
+pub async fn update_available_ports<'a>(
     state: &tauri::State<'a, AppState>,
 ) -> Result<Vec<PortInfo>, Report> {
     let system_ports_res = tokio_serial::available_ports()?;
     tracing::trace!(
-        "get all avaliable ports from system success, cnt: {}",
+        "get all available ports from system success, cnt: {}",
         system_ports_res.len()
     );
     let mut current_ports = state.ports.write().await;
@@ -32,9 +32,9 @@ pub async fn update_avaliable_ports<'a>(
     Ok(current_ports.values().map(|v| v.clone()).collect())
 }
 
-#[tauri::command(rename_all = "snake_case")]
+#[tauri::command(rename_all = "camelCase")]
 pub async fn get_all_port_info(state: tauri::State<'_, AppState>) -> Result<Vec<PortInfo>, String> {
     tracing::info!("get all port info");
-    let res = update_avaliable_ports(&state).await;
+    let res = update_available_ports(&state).await;
     res.map_err(|err| err.to_string())
 }

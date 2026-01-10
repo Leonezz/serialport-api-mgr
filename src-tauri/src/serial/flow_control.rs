@@ -24,12 +24,11 @@ impl FromStr for FlowControl {
 
 impl fmt::Display for FlowControl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("FlowControl: ?")?;
-        let str = match self {
+        let s = match self {
             Self::Hardware => "hardware",
             Self::Software => "software",
             Self::None => "none",
         };
-        f.write_str(str)
-    }   
+        f.write_str(s)
+    }
 }

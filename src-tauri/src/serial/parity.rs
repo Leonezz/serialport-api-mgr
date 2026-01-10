@@ -24,12 +24,11 @@ impl FromStr for Parity {
 
 impl fmt::Display for Parity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("Parity: ?")?;
-        let str = match self {
+        let s = match self {
             Self::Odd => "odd",
             Self::Even => "even",
             Self::None => "none",
         };
-        f.write_str(str)
-    }   
+        f.write_str(s)
+    }
 }

@@ -3,7 +3,7 @@ use std::{fmt, str::FromStr};
 use rootcause::{Report, report};
 
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StopBits {
     One,
     Two
@@ -22,11 +22,10 @@ impl FromStr for StopBits {
 
 impl fmt::Display for StopBits {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("StopBits: ")?;
-        let str = match self {
+        let s = match self {
             Self::One => "one",
             Self::Two => "two",
         };
-        f.write_str(str)
-    }   
+        f.write_str(s)
+    }
 }

@@ -1,4 +1,5 @@
 
+use crate::constants::{channels, serial};
 use crate::util::{AckReceiver, AckSender};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -59,19 +60,19 @@ pub fn spawn_serial_task(
     tokio::sync::mpsc::Receiver<usize>,
 ) {
     let (write_tx, mut write_rx) =
-        tokio::sync::mpsc::channel::<(WriteCmd, Option<tokio::sync::oneshot::Sender<()>>)>(32);
-    let (event_tx, event_rx) = tokio::sync::mpsc::channel(32);
+        tokio::sync::mpsc::channel::<(WriteCmd, Option<tokio::sync::oneshot::Sender<()>>)>(channels::WRITE_CMD_CAPACITY);
+    let (event_tx, event_rx) = tokio::sync::mpsc::channel(channels::EVENT_CAPACITY);
     let (status_tx, status_rx) = tokio::sync::watch::channel(ModemStatus {
         cts: false,
         dsr: false,
         cd: false,
         ring: false,
     });
-    let (write_notifier_tx, write_notifier_rx) = tokio::sync::mpsc::channel(10);
+    let (write_notifier_tx, write_notifier_rx) = tokio::sync::mpsc::channel(channels::WRITE_NOTIFY_CAPACITY);
 
     tokio::spawn(async move {
-        let mut read_buf = [0u8; 1024];
-        let mut poll_timer = tokio::time::interval(std::time::Duration::from_millis(1000));
+        let mut read_buf = [0u8; serial::READ_BUFFER_SIZE];
+        let mut poll_timer = tokio::time::interval(std::time::Duration::from_millis(serial::STATUS_POLL_INTERVAL_MS));
 
         loop {
             tokio::select! {
@@ -111,13 +112,17 @@ pub fn spawn_serial_task(
                             }
                         }
                         Some((WriteCmd::Dtr(v), ack_tx)) => {
-                            let _ = port.write_data_terminal_ready(v.dtr);
+                            if let Err(e) = port.write_data_terminal_ready(v.dtr) {
+                                tracing::warn!("Failed to set DTR to {}: {}", v.dtr, e);
+                            }
                             if let Some(tx) = ack_tx {
                                 let _ = tx.send(());
                             }
                         }
                         Some((WriteCmd::Rts(v), ack_tx)) => {
-                            let _ = port.write_request_to_send(v.rts);
+                            if let Err(e) = port.write_request_to_send(v.rts) {
+                                tracing::warn!("Failed to set RTS to {}: {}", v.rts, e);
+                            }
                             if let Some(tx) = ack_tx {
                                 let _ = tx.send(());
                             }

@@ -6,11 +6,11 @@ use tokio_stream::{wrappers::WatchStream, StreamExt};
 use tracing::Instrument;
 
 use crate::{
-    events::port_opened::PortOpenEvent,
+    events::{event_names, PortOpenedEvent},
     serial::{data_bits::DataBits, flow_control::FlowControl, parity::Parity, stop_bits::StopBits},
     serial_mgr::{
         port_task::{spawn_serial_task, SerialEvent, WritePortSender},
-        update_ports::update_avaliable_ports,
+        update_ports::update_available_ports,
     },
     state::{AppState, OpenedPortProfile, PortHandles, PortStatus},
 };
@@ -30,8 +30,8 @@ fn setup_port_task(
                 match message {
                     SerialEvent::Message(message) => {
                         let len = message.data.len();
-                        if let Err(err) = app_for_read.emit("port_read", message) {
-                            tracing::error!("emit port read failed with err: {}", err);
+                        if let Err(err) = app_for_read.emit(event_names::PORT_READ, message) {
+                            tracing::error!("emit port read failed: {}", err);
                         }
                         app_for_read
                             .state::<AppState>()
@@ -49,10 +49,10 @@ fn setup_port_task(
                             });
                     }
                     SerialEvent::Error(err) => {
-                        if let Err(err) = app_for_read.emit("port_error", err.to_string()) {
-                            tracing::error!("emit port error failed with err: {}", err);
+                        if let Err(emit_err) = app_for_read.emit(event_names::PORT_ERROR, err.to_string()) {
+                            tracing::error!("emit port error failed: {}", emit_err);
                         }
-                        tracing::error!("got serial port error: {}", err);
+                        tracing::error!("serial port error: {}", err);
                     }
                 }
             }
@@ -165,12 +165,10 @@ pub fn open_port_unchecked(
     tracing::info!("serial port: {} opened with baud_rate: {}, flow_control: {}, parity: {}, stop_bits: {}, timeout_nanos: {}", port_name, baud_rate, flow_control, parity, stop_bits, timeout.as_nanos());
     let write_tx = setup_port_task(port_name.clone(), port, app.clone())?;
     if let Err(err) = app.emit(
-        "port_opened",
-        PortOpenEvent {
-            port_name: port_name.clone(),
-        },
+        event_names::PORT_OPENED,
+        PortOpenedEvent::new(port_name.clone()),
     ) {
-        tracing::error!("emit port opened event failed with err: {}", err);
+        tracing::error!("emit port opened event failed: {}", err);
         return Err(err.into());
     }
 
@@ -178,7 +176,7 @@ pub fn open_port_unchecked(
 }
 
 // remember to call `.manage(MyState::default())`
-#[tauri::command(rename_all = "snake_case")]
+#[tauri::command(rename_all = "camelCase")]
 pub async fn open_port(
     state: tauri::State<'_, AppState>,
     app: AppHandle,
@@ -212,8 +210,8 @@ pub async fn open_port(
         tracing::error!("invalid stop bits: {}", err);
         err.to_string()
     })?;
-    update_avaliable_ports(&state).await.map_err(|err| {
-        tracing::error!("update avaliable ports failed with err: {}", err);
+    update_available_ports(&state).await.map_err(|err| {
+        tracing::error!("update available ports failed: {}", err);
         err.to_string()
     })?;
     if !state.ports.read().await.contains_key(&port_name) {
