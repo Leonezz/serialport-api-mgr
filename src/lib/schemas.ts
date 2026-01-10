@@ -29,7 +29,7 @@ export const SerialConfigSchema = z.object({
     dataBits: z.union([z.literal(7), z.literal(8)]),
     stopBits: z.union([z.literal(1), z.literal(2)]),
     parity: z.enum(['none', 'even', 'odd']),
-    flowControl: z.enum(['none', 'hardware']),
+    flowControl: z.enum(['none', 'hardware', 'software']),
     bufferSize: z.number().int().positive(),
     lineEnding: LineEndingSchema,
     framing: FramingConfigSchema

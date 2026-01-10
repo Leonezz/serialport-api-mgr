@@ -88,7 +88,7 @@ export interface SerialConfig {
   dataBits: 7 | 8;
   stopBits: 1 | 2;
   parity: 'none' | 'even' | 'odd';
-  flowControl: 'none' | 'hardware';
+  flowControl: 'none' | 'hardware' | 'software';
   bufferSize: number;
   lineEnding: LineEnding;
   framing: FramingConfig; // New field
@@ -152,7 +152,7 @@ export interface LogEntry {
 
 // --- System/Operation Logs ---
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS';
-export type LogCategory = 'CONNECTION' | 'COMMAND' | 'SYSTEM' | 'SCRIPT';
+export type LogCategory = 'CONNECTION' | 'COMMAND' | 'SYSTEM' | 'SCRIPT' | 'VALIDATION';
 
 export interface SystemLogEntry {
     id: string;
@@ -233,7 +233,7 @@ export interface SerialOptions {
   stopBits?: number;
   parity?: 'none' | 'even' | 'odd';
   bufferSize?: number;
-  flowControl?: 'none' | 'hardware';
+  flowControl?: 'none' | 'hardware' | 'software';
 }
 
 export interface SerialPortInfo {

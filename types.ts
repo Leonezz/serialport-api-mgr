@@ -88,7 +88,7 @@ export interface SerialConfig {
   dataBits: 7 | 8;
   stopBits: 1 | 2;
   parity: 'none' | 'even' | 'odd';
-  flowControl: 'none' | 'hardware';
+  flowControl: 'none' | 'hardware' | 'software';
   bufferSize: number;
   lineEnding: LineEnding;
   framing: FramingConfig; // New field
@@ -233,7 +233,7 @@ export interface SerialOptions {
   stopBits?: number;
   parity?: 'none' | 'even' | 'odd';
   bufferSize?: number;
-  flowControl?: 'none' | 'hardware';
+  flowControl?: 'none' | 'hardware' | 'software';
 }
 
 export interface SerialPortInfo {
