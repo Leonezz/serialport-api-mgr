@@ -14,10 +14,7 @@ interface Props {
 }
 
 const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
-  const [values, setValues] = useState<Record<string, unknown>>({});
-
-  // Initialize defaults
-  useEffect(() => {
+  const [values, setValues] = useState<Record<string, unknown>>(() => {
     const initial: Record<string, unknown> = {};
     command.parameters?.forEach((p) => {
       if (p.defaultValue !== undefined) {
@@ -28,8 +25,8 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
         initial[p.name] = "";
       }
     });
-    setValues(initial);
-  }, [command]);
+    return initial;
+  });
 
   const handleChange = (name: string, val: unknown) => {
     setValues((prev) => ({ ...prev, [name]: val }));

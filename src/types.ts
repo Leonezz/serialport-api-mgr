@@ -1,39 +1,43 @@
 import { TsFlowControl, TsParity } from "./lib/tauri";
+import { z } from "zod";
 
-export type LineEnding = "NONE" | "LF" | "CR" | "CRLF";
+// Import schemas for reference (validation) but use manual type definitions for runtime
+import {
+  LineEndingSchema,
+  DataModeSchema,
+  TextEncodingSchema,
+  ChecksumAlgorithmSchema,
+  MatchTypeSchema,
+  ValidationModeSchema,
+  ThemeColorSchema,
+  ThemeModeSchema,
+  ConnectionTypeSchema,
+  ParameterTypeSchema,
+  FramingStrategySchema,
+} from "./lib/schemas";
 
-export type DataMode = "TEXT" | "HEX" | "BINARY";
+import { LogLevelSchema, LogCategorySchema } from "./lib/storeSchemas";
 
+// Infer simple enum types from schemas (these work well with z.infer)
+export type LineEnding = z.infer<typeof LineEndingSchema>;
+export type DataMode = z.infer<typeof DataModeSchema>;
+export type TextEncoding = z.infer<typeof TextEncodingSchema>;
+export type ChecksumAlgorithm = z.infer<typeof ChecksumAlgorithmSchema>;
+export type MatchType = z.infer<typeof MatchTypeSchema>;
+export type ValidationMode = z.infer<typeof ValidationModeSchema>;
+export type ThemeColor = z.infer<typeof ThemeColorSchema>;
+export type ThemeMode = z.infer<typeof ThemeModeSchema>;
+export type ConnectionType = z.infer<typeof ConnectionTypeSchema>;
+export type ParameterType = z.infer<typeof ParameterTypeSchema>;
+export type FramingStrategy = z.infer<typeof FramingStrategySchema>;
+export type LogLevel = z.infer<typeof LogLevelSchema>;
+export type LogCategory = z.infer<typeof LogCategorySchema>;
+
+// Type not defined by schema (extends DataMode)
 export type GlobalFormat = DataMode | "AUTO";
 
-export type TextEncoding = "UTF-8" | "ASCII" | "ISO-8859-1";
-
-export type ChecksumAlgorithm = "NONE" | "MOD256" | "XOR" | "CRC16";
-
-export type MatchType = "CONTAINS" | "REGEX";
-
-export type ValidationMode = "PATTERN";
-
-export type ThemeColor =
-  | "zinc"
-  | "blue"
-  | "green"
-  | "orange"
-  | "rose"
-  | "yellow";
-
-export type ThemeMode = "light" | "dark" | "system";
-
-export type ConnectionType = "SERIAL" | "NETWORK";
-
-export type ParameterType = "STRING" | "INTEGER" | "FLOAT" | "ENUM" | "BOOLEAN";
-
-export type FramingStrategy =
-  | "NONE"
-  | "DELIMITER"
-  | "TIMEOUT"
-  | "PREFIX_LENGTH"
-  | "SCRIPT";
+// Complex types defined manually (schemas used for validation only)
+// This avoids issues with optional fields and defaults in Zod schemas
 
 export interface FramingConfig {
   strategy: FramingStrategy;
@@ -103,10 +107,8 @@ export interface SerialConfig {
   flowControl: TsFlowControl;
   bufferSize: number;
   lineEnding: LineEnding;
-  framing: FramingConfig; // New field
+  framing: FramingConfig;
 }
-
-// --- Dashboard & Telemetry ---
 
 export interface WidgetConfig {
   type: "CARD" | "LINE" | "GAUGE";
@@ -162,15 +164,6 @@ export interface LogEntry {
   payloadLength?: number; // Length of payload
 }
 
-// --- System/Operation Logs ---
-export type LogLevel = "INFO" | "WARN" | "ERROR" | "SUCCESS";
-export type LogCategory =
-  | "CONNECTION"
-  | "COMMAND"
-  | "SYSTEM"
-  | "SCRIPT"
-  | "VALIDATION";
-
 export interface SystemLogEntry {
   id: string;
   timestamp: number;
@@ -214,6 +207,29 @@ export interface SerialSequence extends BaseEntity {
   steps: SequenceStep[];
 }
 
+// --- Plotter ---
+
+export type PlotterParserType = "CSV" | "JSON" | "REGEX";
+
+export interface PlotterDataPoint {
+  time: number;
+  [seriesId: string]: number;
+}
+
+export interface PlotterConfig {
+  enabled: boolean;
+  parser: PlotterParserType;
+  regexString?: string;
+  bufferSize: number; // Max points in buffer
+  autoDiscover: boolean; // Auto-detect CSV vs JSON
+}
+
+export interface PlotterState {
+  config: PlotterConfig;
+  data: PlotterDataPoint[];
+  series: string[]; // List of detected series IDs/names
+}
+
 // --- Multi-Session ---
 export interface Session {
   id: string;
@@ -228,6 +244,7 @@ export interface Session {
   logs: LogEntry[];
   variables: Record<string, TelemetryVariable>; // Session-specific variables (Data)
   widgets: DashboardWidget[]; // Dashboard Layout (View)
+  plotter: PlotterState; // New: Real-time Plotter state
 
   // Input State
   inputBuffer: string;

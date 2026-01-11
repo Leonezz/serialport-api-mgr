@@ -238,8 +238,8 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
         if (newRange < 10) newRange = 10;
 
         const pivotIndex = min + range * mousePercent;
-        let newMin = pivotIndex - newRange * mousePercent;
-        let newMax = newMin + newRange;
+        const newMin = pivotIndex - newRange * mousePercent;
+        const newMax = newMin + newRange;
 
         setSafeDomain(newMin, newMax);
       } else {

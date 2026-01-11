@@ -1,19 +1,26 @@
 import { StateCreator } from "zustand";
-import {
+import { generateId } from "../utils";
+import { DEFAULT_COMMANDS, DEFAULT_PRESETS } from "../defaults";
+import type {
   SerialPreset,
   SavedCommand,
   SerialSequence,
   ProjectContext,
 } from "../../types";
-import { generateId } from "../utils";
-import { DEFAULT_COMMANDS, DEFAULT_PRESETS } from "../defaults";
 
-export interface ProjectSlice {
+// Re-export types for convenience
+export type { SerialPreset, SavedCommand, SerialSequence, ProjectContext };
+
+// State interface (all data fields)
+export interface ProjectSliceState {
   presets: SerialPreset[];
   commands: SavedCommand[];
   sequences: SerialSequence[];
   contexts: ProjectContext[];
+}
 
+// Actions interface (all methods)
+export interface ProjectSliceActions {
   setPresets: (
     presets: SerialPreset[] | ((prev: SerialPreset[]) => SerialPreset[]),
   ) => void;
@@ -39,6 +46,9 @@ export interface ProjectSlice {
   updateSequence: (id: string, updates: Partial<SerialSequence>) => void;
   deleteSequence: (id: string) => void;
 }
+
+// Complete slice: State & Actions
+export type ProjectSlice = ProjectSliceState & ProjectSliceActions;
 
 export const createProjectSlice: StateCreator<ProjectSlice> = (set) => ({
   presets: DEFAULT_PRESETS,

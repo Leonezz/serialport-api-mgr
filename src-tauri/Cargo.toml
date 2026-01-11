@@ -26,6 +26,7 @@ lazy_static = "1.5.0"
 tauri-plugin-log = "^2.8.0"
 # tauri-plugin-devtools = "2.0.0-rc"
 tauri-plugin-fs = "^2.4.5"
+tauri-plugin-store = "2.4.2"
 tokio = { version = "1.49.0", features = ["full"] }
 tokio-util = { version = "0.7.18", features = ["full"] }
 tokio-serial = { version = "5.4.5" }

@@ -5,7 +5,8 @@ export type MockPortType =
   | "mock-json-stream"
   | "mock-timeout-stream"
   | "mock-hex-stream"
-  | "mock-prefix-stream";
+  | "mock-prefix-stream"
+  | "mock-sine-wave";
 
 export class MockPort implements GenericPort {
   readable: ReadableStream<Uint8Array>;
@@ -157,6 +158,20 @@ export class MockPort implements GenericPort {
         }
       };
       loop();
+    } else if (this.type === "mock-sine-wave") {
+      // High frequency Sine/Cos wave generator (CSV format)
+      let t = 0;
+      this.interval = setInterval(() => {
+        if (!this.active || !this.controller) return;
+        t += 0.1;
+        const sin = (Math.sin(t) * 10).toFixed(2);
+        const cos = (Math.cos(t) * 10).toFixed(2);
+        const noise = (Math.random() * 2 - 1).toFixed(2); // Add some noise
+
+        // Format: sin, cos, noise
+        const msg = `${sin}, ${cos}, ${noise}\n`;
+        this.controller.enqueue(new TextEncoder().encode(msg));
+      }, 20); // 50Hz
     }
   }
 

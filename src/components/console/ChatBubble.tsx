@@ -30,7 +30,20 @@ const ChatBubble: React.FC<Props> = ({
   enableAnsi = true,
   isDark = false,
 }) => {
-  const [viewMode, setViewMode] = useState<DataMode | "PARAMS">(log.format);
+  const [localViewMode, setLocalViewMode] = useState<DataMode | "PARAMS">(
+    () => {
+      // Initial State Logic
+      const hasParams =
+        log.commandParams && Object.keys(log.commandParams).length > 0;
+      const hasExtractedVars =
+        log.extractedVars && Object.keys(log.extractedVars).length > 0;
+      const canShowParams = hasParams || hasExtractedVars;
+
+      if (globalFormat !== "AUTO") return globalFormat;
+      if (canShowParams) return "PARAMS";
+      return log.format;
+    },
+  );
   const [copied, setCopied] = useState(false);
 
   const hasParams =
@@ -39,18 +52,8 @@ const ChatBubble: React.FC<Props> = ({
     log.extractedVars && Object.keys(log.extractedVars).length > 0;
   const canShowParams = hasParams || hasExtractedVars;
 
-  useEffect(() => {
-    if (globalFormat !== "AUTO") {
-      setViewMode(globalFormat);
-    } else {
-      // Default to PARAMS if available, otherwise native format
-      if (canShowParams) {
-        setViewMode("PARAMS");
-      } else {
-        setViewMode(log.format);
-      }
-    }
-  }, [globalFormat, log.format, canShowParams]);
+  // Derived State (Global overrides local if not AUTO)
+  const viewMode = globalFormat !== "AUTO" ? globalFormat : localViewMode;
 
   // Extract payload if defined, otherwise use full data
   const content = useMemo(() => {
@@ -172,7 +175,7 @@ const ChatBubble: React.FC<Props> = ({
             {/* Params Toggle */}
             {canShowParams && (
               <button
-                onClick={() => setViewMode("PARAMS")}
+                onClick={() => setLocalViewMode("PARAMS")}
                 className={cn(
                   "p-1 rounded text-[10px] font-bold transition-all flex items-center gap-1",
                   viewMode === "PARAMS"
@@ -196,7 +199,7 @@ const ChatBubble: React.FC<Props> = ({
             {(["TEXT", "HEX", "BINARY"] as DataMode[]).map((m) => (
               <button
                 key={m}
-                onClick={() => setViewMode(m)}
+                onClick={() => setLocalViewMode(m)}
                 className={cn(
                   "p-1 rounded text-[10px] font-bold transition-all",
                   viewMode === m

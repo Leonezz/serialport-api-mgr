@@ -33,12 +33,8 @@ const StreamPanel: React.FC<StreamPanelProps> = ({
     const relevantLogs = logs.filter((l) => l.direction === direction);
     if (relevantLogs.length === 0) return new Uint8Array(0);
 
-    let totalSize = 0;
-    const arrays = relevantLogs.map((l) => {
-      const b = getBytes(l.data);
-      totalSize += b.length;
-      return b;
-    });
+    const arrays = relevantLogs.map((l) => getBytes(l.data));
+    const totalSize = arrays.reduce((acc, arr) => acc + arr.length, 0);
 
     const result = new Uint8Array(totalSize);
     let offset = 0;

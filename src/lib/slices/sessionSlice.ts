@@ -1,5 +1,8 @@
 import { StateCreator } from "zustand";
-import {
+import { generateId } from "../utils";
+import { DEFAULT_CONFIG, DEFAULT_NETWORK_CONFIG } from "../defaults";
+import { ProjectSlice } from "./projectSlice"; // Used for types or cross-slice logic if needed
+import type {
   Session,
   SerialConfig,
   NetworkConfig,
@@ -12,12 +15,43 @@ import {
   WidgetConfig,
   DashboardWidget,
   FramingConfig,
+  PlotterConfig,
+  PlotterDataPoint,
+  PlotterState,
 } from "../../types";
-import { generateId } from "../utils";
-import { DEFAULT_CONFIG, DEFAULT_NETWORK_CONFIG } from "../defaults";
-import { ProjectSlice } from "./projectSlice"; // Used for types or cross-slice logic if needed
+
+// Re-export types for convenience
+export type {
+  Session,
+  SerialConfig,
+  NetworkConfig,
+  DataMode,
+  TextEncoding,
+  ChecksumAlgorithm,
+  LogEntry,
+  TelemetryVariable,
+  ChatMessage,
+  WidgetConfig,
+  DashboardWidget,
+  FramingConfig,
+  PlotterConfig,
+  PlotterDataPoint,
+  PlotterState,
+};
 
 const HISTORY_BUFFER_SIZE = 200;
+const MAX_PLOTTER_SERIES = 20;
+
+const DEFAULT_PLOTTER_STATE: PlotterState = {
+  config: {
+    enabled: false,
+    parser: "CSV",
+    bufferSize: 1000,
+    autoDiscover: true,
+  },
+  data: [],
+  series: [],
+};
 
 // Helper to create a new session
 const createSession = (name: string): Session => ({
@@ -30,6 +64,7 @@ const createSession = (name: string): Session => ({
   logs: [],
   variables: {},
   widgets: [], // Decoupled Widgets
+  plotter: { ...DEFAULT_PLOTTER_STATE },
   inputBuffer: "",
   sendMode: "TEXT",
   encoding: "UTF-8",
@@ -58,10 +93,14 @@ const updateActiveSession = <T extends Record<string, Session>>(
 
 const initialSession = createSession("Session 1");
 
-export interface SessionSlice {
+// State interface (all data fields)
+export interface SessionSliceState {
   sessions: Record<string, Session>;
   activeSessionId: string;
+}
 
+// Actions interface (all methods)
+export interface SessionSliceActions {
   addSession: () => void;
   removeSession: (id: string) => void;
   setActiveSessionId: (id: string) => void;
@@ -110,10 +149,18 @@ export interface SessionSlice {
   clearVariables: () => void; // Clears both variables and widgets
   applyPresetLayout: (sessionId: string, presetId: string) => void;
 
+  // Plotter Actions
+  setPlotterConfig: (updates: Partial<PlotterConfig>) => void;
+  addPlotterData: (point: PlotterDataPoint) => void;
+  clearPlotterData: () => void;
+
   // AI Chat State
   setAiMessages: (messages: ChatMessage[]) => void;
   addTokenUsage: (usage: { prompt: number; response: number }) => void;
 }
+
+// Complete slice: State & Actions
+export type SessionSlice = SessionSliceState & SessionSliceActions;
 
 // We need a combined type to access other slices via get()
 type StoreState = SessionSlice & ProjectSlice;
@@ -123,7 +170,7 @@ export const createSessionSlice: StateCreator<
   [],
   [],
   SessionSlice
-> = (set, get) => ({
+> = (set, _get) => ({
   sessions: { [initialSession.id]: initialSession },
   activeSessionId: initialSession.id,
 
@@ -469,6 +516,88 @@ export const createSessionSlice: StateCreator<
             ...session,
             widgets: newWidgets,
             variables: newVariables,
+          },
+        },
+      };
+    }),
+
+  // Plotter Actions
+  setPlotterConfig: (updates) =>
+    set((state) => {
+      const session = state.sessions[state.activeSessionId];
+      const currentPlotter = session.plotter || { ...DEFAULT_PLOTTER_STATE };
+      return {
+        sessions: {
+          ...state.sessions,
+          [session.id]: {
+            ...session,
+            plotter: {
+              ...currentPlotter,
+              config: { ...currentPlotter.config, ...updates },
+            },
+          },
+        },
+      };
+    }),
+
+  addPlotterData: (point) =>
+    set((state) => {
+      const session = state.sessions[state.activeSessionId];
+      // If plotter is undefined, we can't really add data if enabled is checked on undefined (which it isn't).
+      // But if we want to be safe:
+      const currentPlotter = session.plotter || { ...DEFAULT_PLOTTER_STATE };
+
+      if (!currentPlotter.config.enabled) return {};
+
+      // Update detected series with Limit Check
+      const newSeries = new Set(currentPlotter.series);
+      const filteredPoint: PlotterDataPoint = { time: point.time };
+
+      Object.keys(point).forEach((key) => {
+        if (key === "time") return;
+
+        if (newSeries.has(key)) {
+          filteredPoint[key] = point[key];
+        } else if (newSeries.size < MAX_PLOTTER_SERIES) {
+          newSeries.add(key);
+          filteredPoint[key] = point[key];
+        }
+        // Else: Ignore new key if limit reached
+      });
+
+      const newData = [...currentPlotter.data, filteredPoint].slice(
+        -currentPlotter.config.bufferSize,
+      );
+
+      return {
+        sessions: {
+          ...state.sessions,
+          [session.id]: {
+            ...session,
+            plotter: {
+              ...currentPlotter,
+              data: newData,
+              series: Array.from(newSeries),
+            },
+          },
+        },
+      };
+    }),
+
+  clearPlotterData: () =>
+    set((state) => {
+      const session = state.sessions[state.activeSessionId];
+      const currentPlotter = session.plotter || { ...DEFAULT_PLOTTER_STATE };
+      return {
+        sessions: {
+          ...state.sessions,
+          [session.id]: {
+            ...session,
+            plotter: {
+              ...currentPlotter,
+              data: [],
+              series: [],
+            },
           },
         },
       };

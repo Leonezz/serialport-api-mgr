@@ -79,6 +79,7 @@ pub fn run() {
             warn,
             error
         ])
+        .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_fs::init())
         .manage(AppState::default())
         .setup(|app| {

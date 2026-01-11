@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { SerialFramer } from "../lib/framing";
 import { useStore } from "../lib/store";
 import { BUFFER_SIZES } from "../lib/constants";
+import { parsePlotterData } from "../lib/plotterParser";
 
 /**
  * Custom hook for managing serial data framing
@@ -14,7 +15,8 @@ export function useFraming() {
   // Timer for framing override expiration safety
   const overrideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { addLog, addSystemLog, setFramingOverride } = useStore();
+  const { addLog, addSystemLog, setFramingOverride, addPlotterData } =
+    useStore();
 
   /**
    * Process a single frame of data
@@ -27,6 +29,16 @@ export function useFraming() {
   ) => {
     // Add Log (Console) - Use the actual frame timestamp
     const logId = addLog(data, "RX", undefined, sessionId);
+
+    // Plotter Support
+    const session = useStore.getState().sessions[sessionId];
+    const plotterConfig = session?.plotter?.config;
+    if (plotterConfig?.enabled) {
+      const point = parsePlotterData(data, plotterConfig);
+      if (point) {
+        addPlotterData(point);
+      }
+    }
 
     // Validate (if callback provided)
     if (onValidate) {

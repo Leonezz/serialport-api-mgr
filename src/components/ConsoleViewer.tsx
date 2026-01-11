@@ -10,6 +10,7 @@ import {
   FileDigit,
   Split,
   Activity,
+  LineChart as ChartIcon,
   LayoutDashboard,
   Palette,
 } from "lucide-react";
@@ -22,14 +23,21 @@ import HexLogEntry from "./console/HexLogEntry";
 import StreamPanel from "./console/StreamPanel";
 import ChatBubble from "./console/ChatBubble";
 import DashboardPanel from "./console/DashboardPanel";
+import PlotterPanel from "./console/PlotterPanel";
 
-type ViewLayout = "LIST" | "HEX" | "STREAM" | "GRAPHIC" | "DASHBOARD";
+type ViewLayout =
+  | "LIST"
+  | "HEX"
+  | "STREAM"
+  | "GRAPHIC"
+  | "DASHBOARD"
+  | "PLOTTER";
 
 const ConsoleViewer: React.FC = () => {
   // Optimized Selectors: Only subscribe to activeSessionId and logs.
   // Input buffer changes trigger 'sessions' object updates, but 'logs' array reference remains consistent if only input changed.
   const activeSessionId = useStore((state) => state.activeSessionId);
-  const logs = useStore((state) => state.sessions[activeSessionId]?.logs || []);
+  const logs = useStore((state) => state.sessions[activeSessionId].logs || []);
   const contexts = useStore((state) => state.contexts);
   const { themeMode } = useStore();
 
@@ -121,6 +129,18 @@ const ConsoleViewer: React.FC = () => {
           >
             <Activity className="w-4 h-4" />
           </button>
+          <button
+            onClick={() => setViewLayout("PLOTTER")}
+            className={cn(
+              "p-1.5 rounded-sm transition-all",
+              viewLayout === "PLOTTER"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+            title="Real-time Plotter (Oscilloscope)"
+          >
+            <ChartIcon className="w-4 h-4" />
+          </button>
           <div className="w-px bg-border/50 my-0.5 mx-0.5"></div>
           <button
             onClick={() => setViewLayout("DASHBOARD")}
@@ -191,6 +211,10 @@ const ConsoleViewer: React.FC = () => {
       {viewLayout === "DASHBOARD" ? (
         <div className="flex-1 p-4 pt-14 min-h-0 overflow-hidden">
           <DashboardPanel />
+        </div>
+      ) : viewLayout === "PLOTTER" ? (
+        <div className="flex-1 p-4 pt-14 min-h-0 overflow-hidden">
+          <PlotterPanel />
         </div>
       ) : viewLayout === "GRAPHIC" ? (
         <div className="flex-1 p-4 pt-14 min-h-0 overflow-hidden">

@@ -206,5 +206,11 @@ Controlled by zustand UI slice state
 
 ## Plans & Progresses & Other Intermediate Files
 
-- Write plans, progresses and other intermediate files in the `./claude/` folder under the project folder, instead of the global `~/.claude/` folder.
+- Write plans, progresses and other intermediate files in the `./.claude/` folder under the project folder, instead of the global `~/.claude/` folder.
 - Always update documents after making code changes.
+
+- **Quality Assurance:** After making code changes and fixing errors:
+    *   Run `pnpm run lint` to detect ESLint errors.
+    *   Run `pnpm run type-check` (or `tsc`) to detect type errors.
+    *   Run `pnpm run format` to ensure code style consistency.
+-  **Mocking:** When implementing features that interact with hardware or external systems (like serial ports), **always** write or update mock implementations (e.g., `src/lib/mockPort.ts`) to allow testing without physical devices.

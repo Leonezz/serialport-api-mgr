@@ -27,7 +27,6 @@ import {
   Trash2,
   Sliders,
   Scissors,
-  Infinity,
   Zap,
   CheckCircle2,
   FileCode,
@@ -100,16 +99,10 @@ const CommandFormModal: React.FC<Props> = ({
     initialData?.contextId,
   );
   const activeContext = contexts.find((c) => c.id === contextId);
-  const [contextContent, setContextContent] = useState("");
-  const [contextTitle, setContextTitle] = useState("");
-
-  useEffect(() => {
-    const ctx = contexts.find((c) => c.id === contextId);
-    if (ctx) {
-      setContextContent(ctx.content);
-      setContextTitle(ctx.title);
-    }
-  }, [contextId, contexts]);
+  const [contextContent, setContextContent] = useState(
+    activeContext?.content || "",
+  );
+  const [contextTitle, setContextTitle] = useState(activeContext?.title || "");
 
   // Unified Processing State
   const [preRequestEnabled, setPreRequestEnabled] = useState(

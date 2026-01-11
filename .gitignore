@@ -23,3 +23,7 @@ dist-ssr
 # Build artifacts and tool caches
 target/
 .serena/
+
+*.md
+!README.md
+claude

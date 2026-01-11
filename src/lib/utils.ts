@@ -10,7 +10,11 @@ export const getBytes = (data: string | Uint8Array): Uint8Array => {
   if (typeof data === "string") {
     return new TextEncoder().encode(data);
   }
-  return data;
+  if (data instanceof Uint8Array) {
+    return data;
+  }
+  console.warn("getBytes", "Unsupported data type", data);
+  return new Uint8Array();
 };
 
 export const formatContent = (

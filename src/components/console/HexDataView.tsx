@@ -510,4 +510,6 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
   },
 );
 
+HexDataView.displayName = "HexDataView";
+
 export default HexDataView;

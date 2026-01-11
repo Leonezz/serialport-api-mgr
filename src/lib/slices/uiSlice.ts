@@ -1,5 +1,9 @@
 import { StateCreator } from "zustand";
-import {
+import { z } from "zod";
+import { generateId } from "../utils";
+import { ToastMessage } from "../../components/ui/Toast";
+import { RightSidebarTabSchema } from "../storeSchemas";
+import type {
   ThemeMode,
   ThemeColor,
   SystemLogEntry,
@@ -8,45 +12,24 @@ import {
   SavedCommand,
   SerialPreset,
 } from "../../types";
-import { ToastMessage } from "../../components/ui/Toast";
-import { generateId } from "../utils";
 
-export type RightSidebarTab =
-  | "ai"
-  | "basic"
-  | "params"
-  | "processing"
-  | "framing"
-  | "context"
-  | "wizard";
+// Re-export types for convenience
+export type { ThemeMode, ThemeColor, SystemLogEntry, LogLevel, LogCategory };
 
-export interface UISlice {
+// Infer slice-specific types from schemas
+export type RightSidebarTab = z.infer<typeof RightSidebarTabSchema>;
+
+// State interface (all data fields)
+export interface UISliceState {
   // Appearance
   themeMode: ThemeMode;
   themeColor: ThemeColor;
-  setThemeMode: (mode: ThemeMode) => void;
-  setThemeColor: (color: ThemeColor) => void;
 
-  // System Logs
+  // System Logs & Toasts
   systemLogs: SystemLogEntry[];
-  addSystemLog: (
-    level: LogLevel,
-    category: LogCategory,
-    message: string,
-    details?: any,
-  ) => void;
-  clearSystemLogs: () => void;
-
-  // Toasts
   toasts: ToastMessage[];
-  addToast: (
-    type: ToastMessage["type"],
-    title: string,
-    message: string,
-  ) => void;
-  removeToast: (id: string) => void;
 
-  // Modals & Visibility State
+  // Modal & Visibility State
   editingCommand: Partial<SavedCommand> | null;
   isCommandModalOpen: boolean;
   editingPreset: SerialPreset | null;
@@ -57,11 +40,34 @@ export interface UISlice {
   showAI: boolean;
   activeSequenceId: string | null;
   loadedPresetId: string | null;
-
-  // New: Selected Command for Right Sidebar
   selectedCommandId: string | null;
   rightSidebarTab: RightSidebarTab;
+}
 
+// Actions interface (all methods)
+export interface UISliceActions {
+  // Appearance
+  setThemeMode: (mode: ThemeMode) => void;
+  setThemeColor: (color: ThemeColor) => void;
+
+  // System Logs
+  addSystemLog: (
+    level: LogLevel,
+    category: LogCategory,
+    message: string,
+    details?: any,
+  ) => void;
+  clearSystemLogs: () => void;
+
+  // Toasts
+  addToast: (
+    type: ToastMessage["type"],
+    title: string,
+    message: string,
+  ) => void;
+  removeToast: (id: string) => void;
+
+  // Modals & Visibility State
   setEditingCommand: (cmd: Partial<SavedCommand> | null) => void;
   setIsCommandModalOpen: (open: boolean) => void;
   setEditingPreset: (preset: SerialPreset | null) => void;
@@ -75,6 +81,9 @@ export interface UISlice {
   setSelectedCommandId: (id: string | null) => void;
   setRightSidebarTab: (tab: RightSidebarTab) => void;
 }
+
+// Complete slice: State & Actions
+export type UISlice = UISliceState & UISliceActions;
 
 export const createUISlice: StateCreator<UISlice> = (set) => ({
   themeMode: "system",

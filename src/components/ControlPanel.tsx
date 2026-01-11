@@ -476,6 +476,12 @@ const ControlPanel: React.FC<Props> = ({
                           >
                             📏 Virtual Prefix Stream (2B LE)
                           </option>
+                          <option
+                            value="mock-sine-wave"
+                            className="font-bold text-pink-600"
+                          >
+                            📈 Virtual Sine Wave Generator
+                          </option>
                         </optgroup>
                         {availablePorts.length > 0 && (
                           <optgroup label="Physical Ports">
