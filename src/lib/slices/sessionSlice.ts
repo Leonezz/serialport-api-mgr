@@ -51,6 +51,7 @@ const DEFAULT_PLOTTER_STATE: PlotterState = {
   },
   data: [],
   series: [],
+  aliases: {},
 };
 
 // Helper to create a new session
@@ -153,6 +154,7 @@ export interface SessionSliceActions {
   setPlotterConfig: (updates: Partial<PlotterConfig>) => void;
   addPlotterData: (point: PlotterDataPoint) => void;
   clearPlotterData: () => void;
+  setPlotterSeriesAlias: (seriesKey: string, alias: string) => void;
 
   // AI Chat State
   setAiMessages: (messages: ChatMessage[]) => void;
@@ -597,6 +599,27 @@ export const createSessionSlice: StateCreator<
               ...currentPlotter,
               data: [],
               series: [],
+            },
+          },
+        },
+      };
+    }),
+
+  setPlotterSeriesAlias: (seriesKey, alias) =>
+    set((state) => {
+      const session = state.sessions[state.activeSessionId];
+      const currentPlotter = session.plotter || { ...DEFAULT_PLOTTER_STATE };
+      return {
+        sessions: {
+          ...state.sessions,
+          [session.id]: {
+            ...session,
+            plotter: {
+              ...currentPlotter,
+              aliases: {
+                ...currentPlotter.aliases,
+                [seriesKey]: alias,
+              },
             },
           },
         },

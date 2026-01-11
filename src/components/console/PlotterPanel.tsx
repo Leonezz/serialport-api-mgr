@@ -21,6 +21,7 @@ import {
   X,
   LineChart as ChartIcon,
   ArrowRight,
+  Edit2,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Card } from "../ui/Card";
@@ -48,7 +49,7 @@ const WINDOW_SIZE = 200; // Visible points in auto-scroll mode
 const PlotterPanel: React.FC = () => {
   const activeSessionId = useStore((state) => state.activeSessionId);
   const session = useStore((state) => state.sessions[activeSessionId]);
-  const { setPlotterConfig, clearPlotterData } = useStore();
+  const { setPlotterConfig, clearPlotterData, setPlotterSeriesAlias } = useStore();
 
   const [isPaused, setIsPaused] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -70,6 +71,7 @@ const PlotterPanel: React.FC = () => {
   };
   const data = plotter?.data || [];
   const series = plotter?.series || [];
+  const aliases = plotter?.aliases || {};
 
   // Data to display (handle pause)
   const [frozenData, setFrozenData] = useState<any[]>([]);
@@ -147,6 +149,8 @@ const PlotterPanel: React.FC = () => {
   const togglePlotter = () => {
     setPlotterConfig({ enabled: !config.enabled });
   };
+
+  const getSeriesName = (key: string) => aliases[key] || key;
 
   return (
     <div className="flex flex-col h-full bg-muted/10 overflow-hidden relative">
@@ -287,6 +291,10 @@ const PlotterPanel: React.FC = () => {
                 />
                 <Tooltip
                   labelFormatter={(t) => new Date(t).toLocaleTimeString()}
+                  formatter={(value: number, name: string) => [
+                    value,
+                    getSeriesName(name),
+                  ]}
                   contentStyle={{
                     borderRadius: "0.5rem",
                     border: "1px solid hsl(var(--border))",
@@ -303,12 +311,14 @@ const PlotterPanel: React.FC = () => {
                     cursor: "pointer",
                   }}
                   onClick={handleLegendClick}
+                  formatter={(value) => getSeriesName(value)}
                 />
                 {series.map((key, i) => (
                   <Line
                     key={key}
                     type="monotone"
                     dataKey={key}
+                    name={key}
                     stroke={CHART_COLORS[i % CHART_COLORS.length]}
                     strokeWidth={2}
                     dot={false}
@@ -353,6 +363,7 @@ const PlotterPanel: React.FC = () => {
                     isHidden && "opacity-40 grayscale",
                   )}
                   onClick={() => handleLegendClick({ dataKey: s })}
+                  title={getSeriesName(s)}
                 >
                   <div
                     className="w-2 h-2 rounded-full"
@@ -361,7 +372,7 @@ const PlotterPanel: React.FC = () => {
                     }}
                   />
                   <span className="text-xs font-medium truncate max-w-[100px]">
-                    {s}:
+                    {getSeriesName(s)}:
                   </span>
                   <span className="text-xs font-mono font-bold text-primary">
                     {typeof lastVal === "number" ? lastVal.toFixed(2) : "--"}
@@ -381,8 +392,8 @@ const PlotterPanel: React.FC = () => {
       {/* Settings Modal */}
       {showSettings && (
         <div className="absolute inset-0 z-50 bg-background/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-[400px] shadow-2xl border-border animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20">
+          <Card className="w-[450px] shadow-2xl border-border animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20 shrink-0">
               <span className="font-bold text-sm flex items-center gap-2">
                 <Settings className="w-4 h-4" /> Plotter Configuration
               </span>
@@ -390,91 +401,139 @@ const PlotterPanel: React.FC = () => {
                 <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs">Parser Strategy</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant={config.autoDiscover ? "default" : "outline"}
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => setPlotterConfig({ autoDiscover: true })}
-                  >
-                    Auto-Discover
-                  </Button>
-                  <Button
-                    variant={!config.autoDiscover ? "default" : "outline"}
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => setPlotterConfig({ autoDiscover: false })}
-                  >
-                    Manual Mode
-                  </Button>
+            <div className="p-4 space-y-6 overflow-y-auto custom-scrollbar">
+              {/* Parser Config */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b pb-2 mb-2">
+                  <div className="h-6 w-6 bg-blue-500/10 rounded flex items-center justify-center text-blue-600">
+                    <ChartIcon className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-bold uppercase text-muted-foreground">Data Parsing</span>
                 </div>
-              </div>
 
-              {!config.autoDiscover && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                  <Label className="text-xs">Manual Parser</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs">Parser Strategy</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant={config.autoDiscover ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => setPlotterConfig({ autoDiscover: true })}
+                    >
+                      Auto-Discover
+                    </Button>
+                    <Button
+                      variant={!config.autoDiscover ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => setPlotterConfig({ autoDiscover: false })}
+                    >
+                      Manual Mode
+                    </Button>
+                  </div>
+                </div>
+
+                {!config.autoDiscover && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                    <Label className="text-xs">Manual Parser</Label>
+                    <Select
+                      className="h-8 text-xs"
+                      value={config.parser}
+                      onChange={(e) =>
+                        setPlotterConfig({
+                          parser: e.target.value as PlotterParserType,
+                        })
+                      }
+                    >
+                      <option value="CSV">Comma Separated (CSV)</option>
+                      <option value="JSON">Structured JSON</option>
+                      <option value="REGEX">Custom Regex</option>
+                    </Select>
+                  </div>
+                )}
+
+                {config.parser === "REGEX" && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                    <Label className="text-xs">
+                      Regular Expression (Capture Groups)
+                    </Label>
+                    <Input
+                      className="h-8 text-xs font-mono"
+                      placeholder="e.g. temp=(\\d+\\.\\d+)"
+                      value={config.regexString || ""}
+                      onChange={(e) =>
+                        setPlotterConfig({ regexString: e.target.value })
+                      }
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Each capture group will create a new data series.
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Buffer Size (History)</Label>
                   <Select
                     className="h-8 text-xs"
-                    value={config.parser}
+                    value={config.bufferSize.toString()}
                     onChange={(e) =>
-                      setPlotterConfig({
-                        parser: e.target.value as PlotterParserType,
-                      })
+                      setPlotterConfig({ bufferSize: parseInt(e.target.value) })
                     }
                   >
-                    <option value="CSV">Comma Separated (CSV)</option>
-                    <option value="JSON">Structured JSON</option>
-                    <option value="REGEX">Custom Regex</option>
+                    <option value="100">100 points</option>
+                    <option value="500">500 points</option>
+                    <option value="1000">1000 points</option>
+                    <option value="5000">5000 points</option>
                   </Select>
                 </div>
-              )}
+              </div>
 
-              {config.parser === "REGEX" && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                  <Label className="text-xs">
-                    Regular Expression (Capture Groups)
-                  </Label>
-                  <Input
-                    className="h-8 text-xs font-mono"
-                    placeholder="e.g. temp=(\d+\.\d+)"
-                    value={config.regexString || ""}
-                    onChange={(e) =>
-                      setPlotterConfig({ regexString: e.target.value })
-                    }
-                  />
-                  <p className="text-[10px] text-muted-foreground italic">
-                    Each capture group will create a new data series.
-                  </p>
+              {/* Series Config */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b pb-2 mb-2">
+                  <div className="h-6 w-6 bg-emerald-500/10 rounded flex items-center justify-center text-emerald-600">
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-bold uppercase text-muted-foreground">Series Configuration</span>
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label className="text-xs">Buffer Size (History)</Label>
-                <Select
-                  className="h-8 text-xs"
-                  value={config.bufferSize.toString()}
-                  onChange={(e) =>
-                    setPlotterConfig({ bufferSize: parseInt(e.target.value) })
-                  }
-                >
-                  <option value="100">100 points</option>
-                  <option value="500">500 points</option>
-                  <option value="1000">1000 points</option>
-                  <option value="5000">5000 points</option>
-                </Select>
+                {series.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground text-xs italic bg-muted/20 rounded">
+                    No series detected yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {series.map((s, i) => (
+                      <div key={s} className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{
+                            backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                          }}
+                        />
+                        <div className="text-xs font-mono shrink-0 w-24 truncate text-muted-foreground" title={s}>
+                          {s}
+                        </div>
+                        <Input
+                          className="h-7 text-xs flex-1"
+                          placeholder="Display Name"
+                          value={aliases[s] || ""}
+                          onChange={(e) => setPlotterSeriesAlias(s, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              <div className="pt-2">
-                <Button
-                  className="w-full h-9 gap-2"
-                  onClick={() => setShowSettings(false)}
-                >
-                  Close Settings
-                </Button>
-              </div>
+            </div>
+            
+            <div className="p-4 border-t border-border shrink-0">
+              <Button
+                className="w-full h-9 gap-2"
+                onClick={() => setShowSettings(false)}
+              >
+                Close Settings
+              </Button>
             </div>
           </Card>
         </div>

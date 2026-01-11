@@ -228,6 +228,7 @@ export interface PlotterState {
   config: PlotterConfig;
   data: PlotterDataPoint[];
   series: string[]; // List of detected series IDs/names
+  aliases: Record<string, string>; // Map series ID -> User Display Name
 }
 
 // --- Multi-Session ---
