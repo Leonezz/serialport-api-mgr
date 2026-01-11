@@ -25,5 +25,6 @@ pub mod event_names {
 }
 
 // Re-export event types for convenience
+pub use message_read::PortReadEvent;
 pub use port_closed::PortClosedEvent;
 pub use port_opened::PortOpenedEvent;

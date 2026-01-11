@@ -32,6 +32,8 @@ pub struct WritePortDataTerminalReady {
 pub type WritePortSender = AckSender<WriteCmd>;
 pub type WritePortReceiver = AckReceiver<WriteCmd>;
 
+use crate::events::PortReadEvent;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ReadPortMessage {
     pub timestamp_ms: u128,
@@ -39,7 +41,7 @@ pub struct ReadPortMessage {
 }
 
 pub enum SerialEvent {
-    Message(ReadPortMessage),
+    Message(PortReadEvent),
     Error(std::io::Error),
 }
 
@@ -52,6 +54,7 @@ pub struct ModemStatus {
 }
 
 pub fn spawn_serial_task(
+    port_name: String,
     mut port: tokio_serial::SerialStream,
 ) -> (
     WritePortSender,
@@ -82,13 +85,10 @@ pub fn spawn_serial_task(
                         Ok(0) => break,
                         Ok(n) => {
                             let _ = event_tx
-                                .send(SerialEvent::Message(ReadPortMessage {
-                                    timestamp_ms: std::time::SystemTime::now()
-                                        .duration_since(std::time::UNIX_EPOCH)
-                                        .unwrap()
-                                        .as_millis(),
-                                    data: read_buf[..n].to_vec()
-                                })).await;
+                                .send(SerialEvent::Message(PortReadEvent::new(
+                                    port_name.clone(),
+                                    read_buf[..n].to_vec()
+                                ))).await;
                         }
                         Err(e) => {
                             let _ = event_tx.send(SerialEvent::Error(e)).await;

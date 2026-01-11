@@ -21,7 +21,7 @@ fn setup_port_task(
     app: AppHandle,
 ) -> Result<WritePortSender, Report> {
     let span = tracing::debug_span!("port name", port_name);
-    let (write_tx, mut read_rx, status_rx, mut write_notifier_rx) = spawn_serial_task(port);
+    let (write_tx, mut read_rx, status_rx, mut write_notifier_rx) = spawn_serial_task(port_name.clone(), port);
     let app_for_read = app.clone();
     let port_name_for_read = port_name.clone();
     tokio::spawn(
