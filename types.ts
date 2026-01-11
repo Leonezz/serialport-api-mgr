@@ -1,3 +1,4 @@
+import { TsFlowControl, TsParity } from "./src/lib/tauri";
 
 export type LineEnding = 'NONE' | 'LF' | 'CR' | 'CRLF';
 
@@ -87,8 +88,8 @@ export interface SerialConfig {
   baudRate: number;
   dataBits: 7 | 8;
   stopBits: 1 | 2;
-  parity: 'none' | 'even' | 'odd';
-  flowControl: 'none' | 'hardware' | 'software';
+  parity: TsParity;
+  flowControl: TsFlowControl;
   bufferSize: number;
   lineEnding: LineEnding;
   framing: FramingConfig; // New field
@@ -231,9 +232,9 @@ export interface SerialOptions {
   baudRate: number;
   dataBits?: number;
   stopBits?: number;
-  parity?: 'none' | 'even' | 'odd';
+  parity?: TsParity;
   bufferSize?: number;
-  flowControl?: 'none' | 'hardware' | 'software';
+  flowControl?: TsFlowControl;
 }
 
 export interface SerialPortInfo {
