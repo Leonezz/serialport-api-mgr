@@ -1,8 +1,8 @@
 
 import { SerialOptions, SerialPortInfo } from '../types';
 import { GenericPort } from './connection';
-import { TauriSerialAPI, type RustPortInfo } from './tauri';
-import { listen, UnlistenFn } from '@tauri-apps/api/event';
+import { TauriSerialAPI, type RustPortInfo, TauriEventNames, listenToTauriEvent } from './tauri';
+import { UnlistenFn } from '@tauri-apps/api/event';
 import '../../vite-env.d.ts'
 
 export interface ISerialPort extends GenericPort {
@@ -96,9 +96,10 @@ class TauriPort implements ISerialPort {
         this.readable = new ReadableStream<Uint8Array>({
             start: async (controller) => {
                 this.readController = controller;
-                // Listen for data from Tauri backend
-                this.unlistenRead = await listen('port_read', (event: any) => {
-                    if (event.payload?.port_name === this.portName && event.payload?.data) {
+                // Listen for data from Tauri backend with type safety
+                this.unlistenRead = await listenToTauriEvent(TauriEventNames.PORT_READ, (event) => {
+                    // Only process data for this port
+                    if (event.payload.port_name === this.portName) {
                         const data = new Uint8Array(event.payload.data);
                         controller.enqueue(data);
                     }
@@ -201,8 +202,8 @@ class TauriProvider implements ISerialProvider {
         if (type === 'connect' || type === 'disconnect') {
             // Tauri emits 'port_opened' and 'port_closed' events
             // We can listen to these and translate to 'connect'/'disconnect'
-            const tauriEvent = type === 'connect' ? 'port_opened' : 'port_closed';
-            listen(tauriEvent, (event) => {
+            const tauriEvent = type === 'connect' ? TauriEventNames.PORT_OPENED : TauriEventNames.PORT_CLOSED;
+            listenToTauriEvent(tauriEvent, (event) => {
                 // Create a compatible Event object
                 const customEvent = new CustomEvent(type, { detail: event.payload });
                 this.dispatchEvent(type, customEvent);
