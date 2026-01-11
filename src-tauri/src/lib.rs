@@ -18,11 +18,12 @@ use serial_mgr::{
 use tauri::{self, Manager};
 use tauri_plugin_fs::FsExt;
 use time::macros::{format_description, offset};
-use tracing_subscriber::fmt::time::OffsetTime;
+use tracing_appender::rolling::Rotation;
+use tracing_subscriber::fmt::{self, time::OffsetTime};
 
 use crate::state::AppState;
 
-pub fn setup_logging() {
+pub fn setup_logging(app: &tauri::App) {
     let fmt = if cfg!(debug_assertions) {
         format_description!("[hour]:[minute]:[second].[subsecond digits:3]")
     } else {
@@ -30,16 +31,20 @@ pub fn setup_logging() {
     };
 
     #[cfg(all(desktop, not(debug_assertions)))]
-    let writer = {
-        use crate::global::APP_CONFIG_DIR;
-        use std::{fs::File, sync::Mutex};
-        let log_file =
-            File::create(APP_CONFIG_DIR.join("app.log")).expect("Failed to create the log file");
-        Mutex::new(log_file)
+    let (writer, _guard) = {
+        let log_path = app.path().app_log_dir().unwrap_or("./logs".into());
+        if !log_path.exists() {
+            std::fs::create_dir_all(&log_path).expect("Failed to create log directory");
+        }
+        tracing_appender::non_blocking(tracing_appender::rolling::RollingFileAppender::new(
+                Rotation::DAILY,
+                log_path,
+                "app",
+            ))
     };
 
     #[cfg(any(debug_assertions, mobile))]
-    let writer = std::io::stderr;
+   let writer = std::io::stderr;
 
     let timer = OffsetTime::new(offset!(+8), fmt);
     let builder = tracing_subscriber::fmt()
@@ -59,7 +64,6 @@ pub fn setup_logging() {
 }
 
 pub fn run() {
-    setup_logging();
     let builder = tauri::Builder::default();
     builder
         .invoke_handler(tauri::generate_handler![
@@ -78,6 +82,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .manage(AppState::default())
         .setup(|app| {
+            setup_logging(app);
             let scope = app.fs_scope();
             let app_local_data_dir = app.path().app_local_data_dir().unwrap();
             tracing::trace!(

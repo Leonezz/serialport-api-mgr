@@ -84,6 +84,7 @@ pub fn spawn_serial_task(
                     match res {
                         Ok(0) => break,
                         Ok(n) => {
+                            tracing::info!("read {} bytes from port {}", n, port_name);
                             let _ = event_tx
                                 .send(SerialEvent::Message(PortReadEvent::new(
                                     port_name.clone(),
@@ -101,6 +102,7 @@ pub fn spawn_serial_task(
                 cmd = write_rx.recv() => {
                     match cmd {
                         Some((WriteCmd::Message(data), ack_tx)) => {
+                            tracing::info!("write {} bytes to port {}", data.data.len(), port_name);
                             let len = data.data.len();
                             let res = port.write_all(&data.data).await;
                             if let Some(tx) = ack_tx {
@@ -112,6 +114,7 @@ pub fn spawn_serial_task(
                             }
                         }
                         Some((WriteCmd::Dtr(v), ack_tx)) => {
+                            tracing::info!("set DTR to {} on port {}", v.dtr, port_name);
                             if let Err(e) = port.write_data_terminal_ready(v.dtr) {
                                 tracing::warn!("Failed to set DTR to {}: {}", v.dtr, e);
                             }
@@ -120,6 +123,7 @@ pub fn spawn_serial_task(
                             }
                         }
                         Some((WriteCmd::Rts(v), ack_tx)) => {
+                            tracing::info!("set RTS to {} on port {}", v.rts, port_name);
                             if let Err(e) = port.write_request_to_send(v.rts) {
                                 tracing::warn!("Failed to set RTS to {}: {}", v.rts, e);
                             }
@@ -128,6 +132,7 @@ pub fn spawn_serial_task(
                             }
                         }
                         Some((WriteCmd::Close, ack_tx)) => {
+                            tracing::info!("closing port {}", port_name);
                             if let Some(tx) = ack_tx {
                                 let _ = tx.send(());
                             }

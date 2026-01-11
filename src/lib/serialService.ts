@@ -1,7 +1,7 @@
 
 import { SerialOptions, SerialPortInfo } from '../types';
 import { GenericPort } from './connection';
-import { TauriSerialAPI, type RustPortInfo, TauriEventNames, listenToTauriEvent } from './tauri';
+import { TauriSerialAPI, type RustPortInfo, TauriEventNames, listenToTauriEvent, LogCommand } from './tauri';
 import { UnlistenFn } from '@tauri-apps/api/event';
 import '../../vite-env.d.ts'
 
@@ -99,6 +99,7 @@ class TauriPort implements ISerialPort {
                 // Listen for data from Tauri backend with type safety
                 this.unlistenRead = await listenToTauriEvent(TauriEventNames.PORT_READ, (event) => {
                     // Only process data for this port
+                    console.log(`TauriPort[${this.portName}] received ${TauriEventNames.PORT_READ} event:`, event);
                     if (event.payload.port_name === this.portName) {
                         const data = new Uint8Array(event.payload.data);
                         controller.enqueue(data);

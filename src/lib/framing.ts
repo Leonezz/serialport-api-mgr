@@ -247,7 +247,7 @@ export class SerialFramer {
         }
     }
 
-    public push(data: Uint8Array, timestamp: number = Date.now()) {
+    public push({data, timestamp}: {data: Uint8Array, timestamp: number}) {
         if (data.length === 0) return;
         this.chunks.push({ data, timestamp });
         this.runCompose(false);
@@ -259,6 +259,10 @@ export class SerialFramer {
             clearTimeout(this.timer);
             this.timer = null;
         }
+    }
+
+    public flush() {
+        this.runCompose(true);
     }
 
     private runCompose(forceFlush: boolean) {

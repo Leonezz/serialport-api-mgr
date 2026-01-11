@@ -21,7 +21,8 @@ fn setup_port_task(
     app: AppHandle,
 ) -> Result<WritePortSender, Report> {
     let span = tracing::debug_span!("port name", port_name);
-    let (write_tx, mut read_rx, status_rx, mut write_notifier_rx) = spawn_serial_task(port_name.clone(), port);
+    let (write_tx, mut read_rx, status_rx, mut write_notifier_rx) =
+        spawn_serial_task(port_name.clone(), port);
     let app_for_read = app.clone();
     let port_name_for_read = port_name.clone();
     tokio::spawn(
@@ -49,7 +50,9 @@ fn setup_port_task(
                             });
                     }
                     SerialEvent::Error(err) => {
-                        if let Err(emit_err) = app_for_read.emit(event_names::PORT_ERROR, err.to_string()) {
+                        if let Err(emit_err) =
+                            app_for_read.emit(event_names::PORT_ERROR, err.to_string())
+                        {
                             tracing::error!("emit port error failed: {}", emit_err);
                         }
                         tracing::error!("serial port error: {}", err);
@@ -79,17 +82,23 @@ fn setup_port_task(
                             );
                         }
                         PortStatus::Opened(port_status) => {
-                            port_status.carrier_detect = status.cd;
-                            port_status.clear_to_send = status.cts;
-                            port_status.data_set_ready = status.dsr;
-                            port_status.ring_indicator = status.ring;
-                            tracing::debug!(
-                                "update port status, cd: {}, cts: {}, dsr: {}, ring: {}",
-                                status.cd,
-                                status.cts,
-                                status.dsr,
-                                status.ring
-                            );
+                            let changed = port_status.carrier_detect != status.cd
+                                || port_status.clear_to_send != status.cts
+                                || port_status.data_set_ready != status.dsr
+                                || port_status.ring_indicator != status.ring;
+                            if changed {
+                                port_status.carrier_detect = status.cd;
+                                port_status.clear_to_send = status.cts;
+                                port_status.data_set_ready = status.dsr;
+                                port_status.ring_indicator = status.ring;
+                                tracing::debug!(
+                                    "update port status, cd: {}, cts: {}, dsr: {}, ring: {}",
+                                    status.cd,
+                                    status.cts,
+                                    status.dsr,
+                                    status.ring
+                                );
+                            }
                         }
                     });
             }
