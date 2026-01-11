@@ -12,7 +12,7 @@ import type {
   TsFlowControl,
   TsParity,
   TsStopBits,
-} from './types';
+} from "./types";
 
 export class EnumConverter {
   // ========================================================================
@@ -24,10 +24,10 @@ export class EnumConverter {
    */
   static dataBitsToRust(value: TsDataBits): RustDataBits {
     const map: Record<TsDataBits, RustDataBits> = {
-      5: 'Five',
-      6: 'Six',
-      7: 'Seven',
-      8: 'Eight',
+      5: "Five",
+      6: "Six",
+      7: "Seven",
+      8: "Eight",
     };
     return map[value];
   }
@@ -54,9 +54,9 @@ export class EnumConverter {
    */
   static flowControlToRust(value: TsFlowControl): RustFlowControl {
     const map: Record<TsFlowControl, RustFlowControl> = {
-      none: 'None',
-      hardware: 'Hardware',
-      software: 'Software',
+      none: "None",
+      hardware: "Hardware",
+      software: "Software",
     };
     return map[value];
   }
@@ -66,9 +66,9 @@ export class EnumConverter {
    */
   static flowControlFromRust(value: RustFlowControl): TsFlowControl {
     const map: Record<RustFlowControl, TsFlowControl> = {
-      None: 'none',
-      Hardware: 'hardware',
-      Software: 'software',
+      None: "none",
+      Hardware: "hardware",
+      Software: "software",
     };
     return map[value];
   }
@@ -82,9 +82,9 @@ export class EnumConverter {
    */
   static parityToRust(value: TsParity): RustParity {
     const map: Record<TsParity, RustParity> = {
-      none: 'None',
-      even: 'Even',
-      odd: 'Odd',
+      none: "None",
+      even: "Even",
+      odd: "Odd",
     };
     return map[value];
   }
@@ -94,9 +94,9 @@ export class EnumConverter {
    */
   static parityFromRust(value: RustParity): TsParity {
     const map: Record<RustParity, TsParity> = {
-      None: 'none',
-      Even: 'even',
-      Odd: 'odd',
+      None: "none",
+      Even: "even",
+      Odd: "odd",
     };
     return map[value];
   }
@@ -110,8 +110,8 @@ export class EnumConverter {
    */
   static stopBitsToRust(value: TsStopBits): RustStopBits {
     const map: Record<TsStopBits, RustStopBits> = {
-      1: 'One',
-      2: 'Two',
+      1: "One",
+      2: "Two",
     };
     return map[value];
   }

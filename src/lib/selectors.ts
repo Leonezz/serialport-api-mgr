@@ -1,4 +1,4 @@
-import { useStore } from './store';
+import { useStore } from "./store";
 
 /**
  * Zustand Selectors for Optimized Re-renders
@@ -14,7 +14,7 @@ import { useStore } from './store';
  * Use this when you need session-specific data but don't need actions
  */
 export const useActiveSession = () =>
-  useStore(state => {
+  useStore((state) => {
     const session = state.sessions[state.activeSessionId];
     return {
       config: session?.config,
@@ -35,7 +35,7 @@ export const useActiveSession = () =>
  * Useful for session tabs/switcher UI
  */
 export const useSessionMetadata = () =>
-  useStore(state => ({
+  useStore((state) => ({
     sessions: Object.entries(state.sessions).map(([id, session]) => ({
       id,
       name: session.name,
@@ -50,9 +50,10 @@ export const useSessionMetadata = () =>
  * Use when you only need to know if connected/disconnected
  */
 export const useConnectionState = () =>
-  useStore(state => ({
+  useStore((state) => ({
     isConnected: state.sessions[state.activeSessionId]?.isConnected || false,
-    connectionType: state.sessions[state.activeSessionId]?.connectionType || 'SERIAL',
+    connectionType:
+      state.sessions[state.activeSessionId]?.connectionType || "SERIAL",
   }));
 
 // --- Store Actions (Stable - Never Cause Re-renders) ---
@@ -62,7 +63,7 @@ export const useConnectionState = () =>
  * These are stable references that don't change, so components using this won't re-render
  */
 export const useStoreActions = () =>
-  useStore(state => ({
+  useStore((state) => ({
     // Config
     setConfig: state.setConfig,
     setNetworkConfig: state.setNetworkConfig,
@@ -120,7 +121,7 @@ export const useStoreActions = () =>
  * Get theme settings
  */
 export const useTheme = () =>
-  useStore(state => ({
+  useStore((state) => ({
     themeMode: state.themeMode,
     themeColor: state.themeColor,
   }));
@@ -129,7 +130,7 @@ export const useTheme = () =>
  * Get theme actions
  */
 export const useThemeActions = () =>
-  useStore(state => ({
+  useStore((state) => ({
     setThemeMode: state.setThemeMode,
     setThemeColor: state.setThemeColor,
   }));
@@ -138,7 +139,7 @@ export const useThemeActions = () =>
  * Get modal states
  */
 export const useModals = () =>
-  useStore(state => ({
+  useStore((state) => ({
     editingCommand: state.editingCommand,
     editingPreset: state.editingPreset,
     pendingParamCommand: state.pendingParamCommand,
@@ -150,7 +151,7 @@ export const useModals = () =>
 /**
  * Get toasts
  */
-export const useToasts = () => useStore(state => state.toasts);
+export const useToasts = () => useStore((state) => state.toasts);
 
 // --- Project Data Selectors ---
 
@@ -158,9 +159,9 @@ export const useToasts = () => useStore(state => state.toasts);
  * Get commands (optionally filtered by context)
  */
 export const useCommands = (contextId?: string) =>
-  useStore(state => {
+  useStore((state) => {
     if (contextId) {
-      return state.commands.filter(cmd => cmd.contextId === contextId);
+      return state.commands.filter((cmd) => cmd.contextId === contextId);
     }
     return state.commands;
   });
@@ -168,13 +169,13 @@ export const useCommands = (contextId?: string) =>
 /**
  * Get sequences
  */
-export const useSequences = () => useStore(state => state.sequences);
+export const useSequences = () => useStore((state) => state.sequences);
 
 /**
  * Get presets
  */
 export const usePresets = () =>
-  useStore(state => ({
+  useStore((state) => ({
     presets: state.presets,
     loadedPresetId: state.loadedPresetId,
   }));
@@ -182,20 +183,21 @@ export const usePresets = () =>
 /**
  * Get contexts
  */
-export const useContexts = () => useStore(state => state.contexts);
+export const useContexts = () => useStore((state) => state.contexts);
 
 /**
  * Get active sequence ID
  */
-export const useActiveSequenceId = () => useStore(state => state.activeSequenceId);
+export const useActiveSequenceId = () =>
+  useStore((state) => state.activeSequenceId);
 
 /**
  * Get system logs
  */
-export const useSystemLogs = () => useStore(state => state.systemLogs || []);
+export const useSystemLogs = () => useStore((state) => state.systemLogs || []);
 
 /**
  * Get variables for a session
  */
 export const useVariables = () =>
-  useStore(state => state.sessions[state.activeSessionId]?.variables || {});
+  useStore((state) => state.sessions[state.activeSessionId]?.variables || {});

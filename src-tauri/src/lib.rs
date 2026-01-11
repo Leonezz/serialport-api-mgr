@@ -37,14 +37,14 @@ pub fn setup_logging(app: &tauri::App) {
             std::fs::create_dir_all(&log_path).expect("Failed to create log directory");
         }
         tracing_appender::non_blocking(tracing_appender::rolling::RollingFileAppender::new(
-                Rotation::DAILY,
-                log_path,
-                "app",
-            ))
+            Rotation::DAILY,
+            log_path,
+            "app",
+        ))
     };
 
     #[cfg(any(debug_assertions, mobile))]
-   let writer = std::io::stderr;
+    let writer = std::io::stderr;
 
     let timer = OffsetTime::new(offset!(+8), fmt);
     let builder = tracing_subscriber::fmt()

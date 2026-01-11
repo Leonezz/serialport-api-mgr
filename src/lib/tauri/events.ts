@@ -3,8 +3,8 @@
  * Provides type-safe event listening with compile-time validation
  */
 
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { z } from 'zod';
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { z } from "zod";
 
 // ============================================================================
 // Event Payload Types (matching Rust event structs)
@@ -60,14 +60,15 @@ export interface PortStatusEvent {
 // ============================================================================
 
 export const TauriEventNames = {
-  PORT_OPENED: 'port_opened',
-  PORT_CLOSED: 'port_closed',
-  PORT_READ: 'port_read',
-  PORT_ERROR: 'port_error',
-  PORT_STATUS: 'port_status',
+  PORT_OPENED: "port_opened",
+  PORT_CLOSED: "port_closed",
+  PORT_READ: "port_read",
+  PORT_ERROR: "port_error",
+  PORT_STATUS: "port_status",
 } as const;
 
-export type TauriEventName = typeof TauriEventNames[keyof typeof TauriEventNames];
+export type TauriEventName =
+  (typeof TauriEventNames)[keyof typeof TauriEventNames];
 
 // ============================================================================
 // Event Payload Schemas (Zod validation)
@@ -130,11 +131,11 @@ const EVENT_SCHEMAS: Record<TauriEventName, z.ZodSchema> = {
 
 /**
  * Type-safe wrapper around Tauri's listen function with runtime validation
- * 
+ *
  * @param eventName - The event name (autocomplete supported)
  * @param handler - Event handler with typed payload
  * @returns Unlisten function
- * 
+ *
  * @example
  * // Listen to port read events with full type safety
  * const unlisten = await listenToTauriEvent('port_read', (event) => {
@@ -142,7 +143,7 @@ const EVENT_SCHEMAS: Record<TauriEventName, z.ZodSchema> = {
  *   console.log(event.payload.data);      // ✅ Type-safe
  *   console.log(event.payload.invalid);   // ❌ Compile error
  * });
- * 
+ *
  * @example
  * // Listen to port opened events
  * const unlisten = await listenToTauriEvent('port_opened', (event) => {
@@ -152,7 +153,7 @@ const EVENT_SCHEMAS: Record<TauriEventName, z.ZodSchema> = {
 export async function listenToTauriEvent<T extends TauriEventName>(
   eventName: T,
   handler: (event: { payload: TauriEventPayloadMap[T] }) => void,
-  options?: { validatePayload?: boolean }
+  options?: { validatePayload?: boolean },
 ): Promise<UnlistenFn> {
   const validatePayload = options?.validatePayload ?? true;
 
@@ -166,9 +167,12 @@ export async function listenToTauriEvent<T extends TauriEventName>(
       } catch (error) {
         console.error(
           `[Tauri Event] Validation failed for event "${eventName}"`,
-          '\n[Raw Payload]:', JSON.stringify(event.payload, null, 2),
-          '\n[Validation Error]:', error instanceof Error ? error.message : String(error),
-          '\n[Full Error]:', error
+          "\n[Raw Payload]:",
+          JSON.stringify(event.payload, null, 2),
+          "\n[Validation Error]:",
+          error instanceof Error ? error.message : String(error),
+          "\n[Full Error]:",
+          error,
         );
         // Still call handler with unvalidated payload for debugging
         handler(event as { payload: TauriEventPayloadMap[T] });
@@ -182,11 +186,11 @@ export async function listenToTauriEvent<T extends TauriEventName>(
 
 /**
  * Listen to multiple events with a single handler
- * 
+ *
  * @param eventNames - Array of event names
  * @param handler - Event handler that receives event name and payload
  * @returns Array of unlisten functions
- * 
+ *
  * @example
  * const unlisteners = await listenToMultipleEvents(
  *   ['port_opened', 'port_closed'],
@@ -198,43 +202,46 @@ export async function listenToTauriEvent<T extends TauriEventName>(
  *     }
  *   }
  * );
- * 
+ *
  * // Clean up all listeners
  * unlisteners.forEach(unlisten => unlisten());
  */
 export async function listenToMultipleEvents<T extends TauriEventName>(
   eventNames: readonly T[],
-  handler: <K extends T>(eventName: K, payload: TauriEventPayloadMap[K]) => void
+  handler: <K extends T>(
+    eventName: K,
+    payload: TauriEventPayloadMap[K],
+  ) => void,
 ): Promise<UnlistenFn[]> {
   const unlisteners = await Promise.all(
-    eventNames.map(eventName =>
+    eventNames.map((eventName) =>
       listenToTauriEvent(eventName, (event) => {
         handler(eventName, event.payload);
-      })
-    )
+      }),
+    ),
   );
   return unlisteners;
 }
 
 /**
  * Listen to an event once, then automatically unlisten
- * 
+ *
  * @param eventName - The event name
  * @param handler - Event handler
  * @returns Promise that resolves when event is received
- * 
+ *
  * @example
  * // Wait for port to open
  * const event = await listenOnce('port_opened');
  * console.log(`Port ${event.payload.port_name} is now open`);
  */
 export async function listenOnce<T extends TauriEventName>(
-  eventName: T
+  eventName: T,
 ): Promise<{ payload: TauriEventPayloadMap[T] }> {
   return new Promise((resolve) => {
     listenToTauriEvent(eventName, (event) => {
       resolve(event);
-    }).then(unlisten => {
+    }).then((unlisten) => {
       // Auto-unlisten after first event
       unlisten();
     });

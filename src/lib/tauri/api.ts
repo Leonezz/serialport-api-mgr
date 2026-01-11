@@ -3,9 +3,15 @@
  * Handles automatic enum conversion and provides user-friendly interface
  */
 
-import { invokeCommand } from './invoke';
-import { EnumConverter } from './enums';
-import type { TsDataBits, TsFlowControl, TsParity, TsStopBits, RustPortInfo } from './types';
+import { invokeCommand } from "./invoke";
+import { EnumConverter } from "./enums";
+import type {
+  TsDataBits,
+  TsFlowControl,
+  TsParity,
+  TsStopBits,
+  RustPortInfo,
+} from "./types";
 
 /**
  * High-level API for Tauri serial port operations
@@ -21,7 +27,7 @@ export class TauriSerialAPI {
    * @returns Array of port information objects
    */
   static async getAllPortInfo(): Promise<RustPortInfo[]> {
-    return await invokeCommand('get_all_port_info', {});
+    return await invokeCommand("get_all_port_info", {});
   }
 
   /**
@@ -48,7 +54,7 @@ export class TauriSerialAPI {
     dataTerminalReady?: boolean;
     timeoutMs?: number;
   }): Promise<void> {
-    return await invokeCommand('open_port', {
+    return await invokeCommand("open_port", {
       portName: config.portName,
       baudRate: config.baudRate,
       dataBits: EnumConverter.dataBitsToRust(config.dataBits),
@@ -65,7 +71,7 @@ export class TauriSerialAPI {
    * @param portName - Name of the port to close
    */
   static async closePort(portName: string): Promise<void> {
-    return await invokeCommand('close_port', { portName });
+    return await invokeCommand("close_port", { portName });
   }
 
   // ==========================================================================
@@ -83,10 +89,10 @@ export class TauriSerialAPI {
   static async writePort(
     portName: string,
     data: Uint8Array | number[],
-    messageId?: string
+    messageId?: string,
   ): Promise<void> {
     const dataArray = data instanceof Uint8Array ? Array.from(data) : data;
-    return await invokeCommand('write_port', {
+    return await invokeCommand("write_port", {
       portName,
       data: dataArray,
       messageId: messageId ?? `msg_${Date.now()}`,
@@ -103,7 +109,7 @@ export class TauriSerialAPI {
    * @param rts - Signal level (true = high, false = low)
    */
   static async setRTS(portName: string, rts: boolean): Promise<void> {
-    return await invokeCommand('write_request_to_send', { portName, rts });
+    return await invokeCommand("write_request_to_send", { portName, rts });
   }
 
   /**
@@ -112,7 +118,7 @@ export class TauriSerialAPI {
    * @param dtr - Signal level (true = high, false = low)
    */
   static async setDTR(portName: string, dtr: boolean): Promise<void> {
-    return await invokeCommand('write_data_terminal_ready', { portName, dtr });
+    return await invokeCommand("write_data_terminal_ready", { portName, dtr });
   }
 
   /**
@@ -122,7 +128,7 @@ export class TauriSerialAPI {
    */
   static async setSignals(
     portName: string,
-    signals: { rts?: boolean; dtr?: boolean }
+    signals: { rts?: boolean; dtr?: boolean },
   ): Promise<void> {
     const promises: Promise<void>[] = [];
 
@@ -148,26 +154,31 @@ export class TauriSerialAPI {
     /**
      * Log a trace message
      */
-    trace: (prefix: string, content: string) => invokeCommand('log', { prefix, content }),
+    trace: (prefix: string, content: string) =>
+      invokeCommand("log", { prefix, content }),
 
     /**
      * Log an info message
      */
-    info: (prefix: string, content: string) => invokeCommand('info', { prefix, content }),
+    info: (prefix: string, content: string) =>
+      invokeCommand("info", { prefix, content }),
 
     /**
      * Log a warning message
      */
-    warn: (prefix: string, content: string) => invokeCommand('warn', { prefix, content }),
+    warn: (prefix: string, content: string) =>
+      invokeCommand("warn", { prefix, content }),
 
     /**
      * Log an error message
      */
-    error: (prefix: string, content: string) => invokeCommand('error', { prefix, content }),
+    error: (prefix: string, content: string) =>
+      invokeCommand("error", { prefix, content }),
 
     /**
      * Log a debug message
      */
-    debug: (prefix: string, content: string) => invokeCommand('debug', { prefix, content }),
+    debug: (prefix: string, content: string) =>
+      invokeCommand("debug", { prefix, content }),
   };
 }

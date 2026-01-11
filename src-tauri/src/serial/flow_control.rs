@@ -1,7 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use rootcause::{Report, report};
-
+use rootcause::{report, Report};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FlowControl {
@@ -17,7 +16,7 @@ impl FromStr for FlowControl {
             "hardware" | "Hardware" => Ok(Self::Hardware),
             "software" | "Software" => Ok(Self::Software),
             "none" | "None" => Ok(Self::None),
-            _ => Err(report!("unknown flow control: {}", s))
+            _ => Err(report!("unknown flow control: {}", s)),
         }
     }
 }

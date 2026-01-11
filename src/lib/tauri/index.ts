@@ -8,23 +8,23 @@
  */
 
 // High-level API (recommended for most use cases)
-export { TauriSerialAPI } from './api';
+export { TauriSerialAPI } from "./api";
 
 // Low-level typed invoke wrapper
-export { invokeCommand } from './invoke';
+export { invokeCommand } from "./invoke";
 
 // Enum conversion utilities
-export { EnumConverter } from './enums';
+export { EnumConverter } from "./enums";
 
 // Strongly-typed event system
-export { 
+export {
   TauriEventNames,
   listenToTauriEvent,
   listenToMultipleEvents,
-  listenOnce
-} from './events';
+  listenOnce,
+} from "./events";
 
 // Type exports
-export type * from './types';
-export type * from './commands';
-export type * from './events';
+export type * from "./types";
+export type * from "./commands";
+export type * from "./events";

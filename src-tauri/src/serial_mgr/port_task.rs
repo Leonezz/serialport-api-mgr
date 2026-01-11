@@ -1,9 +1,6 @@
-
 use crate::constants::{channels, serial};
 use crate::util::{AckReceiver, AckSender};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_serial::SerialPort;
 
 pub enum WriteCmd {
@@ -62,8 +59,10 @@ pub fn spawn_serial_task(
     tokio::sync::watch::Receiver<ModemStatus>,
     tokio::sync::mpsc::Receiver<usize>,
 ) {
-    let (write_tx, mut write_rx) =
-        tokio::sync::mpsc::channel::<(WriteCmd, Option<tokio::sync::oneshot::Sender<()>>)>(channels::WRITE_CMD_CAPACITY);
+    let (write_tx, mut write_rx) = tokio::sync::mpsc::channel::<(
+        WriteCmd,
+        Option<tokio::sync::oneshot::Sender<()>>,
+    )>(channels::WRITE_CMD_CAPACITY);
     let (event_tx, event_rx) = tokio::sync::mpsc::channel(channels::EVENT_CAPACITY);
     let (status_tx, status_rx) = tokio::sync::watch::channel(ModemStatus {
         cts: false,
@@ -71,11 +70,14 @@ pub fn spawn_serial_task(
         cd: false,
         ring: false,
     });
-    let (write_notifier_tx, write_notifier_rx) = tokio::sync::mpsc::channel(channels::WRITE_NOTIFY_CAPACITY);
+    let (write_notifier_tx, write_notifier_rx) =
+        tokio::sync::mpsc::channel(channels::WRITE_NOTIFY_CAPACITY);
 
     tokio::spawn(async move {
         let mut read_buf = [0u8; serial::READ_BUFFER_SIZE];
-        let mut poll_timer = tokio::time::interval(std::time::Duration::from_millis(serial::STATUS_POLL_INTERVAL_MS));
+        let mut poll_timer = tokio::time::interval(std::time::Duration::from_millis(
+            serial::STATUS_POLL_INTERVAL_MS,
+        ));
 
         loop {
             tokio::select! {

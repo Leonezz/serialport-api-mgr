@@ -3,20 +3,26 @@
  * Uses discriminated union pattern for type-safe command invocation
  */
 
-import type { RustDataBits, RustFlowControl, RustParity, RustStopBits, RustPortInfo } from './types';
+import type {
+  RustDataBits,
+  RustFlowControl,
+  RustParity,
+  RustStopBits,
+  RustPortInfo,
+} from "./types";
 
 // ============================================================================
 // Individual Command Definitions
 // ============================================================================
 
 export interface GetAllPortInfoCommand {
-  name: 'get_all_port_info';
+  name: "get_all_port_info";
   args: Record<string, never>; // No arguments
   returns: RustPortInfo[];
 }
 
 export interface OpenPortCommand {
-  name: 'open_port';
+  name: "open_port";
   args: {
     portName: string;
     baudRate: number;
@@ -31,7 +37,7 @@ export interface OpenPortCommand {
 }
 
 export interface ClosePortCommand {
-  name: 'close_port';
+  name: "close_port";
   args: {
     portName: string;
   };
@@ -39,7 +45,7 @@ export interface ClosePortCommand {
 }
 
 export interface WritePortCommand {
-  name: 'write_port';
+  name: "write_port";
   args: {
     portName: string;
     data: number[]; // Vec<u8> in Rust
@@ -49,7 +55,7 @@ export interface WritePortCommand {
 }
 
 export interface WriteRequestToSendCommand {
-  name: 'write_request_to_send';
+  name: "write_request_to_send";
   args: {
     portName: string;
     rts: boolean;
@@ -58,7 +64,7 @@ export interface WriteRequestToSendCommand {
 }
 
 export interface WriteDataTerminalReadyCommand {
-  name: 'write_data_terminal_ready';
+  name: "write_data_terminal_ready";
   args: {
     portName: string;
     dtr: boolean;
@@ -71,7 +77,7 @@ export interface WriteDataTerminalReadyCommand {
 // ============================================================================
 
 export interface LogCommand {
-  name: 'log';
+  name: "log";
   args: {
     prefix: string;
     content: string;
@@ -80,7 +86,7 @@ export interface LogCommand {
 }
 
 export interface InfoCommand {
-  name: 'info';
+  name: "info";
   args: {
     prefix: string;
     content: string;
@@ -89,7 +95,7 @@ export interface InfoCommand {
 }
 
 export interface WarnCommand {
-  name: 'warn';
+  name: "warn";
   args: {
     prefix: string;
     content: string;
@@ -98,7 +104,7 @@ export interface WarnCommand {
 }
 
 export interface ErrorCommand {
-  name: 'error';
+  name: "error";
   args: {
     prefix: string;
     content: string;
@@ -107,7 +113,7 @@ export interface ErrorCommand {
 }
 
 export interface DebugCommand {
-  name: 'debug';
+  name: "debug";
   args: {
     prefix: string;
     content: string;
@@ -139,14 +145,19 @@ export type TauriCommand =
 /**
  * Extract a specific command by its name
  */
-export type CommandByName<T extends TauriCommand['name']> = Extract<TauriCommand, { name: T }>;
+export type CommandByName<T extends TauriCommand["name"]> = Extract<
+  TauriCommand,
+  { name: T }
+>;
 
 /**
  * Get the arguments type for a specific command
  */
-export type CommandArgs<T extends TauriCommand['name']> = CommandByName<T>['args'];
+export type CommandArgs<T extends TauriCommand["name"]> =
+  CommandByName<T>["args"];
 
 /**
  * Get the return type for a specific command
  */
-export type CommandReturn<T extends TauriCommand['name']> = CommandByName<T>['returns'];
+export type CommandReturn<T extends TauriCommand["name"]> =
+  CommandByName<T>["returns"];

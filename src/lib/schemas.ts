@@ -1,198 +1,241 @@
-
-import { z } from 'zod';
+import { z } from "zod";
 
 // --- Basic Types ---
-export const LineEndingSchema = z.enum(['NONE', 'LF', 'CR', 'CRLF']);
-export const DataModeSchema = z.enum(['TEXT', 'HEX', 'BINARY']);
-export const TextEncodingSchema = z.enum(['UTF-8', 'ASCII', 'ISO-8859-1']);
-export const ChecksumAlgorithmSchema = z.enum(['NONE', 'MOD256', 'XOR', 'CRC16']);
-export const MatchTypeSchema = z.enum(['CONTAINS', 'REGEX']);
-export const ValidationModeSchema = z.enum(['PATTERN']);
-export const ThemeColorSchema = z.enum(['zinc', 'blue', 'green', 'orange', 'rose', 'yellow']);
-export const ThemeModeSchema = z.enum(['light', 'dark', 'system']);
-export const ConnectionTypeSchema = z.enum(['SERIAL', 'NETWORK']);
-export const ParameterTypeSchema = z.enum(['STRING', 'INTEGER', 'FLOAT', 'ENUM', 'BOOLEAN']);
-export const FramingStrategySchema = z.enum(['NONE', 'DELIMITER', 'TIMEOUT', 'PREFIX_LENGTH', 'SCRIPT']);
+export const LineEndingSchema = z.enum(["NONE", "LF", "CR", "CRLF"]);
+export const DataModeSchema = z.enum(["TEXT", "HEX", "BINARY"]);
+export const TextEncodingSchema = z.enum(["UTF-8", "ASCII", "ISO-8859-1"]);
+export const ChecksumAlgorithmSchema = z.enum([
+  "NONE",
+  "MOD256",
+  "XOR",
+  "CRC16",
+]);
+export const MatchTypeSchema = z.enum(["CONTAINS", "REGEX"]);
+export const ValidationModeSchema = z.enum(["PATTERN"]);
+export const ThemeColorSchema = z.enum([
+  "zinc",
+  "blue",
+  "green",
+  "orange",
+  "rose",
+  "yellow",
+]);
+export const ThemeModeSchema = z.enum(["light", "dark", "system"]);
+export const ConnectionTypeSchema = z.enum(["SERIAL", "NETWORK"]);
+export const ParameterTypeSchema = z.enum([
+  "STRING",
+  "INTEGER",
+  "FLOAT",
+  "ENUM",
+  "BOOLEAN",
+]);
+export const FramingStrategySchema = z.enum([
+  "NONE",
+  "DELIMITER",
+  "TIMEOUT",
+  "PREFIX_LENGTH",
+  "SCRIPT",
+]);
 
 // --- Configs ---
 export const FramingConfigSchema = z.object({
-    strategy: FramingStrategySchema,
-    delimiter: z.string().optional().default(''),
-    timeout: z.number().optional().default(50),
-    prefixLengthSize: z.number().min(1).max(8).optional().default(1),
-    byteOrder: z.enum(['LE', 'BE']).optional().default('LE'),
-    script: z.string().optional()
+  strategy: FramingStrategySchema,
+  delimiter: z.string().optional().default(""),
+  timeout: z.number().optional().default(50),
+  prefixLengthSize: z.number().min(1).max(8).optional().default(1),
+  byteOrder: z.enum(["LE", "BE"]).optional().default("LE"),
+  script: z.string().optional(),
 });
 
 export const SerialConfigSchema = z.object({
-    baudRate: z.number().int().positive(),
-    dataBits: z.union([z.literal(7), z.literal(8)]),
-    stopBits: z.union([z.literal(1), z.literal(2)]),
-    parity: z.enum(['none', 'even', 'odd']),
-    flowControl: z.enum(['none', 'hardware', 'software']),
-    bufferSize: z.number().int().positive(),
-    lineEnding: LineEndingSchema,
-    framing: FramingConfigSchema
+  baudRate: z.number().int().positive(),
+  dataBits: z.union([z.literal(7), z.literal(8)]),
+  stopBits: z.union([z.literal(1), z.literal(2)]),
+  parity: z.enum(["none", "even", "odd"]),
+  flowControl: z.enum(["none", "hardware", "software"]),
+  bufferSize: z.number().int().positive(),
+  lineEnding: LineEndingSchema,
+  framing: FramingConfigSchema,
 });
 
 export const NetworkConfigSchema = z.object({
-    host: z.string().min(1),
-    port: z.number().int().positive().max(65535)
+  host: z.string().min(1),
+  port: z.number().int().positive().max(65535),
 });
 
 // --- Widget Config ---
 export const WidgetConfigSchema = z.object({
-    type: z.enum(['CARD', 'LINE', 'GAUGE']),
-    width: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-    min: z.number().optional(),
-    max: z.number().optional(),
-    unit: z.string().optional()
+  type: z.enum(["CARD", "LINE", "GAUGE"]),
+  width: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  unit: z.string().optional(),
 });
 
 export const DashboardWidgetSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    variableName: z.string(),
-    config: WidgetConfigSchema,
-    order: z.number().int()
+  id: z.string(),
+  title: z.string(),
+  variableName: z.string(),
+  config: WidgetConfigSchema,
+  order: z.number().int(),
 });
 
 // --- Presets ---
 export const SerialPresetSchema = z.object({
-    id: z.string(),
-    name: z.string().min(1),
-    type: ConnectionTypeSchema,
-    config: SerialConfigSchema,
-    network: NetworkConfigSchema.optional(),
-    widgets: z.array(DashboardWidgetSchema).optional()
+  id: z.string(),
+  name: z.string().min(1),
+  type: ConnectionTypeSchema,
+  config: SerialConfigSchema,
+  network: NetworkConfigSchema.optional(),
+  widgets: z.array(DashboardWidgetSchema).optional(),
 });
 
 // --- Command Structure ---
 export const CommandParameterSchema = z.object({
-    id: z.string().optional(), // Optional on import, generated if missing
-    name: z.string().min(1).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, "Must be valid variable name"),
-    label: z.string().optional(),
-    description: z.string().optional(),
-    type: ParameterTypeSchema,
-    defaultValue: z.union([z.string(), z.number(), z.boolean()]).optional(),
-    required: z.boolean().optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
-    maxLength: z.number().optional(),
-    options: z.array(z.object({
+  id: z.string().optional(), // Optional on import, generated if missing
+  name: z
+    .string()
+    .min(1)
+    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, "Must be valid variable name"),
+  label: z.string().optional(),
+  description: z.string().optional(),
+  type: ParameterTypeSchema,
+  defaultValue: z.union([z.string(), z.number(), z.boolean()]).optional(),
+  required: z.boolean().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  maxLength: z.number().optional(),
+  options: z
+    .array(
+      z.object({
         label: z.string(),
-        value: z.union([z.string(), z.number()])
-    })).optional()
+        value: z.union([z.string(), z.number()]),
+      }),
+    )
+    .optional(),
 });
 
 export const CommandValidationSchema = z.object({
-    enabled: z.boolean(),
-    mode: ValidationModeSchema,
-    matchType: MatchTypeSchema.optional(),
-    pattern: z.string().optional(),
-    timeout: z.number().int().positive()
+  enabled: z.boolean(),
+  mode: ValidationModeSchema,
+  matchType: MatchTypeSchema.optional(),
+  pattern: z.string().optional(),
+  timeout: z.number().int().positive(),
 });
 
 export const CommandScriptingSchema = z.object({
-    enabled: z.boolean(),
-    preRequestScript: z.string().optional(),
-    postResponseScript: z.string().optional()
+  enabled: z.boolean(),
+  preRequestScript: z.string().optional(),
+  postResponseScript: z.string().optional(),
 });
 
 export const SavedCommandSchema = z.object({
-    id: z.string(),
-    name: z.string().min(1),
-    description: z.string().optional(),
-    creator: z.string().optional(),
-    createdAt: z.number(),
-    updatedAt: z.number(),
-    group: z.string().optional(),
-    payload: z.string().default(''), // Default to empty string if missing
-    mode: DataModeSchema,
-    encoding: TextEncodingSchema.optional(),
-    parameters: z.array(CommandParameterSchema).optional(),
-    validation: CommandValidationSchema.optional(),
-    scripting: CommandScriptingSchema.optional(),
-    responseFraming: FramingConfigSchema.optional(), // New field
-    framingPersistence: z.enum(['TRANSIENT', 'PERSISTENT']).optional().default('TRANSIENT'),
-    usedBy: z.array(z.string()).optional(),
-    contextId: z.string().optional()
+  id: z.string(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  creator: z.string().optional(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  group: z.string().optional(),
+  payload: z.string().default(""), // Default to empty string if missing
+  mode: DataModeSchema,
+  encoding: TextEncodingSchema.optional(),
+  parameters: z.array(CommandParameterSchema).optional(),
+  validation: CommandValidationSchema.optional(),
+  scripting: CommandScriptingSchema.optional(),
+  responseFraming: FramingConfigSchema.optional(), // New field
+  framingPersistence: z
+    .enum(["TRANSIENT", "PERSISTENT"])
+    .optional()
+    .default("TRANSIENT"),
+  usedBy: z.array(z.string()).optional(),
+  contextId: z.string().optional(),
 });
 
 // --- Sequences ---
 export const SequenceStepSchema = z.object({
-    id: z.string(),
-    commandId: z.string(),
-    delay: z.number().int().nonnegative(),
-    stopOnError: z.boolean()
+  id: z.string(),
+  commandId: z.string(),
+  delay: z.number().int().nonnegative(),
+  stopOnError: z.boolean(),
 });
 
 export const SerialSequenceSchema = z.object({
-    id: z.string(),
-    name: z.string().min(1),
-    description: z.string().optional(),
-    creator: z.string().optional(),
-    createdAt: z.number(),
-    updatedAt: z.number(),
-    steps: z.array(SequenceStepSchema)
+  id: z.string(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  creator: z.string().optional(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  steps: z.array(SequenceStepSchema),
 });
 
 export const ProjectContextSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    content: z.string(),
-    source: z.enum(['USER', 'AI_GENERATED']),
-    createdAt: z.number()
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+  source: z.enum(["USER", "AI_GENERATED"]),
+  createdAt: z.number(),
 });
 
 // --- Full Profile Export/Import Schema ---
 export const ExportProfileSchema = z.object({
-    version: z.string().optional(),
-    timestamp: z.number().optional(),
-    appearance: z.object({
-        themeMode: ThemeModeSchema.optional(),
-        themeColor: ThemeColorSchema.optional()
-    }).optional(),
-    config: SerialConfigSchema.optional(),
-    networkConfig: NetworkConfigSchema.optional(),
-    presets: z.array(SerialPresetSchema).optional(),
-    commands: z.array(SavedCommandSchema).optional(),
-    sequences: z.array(SerialSequenceSchema).optional(),
-    contexts: z.array(ProjectContextSchema).optional(),
-    logs: z.array(z.any()).optional() // Logs are loose for now
+  version: z.string().optional(),
+  timestamp: z.number().optional(),
+  appearance: z
+    .object({
+      themeMode: ThemeModeSchema.optional(),
+      themeColor: ThemeColorSchema.optional(),
+    })
+    .optional(),
+  config: SerialConfigSchema.optional(),
+  networkConfig: NetworkConfigSchema.optional(),
+  presets: z.array(SerialPresetSchema).optional(),
+  commands: z.array(SavedCommandSchema).optional(),
+  sequences: z.array(SerialSequenceSchema).optional(),
+  contexts: z.array(ProjectContextSchema).optional(),
+  logs: z.array(z.any()).optional(), // Logs are loose for now
 });
 
 // --- AI Service Specific Schema ---
 // This validates the structure returned by the Gemini function call for "configure_device"
 export const AIProjectResultSchema = z.object({
-    deviceName: z.string().optional(),
-    config: SerialConfigSchema.partial().optional(), // Allow partial config updates
-    commands: z.array(SavedCommandSchema.omit({ 
-        id: true, 
-        createdAt: true, 
-        updatedAt: true, 
-        creator: true 
+  deviceName: z.string().optional(),
+  config: SerialConfigSchema.partial().optional(), // Allow partial config updates
+  commands: z.array(
+    SavedCommandSchema.omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      creator: true,
     }).extend({
-        // AI might omit these, so we make them optional or provide transforms in the service
-        mode: DataModeSchema.default('TEXT'),
-        payload: z.string().default(''),
-        parameters: z.array(CommandParameterSchema).optional()
-    })),
-    sequences: z.array(SerialSequenceSchema.omit({
-        id: true,
-        createdAt: true,
-        updatedAt: true,
-        creator: true
+      // AI might omit these, so we make them optional or provide transforms in the service
+      mode: DataModeSchema.default("TEXT"),
+      payload: z.string().default(""),
+      parameters: z.array(CommandParameterSchema).optional(),
+    }),
+  ),
+  sequences: z.array(
+    SerialSequenceSchema.omit({
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      creator: true,
     }).extend({
-        steps: z.array(z.object({
-            commandName: z.string(), // AI references by name, we map to ID later
-            delay: z.number().default(500),
-            stopOnError: z.boolean().default(true)
-        }))
-    })),
-    usage: z.object({
-        prompt: z.number(),
-        response: z.number(),
-        total: z.number()
-    }).optional()
+      steps: z.array(
+        z.object({
+          commandName: z.string(), // AI references by name, we map to ID later
+          delay: z.number().default(500),
+          stopOnError: z.boolean().default(true),
+        }),
+      ),
+    }),
+  ),
+  usage: z
+    .object({
+      prompt: z.number(),
+      response: z.number(),
+      total: z.number(),
+    })
+    .optional(),
 });

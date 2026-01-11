@@ -1,12 +1,11 @@
 use std::{fmt, str::FromStr};
 
-use rootcause::{Report, report};
-
+use rootcause::{report, Report};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StopBits {
     One,
-    Two
+    Two,
 }
 
 impl FromStr for StopBits {
@@ -15,7 +14,7 @@ impl FromStr for StopBits {
         match s {
             "one" | "One" => Ok(Self::One),
             "two" | "Two" => Ok(Self::Two),
-            _ => Err(report!("unknown stop bits: {}", s))
+            _ => Err(report!("unknown stop bits: {}", s)),
         }
     }
 }

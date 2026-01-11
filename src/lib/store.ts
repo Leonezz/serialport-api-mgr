@@ -1,9 +1,8 @@
-
-import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-import { createUISlice, UISlice } from './slices/uiSlice';
-import { createProjectSlice, ProjectSlice } from './slices/projectSlice';
-import { createSessionSlice, SessionSlice } from './slices/sessionSlice';
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
+import { createUISlice, UISlice } from "./slices/uiSlice";
+import { createProjectSlice, ProjectSlice } from "./slices/projectSlice";
+import { createSessionSlice, SessionSlice } from "./slices/sessionSlice";
 
 type AppState = UISlice & ProjectSlice & SessionSlice;
 
@@ -16,7 +15,7 @@ export const useStore = create<AppState>()(
         ...createSessionSlice(...a),
       }),
       {
-        name: 'serialport-store',
+        name: "serialport-store",
         // Only persist specific slices - avoid persisting runtime data like logs, toasts
         partialize: (state) => ({
           // UI preferences
@@ -41,15 +40,15 @@ export const useStore = create<AppState>()(
                 systemLogs: [], // Don't persist system logs
                 aiMessages: [], // Don't persist AI chat history
               },
-            ])
+            ]),
           ),
           activeSessionId: state.activeSessionId,
         }),
-      }
+      },
     ),
     {
-      name: 'SerialPort Manager',
-      enabled: process.env.NODE_ENV === 'development', // Only enable devtools in development
-    }
-  )
+      name: "SerialPort Manager",
+      enabled: process.env.NODE_ENV === "development", // Only enable devtools in development
+    },
+  ),
 );

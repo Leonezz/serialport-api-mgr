@@ -1,7 +1,7 @@
-import { useRef } from 'react';
-import { SerialFramer } from '../lib/framing';
-import { useStore } from '../lib/store';
-import { BUFFER_SIZES } from '../lib/constants';
+import { useRef } from "react";
+import { SerialFramer } from "../lib/framing";
+import { useStore } from "../lib/store";
+import { BUFFER_SIZES } from "../lib/constants";
 
 /**
  * Custom hook for managing serial data framing
@@ -23,10 +23,10 @@ export function useFraming() {
     data: Uint8Array,
     timestamp: number,
     sessionId: string,
-    onValidate?: (data: Uint8Array, sessionId: string, logId: string) => void
+    onValidate?: (data: Uint8Array, sessionId: string, logId: string) => void,
   ) => {
     // Add Log (Console) - Use the actual frame timestamp
-    const logId = addLog(data, 'RX', undefined, sessionId);
+    const logId = addLog(data, "RX", undefined, sessionId);
 
     // Validate (if callback provided)
     if (onValidate) {
@@ -34,27 +34,34 @@ export function useFraming() {
     }
 
     // System Log (Operation History)
-    let preview = '';
+    let preview = "";
     try {
       const text = new TextDecoder().decode(data);
-      preview = text.replace(/[^\x20-\x7E]/g, '.');
+      preview = text.replace(/[^\x20-\x7E]/g, ".");
     } catch (e) {
-      preview = '...';
+      preview = "...";
     }
-    const displayPreview = preview.length > BUFFER_SIZES.MAX_PREVIEW_LENGTH
-      ? preview.substring(0, BUFFER_SIZES.MAX_PREVIEW_LENGTH) + '...'
-      : preview;
-    const hexPreview = Array.from(data)
-      .slice(0, 10)
-      .map(b => b.toString(16).padStart(2, '0').toUpperCase())
-      .join(' ') + (data.length > 10 ? '...' : '');
+    const displayPreview =
+      preview.length > BUFFER_SIZES.MAX_PREVIEW_LENGTH
+        ? preview.substring(0, BUFFER_SIZES.MAX_PREVIEW_LENGTH) + "..."
+        : preview;
+    const hexPreview =
+      Array.from(data)
+        .slice(0, 10)
+        .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
+        .join(" ") + (data.length > 10 ? "..." : "");
 
-    addSystemLog('INFO', 'COMMAND', `RX Frame ${data.length}B: ${displayPreview}`, {
-      sessionId,
-      hex: hexPreview,
-      data: Array.from(data),
-      timestamp
-    });
+    addSystemLog(
+      "INFO",
+      "COMMAND",
+      `RX Frame ${data.length}B: ${displayPreview}`,
+      {
+        sessionId,
+        hex: hexPreview,
+        data: Array.from(data),
+        timestamp,
+      },
+    );
 
     // --- Override Auto-Revert Logic ---
     const currentSessionState = useStore.getState().sessions[sessionId];
@@ -72,11 +79,11 @@ export function useFraming() {
       const framer = framersRef.current.get(sessionId);
       if (framer) {
         const globalConfig = currentSessionState.config.framing || {
-          strategy: 'NONE',
-          delimiter: '',
+          strategy: "NONE",
+          delimiter: "",
           timeout: 50,
           prefixLengthSize: 1,
-          byteOrder: 'LE'
+          byteOrder: "LE",
         };
         framer.setConfig(globalConfig);
       }
@@ -88,7 +95,7 @@ export function useFraming() {
    */
   const handleDataReceived = (
     sessionId: string,
-    onValidate?: (data: Uint8Array, sessionId: string, logId: string) => void
+    onValidate?: (data: Uint8Array, sessionId: string, logId: string) => void,
   ) => {
     return (chunk: Uint8Array) => {
       console.log(`[${sessionId}] Data received:`, chunk);
@@ -98,22 +105,26 @@ export function useFraming() {
       if (!session) {
         console.warn(`[${sessionId}] No session found for framing`);
         return;
-      };
+      }
 
-      const effectiveConfig = session.framingOverride || session.config.framing || {
-        strategy: 'NONE',
-        delimiter: '',
-        timeout: 50,
-        prefixLengthSize: 1,
-        byteOrder: 'LE'
-      };
+      const effectiveConfig = session.framingOverride ||
+        session.config.framing || {
+          strategy: "NONE",
+          delimiter: "",
+          timeout: 50,
+          prefixLengthSize: 1,
+          byteOrder: "LE",
+        };
 
       if (!framer) {
         // Initialize Framer
         framer = new SerialFramer(
           effectiveConfig,
           // Fix: Callback receives frames array, iterate to process individual frames
-          (frames) => frames.forEach(f => processFrame(f.data, f.timestamp, sessionId, onValidate))
+          (frames) =>
+            frames.forEach((f) =>
+              processFrame(f.data, f.timestamp, sessionId, onValidate),
+            ),
         );
         framersRef.current.set(sessionId, framer);
       } else {
@@ -144,6 +155,6 @@ export function useFraming() {
   return {
     handleDataReceived,
     cleanupFramer,
-    overrideTimerRef
+    overrideTimerRef,
   };
 }

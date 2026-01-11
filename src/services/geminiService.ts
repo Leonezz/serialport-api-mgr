@@ -1,6 +1,20 @@
-
-import { GoogleGenAI, Tool, FunctionDeclaration, Type, GenerateContentResponse, Part } from "@google/genai";
-import { SavedCommand, SerialConfig, LogEntry, ProjectContext, SerialSequence, SerialPreset, DashboardWidget } from "../types";
+import {
+  GoogleGenAI,
+  Tool,
+  FunctionDeclaration,
+  Type,
+  GenerateContentResponse,
+  Part,
+} from "@google/genai";
+import {
+  SavedCommand,
+  SerialConfig,
+  LogEntry,
+  ProjectContext,
+  SerialSequence,
+  SerialPreset,
+  DashboardWidget,
+} from "../types";
 import { formatContent } from "../lib/utils";
 import { useStore } from "../lib/store";
 import { AIProjectResultSchema } from "../lib/schemas"; // Import Zod schema
@@ -11,245 +25,315 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 // --- Function Declarations (Tools) ---
 
 const updateConfigTool: FunctionDeclaration = {
-  name: 'update_serial_configuration',
-  description: 'Update the serial port configuration settings (Baud rate, parity, etc). Use this when the user mentions connection parameters.',
+  name: "update_serial_configuration",
+  description:
+    "Update the serial port configuration settings (Baud rate, parity, etc). Use this when the user mentions connection parameters.",
   parameters: {
     type: Type.OBJECT,
     properties: {
-      baudRate: { type: Type.INTEGER, description: 'Baud rate (e.g. 9600, 115200)' },
-      dataBits: { type: Type.INTEGER, description: 'Data bits (7 or 8)' },
-      stopBits: { type: Type.INTEGER, description: 'Stop bits (1 or 2)' },
-      parity: { type: Type.STRING, description: 'Parity: "none", "even", or "odd"' },
-      lineEnding: { type: Type.STRING, description: 'Line Ending: "NONE", "LF", "CR", "CRLF"' }
+      baudRate: {
+        type: Type.INTEGER,
+        description: "Baud rate (e.g. 9600, 115200)",
+      },
+      dataBits: { type: Type.INTEGER, description: "Data bits (7 or 8)" },
+      stopBits: { type: Type.INTEGER, description: "Stop bits (1 or 2)" },
+      parity: {
+        type: Type.STRING,
+        description: 'Parity: "none", "even", or "odd"',
+      },
+      lineEnding: {
+        type: Type.STRING,
+        description: 'Line Ending: "NONE", "LF", "CR", "CRLF"',
+      },
     },
-    required: []
-  }
+    required: [],
+  },
 };
 
 const sendCommandTool: FunctionDeclaration = {
-  name: 'send_serial_command',
-  description: 'Send a text or hex string to the connected serial device. Use this when the user asks to send data.',
+  name: "send_serial_command",
+  description:
+    "Send a text or hex string to the connected serial device. Use this when the user asks to send data.",
   parameters: {
     type: Type.OBJECT,
     properties: {
-      payload: { type: Type.STRING, description: 'The content to send. If hex, provide string like "AA BB"' },
-      mode: { type: Type.STRING, description: 'Format of the payload: "TEXT" or "HEX". Default to TEXT.' }
+      payload: {
+        type: Type.STRING,
+        description: 'The content to send. If hex, provide string like "AA BB"',
+      },
+      mode: {
+        type: Type.STRING,
+        description: 'Format of the payload: "TEXT" or "HEX". Default to TEXT.',
+      },
     },
-    required: ['payload']
-  }
+    required: ["payload"],
+  },
 };
 
 const executeSavedCommandTool: FunctionDeclaration = {
-  name: 'execute_saved_command',
-  description: 'Execute a pre-saved command by its ID. Prefer this over sending raw data if a matching command exists.',
+  name: "execute_saved_command",
+  description:
+    "Execute a pre-saved command by its ID. Prefer this over sending raw data if a matching command exists.",
   parameters: {
     type: Type.OBJECT,
     properties: {
-      commandId: { type: Type.STRING, description: 'The ID of the saved command to execute' }
+      commandId: {
+        type: Type.STRING,
+        description: "The ID of the saved command to execute",
+      },
     },
-    required: ['commandId']
-  }
+    required: ["commandId"],
+  },
 };
 
 const runSequenceTool: FunctionDeclaration = {
-  name: 'run_sequence',
-  description: 'Run a pre-defined sequence of commands by its ID.',
+  name: "run_sequence",
+  description: "Run a pre-defined sequence of commands by its ID.",
   parameters: {
     type: Type.OBJECT,
     properties: {
-      sequenceId: { type: Type.STRING, description: 'The ID of the sequence to run' }
+      sequenceId: {
+        type: Type.STRING,
+        description: "The ID of the sequence to run",
+      },
     },
-    required: ['sequenceId']
-  }
+    required: ["sequenceId"],
+  },
 };
 
 const loadPresetTool: FunctionDeclaration = {
-    name: 'load_preset',
-    description: 'Load a saved configuration preset by ID.',
-    parameters: {
-        type: Type.OBJECT,
-        properties: {
-            presetId: { type: Type.STRING, description: 'The ID of the preset to load' }
-        },
-        required: ['presetId']
-    }
-};
-
-const readLogsTool: FunctionDeclaration = {
-  name: 'read_recent_logs',
-  description: 'Read the most recent logs from the serial console to analyze traffic.',
+  name: "load_preset",
+  description: "Load a saved configuration preset by ID.",
   parameters: {
     type: Type.OBJECT,
     properties: {
-      count: { type: Type.INTEGER, description: 'Number of recent log entries to retrieve. Default 50.' }
-    }
-  }
+      presetId: {
+        type: Type.STRING,
+        description: "The ID of the preset to load",
+      },
+    },
+    required: ["presetId"],
+  },
+};
+
+const readLogsTool: FunctionDeclaration = {
+  name: "read_recent_logs",
+  description:
+    "Read the most recent logs from the serial console to analyze traffic.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      count: {
+        type: Type.INTEGER,
+        description: "Number of recent log entries to retrieve. Default 50.",
+      },
+    },
+  },
 };
 
 const configureDeviceTool: FunctionDeclaration = {
-  name: 'configure_device',
-  description: 'Setup the workspace with a complete profile. Capable of generating complex commands with parameters and scripts.',
+  name: "configure_device",
+  description:
+    "Setup the workspace with a complete profile. Capable of generating complex commands with parameters and scripts.",
   parameters: {
     type: Type.OBJECT,
     properties: {
       config: {
         type: Type.OBJECT,
-        description: 'Serial Port Configuration',
+        description: "Serial Port Configuration",
         properties: {
-           baudRate: { type: Type.INTEGER },
-           dataBits: { type: Type.INTEGER },
-           stopBits: { type: Type.INTEGER },
-           parity: { type: Type.STRING },
-           lineEnding: { type: Type.STRING }
-        }
+          baudRate: { type: Type.INTEGER },
+          dataBits: { type: Type.INTEGER },
+          stopBits: { type: Type.INTEGER },
+          parity: { type: Type.STRING },
+          lineEnding: { type: Type.STRING },
+        },
       },
       commands: {
         type: Type.ARRAY,
-        description: 'List of commands to add',
+        description: "List of commands to add",
         items: {
-            type: Type.OBJECT,
-            properties: {
-                name: { type: Type.STRING },
-                payload: { type: Type.STRING, description: "Static payload or placeholder if scripting is used" },
-                mode: { type: Type.STRING, enum: ['TEXT', 'HEX'] },
-                group: { type: Type.STRING },
-                description: { type: Type.STRING },
-                parameters: {
-                    type: Type.ARRAY,
-                    description: "Dynamic parameters for this command",
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            name: { type: Type.STRING, description: "Variable name used in script" },
-                            label: { type: Type.STRING, description: "Human readable label" },
-                            type: { type: Type.STRING, enum: ['STRING', 'INTEGER', 'FLOAT', 'BOOLEAN', 'ENUM'] },
-                            min: { type: Type.NUMBER },
-                            max: { type: Type.NUMBER },
-                            defaultValue: { type: Type.STRING },
-                            description: { type: Type.STRING },
-                            options: {
-                                type: Type.ARRAY,
-                                description: "For ENUM type only",
-                                items: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        label: { type: Type.STRING },
-                                        value: { type: Type.STRING } // API expects string or number, simplifying to string for JSON schema
-                                    }
-                                }
-                            }
-                        },
-                        required: ['name', 'type', 'label']
-                    }
-                },
-                scripting: {
-                    type: Type.OBJECT,
-                    description: "Required if parameters are present. Logic to build the payload.",
-                    properties: {
-                        enabled: { type: Type.BOOLEAN },
-                        preRequestScript: { type: Type.STRING, description: "JS code. EXECUTION ENV: `params` and `payload` are passed as arguments. DO NOT redeclare them. Return string/array." }
-                    }
-                },
-                validation: {
-                    type: Type.OBJECT,
-                    properties: {
-                        enabled: { type: Type.BOOLEAN },
-                        mode: { type: Type.STRING },
-                        matchType: { type: Type.STRING },
-                        pattern: { type: Type.STRING },
-                        timeout: { type: Type.INTEGER }
-                    }
-                }
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            payload: {
+              type: Type.STRING,
+              description: "Static payload or placeholder if scripting is used",
             },
-            required: ['name', 'mode']
-        }
-      },
-      sequences: {
-          type: Type.ARRAY,
-          description: 'List of sequences (macros)',
-          items: {
+            mode: { type: Type.STRING, enum: ["TEXT", "HEX"] },
+            group: { type: Type.STRING },
+            description: { type: Type.STRING },
+            parameters: {
+              type: Type.ARRAY,
+              description: "Dynamic parameters for this command",
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: {
+                    type: Type.STRING,
+                    description: "Variable name used in script",
+                  },
+                  label: {
+                    type: Type.STRING,
+                    description: "Human readable label",
+                  },
+                  type: {
+                    type: Type.STRING,
+                    enum: ["STRING", "INTEGER", "FLOAT", "BOOLEAN", "ENUM"],
+                  },
+                  min: { type: Type.NUMBER },
+                  max: { type: Type.NUMBER },
+                  defaultValue: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    description: "For ENUM type only",
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        label: { type: Type.STRING },
+                        value: { type: Type.STRING }, // API expects string or number, simplifying to string for JSON schema
+                      },
+                    },
+                  },
+                },
+                required: ["name", "type", "label"],
+              },
+            },
+            scripting: {
+              type: Type.OBJECT,
+              description:
+                "Required if parameters are present. Logic to build the payload.",
+              properties: {
+                enabled: { type: Type.BOOLEAN },
+                preRequestScript: {
+                  type: Type.STRING,
+                  description:
+                    "JS code. EXECUTION ENV: `params` and `payload` are passed as arguments. DO NOT redeclare them. Return string/array.",
+                },
+              },
+            },
+            validation: {
               type: Type.OBJECT,
               properties: {
-                  name: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  steps: {
-                      type: Type.ARRAY,
-                      items: {
-                          type: Type.OBJECT,
-                          properties: {
-                              commandName: { type: Type.STRING, description: 'Must match a name in the commands list' },
-                              delay: { type: Type.INTEGER },
-                              stopOnError: { type: Type.BOOLEAN }
-                          }
-                      }
-                  }
-              }
-          }
-      }
-    }
-  }
+                enabled: { type: Type.BOOLEAN },
+                mode: { type: Type.STRING },
+                matchType: { type: Type.STRING },
+                pattern: { type: Type.STRING },
+                timeout: { type: Type.INTEGER },
+              },
+            },
+          },
+          required: ["name", "mode"],
+        },
+      },
+      sequences: {
+        type: Type.ARRAY,
+        description: "List of sequences (macros)",
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            description: { type: Type.STRING },
+            steps: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  commandName: {
+                    type: Type.STRING,
+                    description: "Must match a name in the commands list",
+                  },
+                  delay: { type: Type.INTEGER },
+                  stopOnError: { type: Type.BOOLEAN },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 };
 
 const manageDashboardTool: FunctionDeclaration = {
-  name: 'manage_dashboard',
-  description: 'Manage the telemetry dashboard widgets. Use this to visualize variables (create charts, gauges, cards) or remove them.',
+  name: "manage_dashboard",
+  description:
+    "Manage the telemetry dashboard widgets. Use this to visualize variables (create charts, gauges, cards) or remove them.",
   parameters: {
     type: Type.OBJECT,
     properties: {
-      action: { type: Type.STRING, enum: ['CREATE', 'DELETE', 'LIST'], description: 'Action to perform: CREATE, DELETE, or LIST.' },
-      variableName: { type: Type.STRING, description: 'The data variable key to visualize (e.g. "Temperature"). Required for CREATE.' },
-      title: { type: Type.STRING, description: 'Display title for the widget. Optional.' },
-      widgetType: { type: Type.STRING, enum: ['CARD', 'LINE', 'GAUGE'], description: 'Type of widget. Defaults to CARD.' },
-      min: { type: Type.NUMBER, description: 'Minimum value for Gauge/Chart.' },
-      max: { type: Type.NUMBER, description: 'Maximum value for Gauge/Chart.' },
-      unit: { type: Type.STRING, description: 'Unit label (e.g. "V", "RPM").' }
+      action: {
+        type: Type.STRING,
+        enum: ["CREATE", "DELETE", "LIST"],
+        description: "Action to perform: CREATE, DELETE, or LIST.",
+      },
+      variableName: {
+        type: Type.STRING,
+        description:
+          'The data variable key to visualize (e.g. "Temperature"). Required for CREATE.',
+      },
+      title: {
+        type: Type.STRING,
+        description: "Display title for the widget. Optional.",
+      },
+      widgetType: {
+        type: Type.STRING,
+        enum: ["CARD", "LINE", "GAUGE"],
+        description: "Type of widget. Defaults to CARD.",
+      },
+      min: { type: Type.NUMBER, description: "Minimum value for Gauge/Chart." },
+      max: { type: Type.NUMBER, description: "Maximum value for Gauge/Chart." },
+      unit: { type: Type.STRING, description: 'Unit label (e.g. "V", "RPM").' },
     },
-    required: ['action']
-  }
+    required: ["action"],
+  },
 };
 
 const TOOLS: Tool[] = [
   {
     functionDeclarations: [
-        updateConfigTool, 
-        sendCommandTool, 
-        executeSavedCommandTool,
-        runSequenceTool,
-        loadPresetTool,
-        readLogsTool, 
-        configureDeviceTool,
-        manageDashboardTool
-    ]
-  }
+      updateConfigTool,
+      sendCommandTool,
+      executeSavedCommandTool,
+      runSequenceTool,
+      loadPresetTool,
+      readLogsTool,
+      configureDeviceTool,
+      manageDashboardTool,
+    ],
+  },
 ];
 
 // --- Helper to record tokens ---
 const recordUsage = (response: GenerateContentResponse) => {
-    if (response?.usageMetadata) {
-        useStore.getState().addTokenUsage({
-            prompt: response.usageMetadata.promptTokenCount || 0,
-            response: response.usageMetadata.candidatesTokenCount || 0
-        });
-    }
-    return {
-        prompt: response?.usageMetadata?.promptTokenCount || 0,
-        response: response?.usageMetadata?.candidatesTokenCount || 0,
-        total: (response?.usageMetadata?.promptTokenCount || 0) + (response?.usageMetadata?.candidatesTokenCount || 0)
-    };
+  if (response?.usageMetadata) {
+    useStore.getState().addTokenUsage({
+      prompt: response.usageMetadata.promptTokenCount || 0,
+      response: response.usageMetadata.candidatesTokenCount || 0,
+    });
+  }
+  return {
+    prompt: response?.usageMetadata?.promptTokenCount || 0,
+    response: response?.usageMetadata?.candidatesTokenCount || 0,
+    total:
+      (response?.usageMetadata?.promptTokenCount || 0) +
+      (response?.usageMetadata?.candidatesTokenCount || 0),
+  };
 };
 
 // --- API Methods ---
 
 export interface ProjectSummary {
-    commands: SavedCommand[];
-    sequences: SerialSequence[];
-    presets: SerialPreset[];
-    widgets?: DashboardWidget[]; // Optional widgets from active session
+  commands: SavedCommand[];
+  sequences: SerialSequence[];
+  presets: SerialPreset[];
+  widgets?: DashboardWidget[]; // Optional widgets from active session
 }
 
 // AI-specific types for sequences that use commandName instead of commandId
 export interface AISequenceStep {
-  commandName: string;  // AI references by name
+  commandName: string; // AI references by name
   delay: number;
   stopOnError: boolean;
 }
@@ -267,40 +351,40 @@ export interface AIProjectResult {
   deviceName?: string;
   config?: Partial<SerialConfig>;
   sourceText?: string;
-  commands: Omit<SavedCommand, 'id' | 'createdAt' | 'updatedAt' | 'creator'>[];
+  commands: Omit<SavedCommand, "id" | "createdAt" | "updatedAt" | "creator">[];
   sequences: AISerialSequence[];
   usage?: { prompt: number; response: number; total: number };
 }
 
 export const getGeminiChatModel = () => {
-  return 'gemini-3-flash-preview';
+  return "gemini-3-flash-preview";
 };
 
 export const createChatSession = (projectState?: ProjectSummary) => {
   if (!process.env.API_KEY) throw new Error("API Key missing");
-  
+
   let resourceContext = "";
   if (projectState) {
-      resourceContext = `
+    resourceContext = `
       **EXISTING PROJECT RESOURCES:**
       The user has the following saved items. REFER to them by ID when calling tools.
       
       Commands:
-      ${projectState.commands.map(c => `- [ID: ${c.id}] Name: "${c.name}", Group: "${c.group || 'None'}", Mode: ${c.mode}`).join('\n')}
+      ${projectState.commands.map((c) => `- [ID: ${c.id}] Name: "${c.name}", Group: "${c.group || "None"}", Mode: ${c.mode}`).join("\n")}
       
       Sequences:
-      ${projectState.sequences.map(s => `- [ID: ${s.id}] Name: "${s.name}"`).join('\n')}
+      ${projectState.sequences.map((s) => `- [ID: ${s.id}] Name: "${s.name}"`).join("\n")}
       
       Presets (Configs):
-      ${projectState.presets.map(p => `- [ID: ${p.id}] Name: "${p.name}" (${p.type})`).join('\n')}
+      ${projectState.presets.map((p) => `- [ID: ${p.id}] Name: "${p.name}" (${p.type})`).join("\n")}
 
       Dashboard Widgets (Active Session):
-      ${projectState.widgets?.map(w => `- Title: "${w.title}", Var: "${w.variableName}", Type: ${w.config.type}`).join('\n') || 'None'}
+      ${projectState.widgets?.map((w) => `- Title: "${w.title}", Var: "${w.variableName}", Type: ${w.config.type}`).join("\n") || "None"}
       `;
   }
 
   return ai.chats.create({
-    model: 'gemini-3-flash-preview',
+    model: "gemini-3-flash-preview",
     config: {
       tools: TOOLS,
       systemInstruction: `
@@ -331,14 +415,14 @@ export const createChatSession = (projectState?: ProjectSummary) => {
         - **Input**: \`params\` (Object), \`payload\` (String).
         - **Output**: Return a string (TEXT mode) or array of numbers (HEX mode).
         - Example: \`const high = (params.val >> 8) & 0xFF; return [0x06, high, low];\`
-      `
-    }
+      `,
+    },
   });
 };
 
 export const analyzeSerialLog = async (
-    logs: LogEntry[], 
-    contexts: Map<string, ProjectContext>
+  logs: LogEntry[],
+  contexts: Map<string, ProjectContext>,
 ): Promise<string> => {
   if (!process.env.API_KEY) {
     return "API Key not configured. Please check your environment variables.";
@@ -346,28 +430,35 @@ export const analyzeSerialLog = async (
 
   try {
     // 1. Format Logs
-    const logLines = logs.map(l => {
-        let line = `[${new Date(l.timestamp).toISOString().split('T')[1]}] ${l.direction}: ${formatContent(l.data, l.format)}`;
+    const logLines = logs
+      .map((l) => {
+        let line = `[${new Date(l.timestamp).toISOString().split("T")[1]}] ${l.direction}: ${formatContent(l.data, l.format)}`;
         if (l.contextId && contexts.has(l.contextId)) {
-            line += ` [Ref: Context_${l.contextId}]`;
+          line += ` [Ref: Context_${l.contextId}]`;
         }
         return line;
-    }).join('\n');
+      })
+      .join("\n");
 
     // 2. Extract unique referenced contexts
-    const referencedContextIds = new Set(logs.map(l => l.contextId).filter(Boolean) as string[]);
+    const referencedContextIds = new Set(
+      logs.map((l) => l.contextId).filter(Boolean) as string[],
+    );
     let contextBlock = "";
-    
+
     if (referencedContextIds.size > 0) {
-        contextBlock = "\n\nReferenced Contexts/Documentation:\n";
-        referencedContextIds.forEach(id => {
-            const ctx = contexts.get(id);
-            if (ctx) {
-                // Truncate large contexts to avoid token limits, prioritizing the beginning
-                const contentSnippet = ctx.content.length > 500 ? ctx.content.substring(0, 500) + "...(truncated)" : ctx.content;
-                contextBlock += `--- Context_${id} (${ctx.title}) ---\n${contentSnippet}\n\n`;
-            }
-        });
+      contextBlock = "\n\nReferenced Contexts/Documentation:\n";
+      referencedContextIds.forEach((id) => {
+        const ctx = contexts.get(id);
+        if (ctx) {
+          // Truncate large contexts to avoid token limits, prioritizing the beginning
+          const contentSnippet =
+            ctx.content.length > 500
+              ? ctx.content.substring(0, 500) + "...(truncated)"
+              : ctx.content;
+          contextBlock += `--- Context_${id} (${ctx.title}) ---\n${contentSnippet}\n\n`;
+        }
+      });
     }
 
     const prompt = `
@@ -392,7 +483,7 @@ export const analyzeSerialLog = async (
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: "gemini-3-flash-preview",
       contents: prompt,
     });
 
@@ -406,8 +497,8 @@ export const analyzeSerialLog = async (
 };
 
 export const generateProjectFromDescription = async (
-  text: string, 
-  attachment?: { name: string; mimeType: string; data: string }
+  text: string,
+  attachment?: { name: string; mimeType: string; data: string },
 ): Promise<AIProjectResult> => {
   if (!process.env.API_KEY) {
     throw new Error("API Key not configured.");
@@ -479,44 +570,48 @@ export const generateProjectFromDescription = async (
     parts.push({
       inlineData: {
         mimeType: attachment.mimeType,
-        data: attachment.data
-      }
+        data: attachment.data,
+      },
     });
   }
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: "gemini-3-flash-preview",
       contents: { parts },
       config: {
-        responseMimeType: "application/json"
-      }
+        responseMimeType: "application/json",
+      },
     });
 
     const usage = recordUsage(response);
 
     const jsonStr = response.text?.trim() || "{}";
-    const cleanJson = jsonStr.replace(/^```json/, '').replace(/```$/, '');
-    
+    const cleanJson = jsonStr.replace(/^```json/, "").replace(/```$/, "");
+
     const rawResult = JSON.parse(cleanJson);
-    
+
     // Validate with Zod
     const validatedResult = AIProjectResultSchema.parse(rawResult);
-    
+
     // Hydrate result with usage and source (which Zod strips or doesn't know about from AI raw)
     return {
-        ...validatedResult,
-        sourceText: text + (attachment ? ` [Attached File: ${attachment.name}]` : ''),
-        usage
+      ...validatedResult,
+      sourceText:
+        text + (attachment ? ` [Attached File: ${attachment.name}]` : ""),
+      usage,
     } as AIProjectResult;
-
   } catch (error: unknown) {
     console.error("Gemini Project Gen Error:", error);
-    if (error && typeof error === 'object' && 'issues' in error) {
-        // Zod Error
-        const zodError = error as { issues: Array<{ message: string }> };
-        throw new Error(`AI generated invalid configuration structure: ${zodError.issues.map((i) => i.message).join(', ')}`);
+    if (error && typeof error === "object" && "issues" in error) {
+      // Zod Error
+      const zodError = error as { issues: Array<{ message: string }> };
+      throw new Error(
+        `AI generated invalid configuration structure: ${zodError.issues.map((i) => i.message).join(", ")}`,
+      );
     }
-    throw new Error("Failed to generate project configuration: " + getErrorMessage(error));
+    throw new Error(
+      "Failed to generate project configuration: " + getErrorMessage(error),
+    );
   }
 };

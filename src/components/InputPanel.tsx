@@ -1,18 +1,22 @@
-
-import React, { useState, useEffect, useRef } from 'react';
-import { Button } from './ui/Button';
-import { Textarea } from './ui/Textarea';
-import { Select } from './ui/Select';
-import { Send, ArrowDownToLine, Zap, Paperclip, X } from 'lucide-react';
-import { LineEnding, DataMode, ChecksumAlgorithm, TextEncoding } from '../types';
-import { cn } from '../lib/utils';
-import { useStore } from '../lib/store';
+import React, { useState, useEffect, useRef } from "react";
+import { Button } from "./ui/Button";
+import { Textarea } from "./ui/Textarea";
+import { Select } from "./ui/Select";
+import { Send, ArrowDownToLine, Zap, Paperclip, X } from "lucide-react";
+import {
+  LineEnding,
+  DataMode,
+  ChecksumAlgorithm,
+  TextEncoding,
+} from "../types";
+import { cn } from "../lib/utils";
+import { useStore } from "../lib/store";
 
 interface Props {
   onSend: (data: string) => void;
   rts: boolean;
   dtr: boolean;
-  onToggleSignal: (signal: 'rts' | 'dtr') => void;
+  onToggleSignal: (signal: "rts" | "dtr") => void;
   isConnected: boolean;
 }
 
@@ -21,16 +25,21 @@ const InputPanel: React.FC<Props> = ({
   rts,
   dtr,
   onToggleSignal,
-  isConnected
+  isConnected,
 }) => {
-  const { 
-      sessions, activeSessionId,
-      setConfig, setSendMode, setEncoding, setChecksum, setInputBuffer 
+  const {
+    sessions,
+    activeSessionId,
+    setConfig,
+    setSendMode,
+    setEncoding,
+    setChecksum,
+    setInputBuffer,
   } = useStore();
 
   const activeSession = sessions[activeSessionId];
   const { config, sendMode, encoding, checksum, inputBuffer } = activeSession;
-  
+
   // Custom Resize Logic
   const [textareaHeight, setTextareaHeight] = useState(80);
   const [isDragging, setIsDragging] = useState(false);
@@ -41,131 +50,273 @@ const InputPanel: React.FC<Props> = ({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
       const delta = dragStartY.current - e.clientY;
-      const newHeight = Math.max(80, Math.min(window.innerHeight * 0.8, dragStartHeight.current + delta));
+      const newHeight = Math.max(
+        80,
+        Math.min(window.innerHeight * 0.8, dragStartHeight.current + delta),
+      );
       setTextareaHeight(newHeight);
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
-      document.body.style.cursor = 'default';
-      document.body.style.userSelect = 'auto';
+      document.body.style.cursor = "default";
+      document.body.style.userSelect = "auto";
     };
 
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'row-resize';
-      document.body.style.userSelect = 'none';
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "row-resize";
+      document.body.style.userSelect = "none";
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'default';
-      document.body.style.userSelect = 'auto';
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "default";
+      document.body.style.userSelect = "auto";
     };
   }, [isDragging]);
 
   const startResize = (e: React.MouseEvent) => {
-      e.preventDefault();
-      setIsDragging(true);
-      dragStartY.current = e.clientY;
-      dragStartHeight.current = textareaHeight;
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartY.current = e.clientY;
+    dragStartHeight.current = textareaHeight;
   };
 
   const handleSend = () => {
     let finalData = inputBuffer;
-    
-    // For TEXT, we append line endings here. 
-    if (sendMode === 'TEXT') {
-        switch (config.lineEnding) {
-            case 'LF': finalData += '\n'; break;
-            case 'CR': finalData += '\r'; break;
-            case 'CRLF': finalData += '\r\n'; break;
-        }
+
+    // For TEXT, we append line endings here.
+    if (sendMode === "TEXT") {
+      switch (config.lineEnding) {
+        case "LF":
+          finalData += "\n";
+          break;
+        case "CR":
+          finalData += "\r";
+          break;
+        case "CRLF":
+          finalData += "\r\n";
+          break;
+      }
     }
-    
+
     onSend(finalData);
-    setInputBuffer('');
+    setInputBuffer("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
   const setLineEnding = (le: LineEnding) => {
-      setConfig(prev => ({ ...prev, lineEnding: le }));
+    setConfig((prev) => ({ ...prev, lineEnding: le }));
   };
 
   return (
     <div className="flex flex-col border-t border-border bg-card/50 backdrop-blur-sm shadow-[0_-2px_12px_rgba(0,0,0,0.08)] dark:shadow-[0_-2px_12px_rgba(0,0,0,0.3)] z-30 relative">
-        <div
-            className="group absolute top-0 left-0 right-0 h-2 -mt-1 cursor-row-resize z-50 flex items-center justify-center hover:bg-primary/10 transition-colors"
-            onMouseDown={startResize}
-            title="Drag to resize input area"
-        >
-            <div className="w-16 h-1 rounded-full bg-border group-hover:bg-primary/50 transition-colors shadow-sm"></div>
-        </div>
+      <div
+        className="group absolute top-0 left-0 right-0 h-2 -mt-1 cursor-row-resize z-50 flex items-center justify-center hover:bg-primary/10 transition-colors"
+        onMouseDown={startResize}
+        title="Drag to resize input area"
+      >
+        <div className="w-16 h-1 rounded-full bg-border group-hover:bg-primary/50 transition-colors shadow-sm"></div>
+      </div>
 
-        <div className="flex items-center justify-between px-4 py-2.5 bg-muted/10 border-b border-border/50">
-             <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
-                 <div className="flex flex-col gap-1 shrink-0">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Format</span>
-                    <div className="flex bg-muted/50 rounded-lg p-0.5 h-9 items-center border border-border/50 shadow-sm">
-                        {(['TEXT', 'HEX', 'BINARY'] as DataMode[]).map((m) => (
-                            <button key={m} onClick={() => setSendMode(m)} className={cn("px-3 py-0.5 text-[10px] font-bold rounded-md transition-all h-full min-w-15", sendMode === m ? "bg-background text-foreground shadow-md" : "text-muted-foreground hover:text-foreground hover:bg-background/50")}>{m}</button>
-                        ))}
-                    </div>
-                 </div>
-                 <div className="w-px h-9 bg-border/60 shrink-0"></div>
-
-                 {sendMode === 'TEXT' && (
-                    <>
-                     <div className="flex flex-col gap-1 shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Encoding</span><div className="w-32"><Select value={encoding} onChange={(e) => setEncoding(e.target.value as TextEncoding)} className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"><option value="UTF-8">UTF-8</option><option value="ASCII">ASCII (7-bit)</option><option value="ISO-8859-1">ISO-8859-1</option></Select></div></div>
-                     <div className="w-px h-9 bg-border/60 shrink-0"></div>
-                     <div className="flex flex-col gap-1 shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Line Ending</span><div className="w-32"><Select value={config.lineEnding} onChange={(e) => setLineEnding(e.target.value as LineEnding)} className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"><option value="NONE">None</option><option value="LF">LF (\n)</option><option value="CR">CR (\r)</option><option value="CRLF">CRLF (\r\n)</option></Select></div></div>
-                     <div className="w-px h-9 bg-border/60 shrink-0"></div>
-                    </>
-                 )}
-
-                 <div className="flex flex-col gap-1 shrink-0"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Checksum</span><div className="w-32"><Select value={checksum} onChange={(e) => setChecksum(e.target.value as ChecksumAlgorithm)} className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"><option value="NONE">None</option><option value="MOD256">Mod 256 (Sum)</option><option value="XOR">XOR 8-bit</option><option value="CRC16">CRC16 (Modbus)</option></Select></div></div>
-                 <div className="w-px h-9 bg-border/60 shrink-0"></div>
-
-                 <div className="flex flex-col gap-1 shrink-0">
-                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">Control Signals</span>
-                     <div className="flex items-center gap-2">
-                         <button onClick={() => onToggleSignal('dtr')} disabled={!isConnected} title="Data Terminal Ready" className={cn("flex items-center gap-1.5 text-[10px] font-bold px-3 h-9 rounded-md transition-all border shadow-sm", dtr ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 shadow-emerald-500/20" : "text-muted-foreground bg-background/80 border-border/60 hover:bg-muted hover:text-foreground hover:border-primary/30")}><Zap className={cn("w-3 h-3", dtr && "fill-current")} /> DTR</button>
-                         <button onClick={() => onToggleSignal('rts')} disabled={!isConnected} title="Request To Send" className={cn("flex items-center gap-1.5 text-[10px] font-bold px-3 h-9 rounded-md transition-all border shadow-sm", rts ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 shadow-emerald-500/20" : "text-muted-foreground bg-background/80 border-border/60 hover:bg-muted hover:text-foreground hover:border-primary/30")}><ArrowDownToLine className={cn("w-3 h-3", rts && "fill-current")} /> RTS</button>
-                     </div>
-                 </div>
-             </div>
-
-             <div className="flex-col gap-1 items-end ml-4 hidden md:flex"><span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Buffer</span><span className="text-[11px] font-mono text-foreground/80">{inputBuffer.length} chars</span></div>
-        </div>
-
-        <div className="p-4 bg-background/50 relative">
-            <div className="flex flex-col gap-3 w-full">
-                <Textarea
-                    value={inputBuffer}
-                    onChange={(e) => setInputBuffer(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="font-mono text-sm resize-none border-border bg-background focus-visible:border-primary focus-visible:ring-primary/30 p-3 leading-relaxed transition-all custom-scrollbar shadow-sm"
-                    style={{ height: `${textareaHeight}px` }}
-                    placeholder={sendMode === 'TEXT' ? `Enter text...` : sendMode === 'HEX' ? `Enter Hex (e.g. AA BB 0D 0A for \\r\\n)...` : `Enter Binary (e.g. 01010101 00001101)...`}
-                    spellCheck={false}
-                />
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-primary/10 rounded-lg" onClick={() => alert("File selection to be implemented.")} title="Attach File (Upcoming)"><Paperclip className="w-4 h-4" /></Button>
-                        {inputBuffer.length > 0 && <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg" onClick={() => setInputBuffer('')} title="Clear Input"><X className="w-4 h-4" /></Button>}
-                    </div>
-                    <Button onClick={handleSend} disabled={!isConnected} className="h-10 px-6 rounded-lg bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg flex items-center justify-center gap-2 font-bold tracking-wide transition-all active:scale-95"><span className="text-sm">SEND</span><Send className="w-4 h-4" /></Button>
-                </div>
+      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/10 border-b border-border/50">
+        <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">
+              Format
+            </span>
+            <div className="flex bg-muted/50 rounded-lg p-0.5 h-9 items-center border border-border/50 shadow-sm">
+              {(["TEXT", "HEX", "BINARY"] as DataMode[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setSendMode(m)}
+                  className={cn(
+                    "px-3 py-0.5 text-[10px] font-bold rounded-md transition-all h-full min-w-15",
+                    sendMode === m
+                      ? "bg-background text-foreground shadow-md"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+                  )}
+                >
+                  {m}
+                </button>
+              ))}
             </div>
+          </div>
+          <div className="w-px h-9 bg-border/60 shrink-0"></div>
+
+          {sendMode === "TEXT" && (
+            <>
+              <div className="flex flex-col gap-1 shrink-0">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">
+                  Encoding
+                </span>
+                <div className="w-32">
+                  <Select
+                    value={encoding}
+                    onChange={(e) =>
+                      setEncoding(e.target.value as TextEncoding)
+                    }
+                    className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"
+                  >
+                    <option value="UTF-8">UTF-8</option>
+                    <option value="ASCII">ASCII (7-bit)</option>
+                    <option value="ISO-8859-1">ISO-8859-1</option>
+                  </Select>
+                </div>
+              </div>
+              <div className="w-px h-9 bg-border/60 shrink-0"></div>
+              <div className="flex flex-col gap-1 shrink-0">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">
+                  Line Ending
+                </span>
+                <div className="w-32">
+                  <Select
+                    value={config.lineEnding}
+                    onChange={(e) =>
+                      setLineEnding(e.target.value as LineEnding)
+                    }
+                    className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"
+                  >
+                    <option value="NONE">None</option>
+                    <option value="LF">LF (\n)</option>
+                    <option value="CR">CR (\r)</option>
+                    <option value="CRLF">CRLF (\r\n)</option>
+                  </Select>
+                </div>
+              </div>
+              <div className="w-px h-9 bg-border/60 shrink-0"></div>
+            </>
+          )}
+
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">
+              Checksum
+            </span>
+            <div className="w-32">
+              <Select
+                value={checksum}
+                onChange={(e) =>
+                  setChecksum(e.target.value as ChecksumAlgorithm)
+                }
+                className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"
+              >
+                <option value="NONE">None</option>
+                <option value="MOD256">Mod 256 (Sum)</option>
+                <option value="XOR">XOR 8-bit</option>
+                <option value="CRC16">CRC16 (Modbus)</option>
+              </Select>
+            </div>
+          </div>
+          <div className="w-px h-9 bg-border/60 shrink-0"></div>
+
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-0.5">
+              Control Signals
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onToggleSignal("dtr")}
+                disabled={!isConnected}
+                title="Data Terminal Ready"
+                className={cn(
+                  "flex items-center gap-1.5 text-[10px] font-bold px-3 h-9 rounded-md transition-all border shadow-sm",
+                  dtr
+                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 shadow-emerald-500/20"
+                    : "text-muted-foreground bg-background/80 border-border/60 hover:bg-muted hover:text-foreground hover:border-primary/30",
+                )}
+              >
+                <Zap className={cn("w-3 h-3", dtr && "fill-current")} /> DTR
+              </button>
+              <button
+                onClick={() => onToggleSignal("rts")}
+                disabled={!isConnected}
+                title="Request To Send"
+                className={cn(
+                  "flex items-center gap-1.5 text-[10px] font-bold px-3 h-9 rounded-md transition-all border shadow-sm",
+                  rts
+                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 shadow-emerald-500/20"
+                    : "text-muted-foreground bg-background/80 border-border/60 hover:bg-muted hover:text-foreground hover:border-primary/30",
+                )}
+              >
+                <ArrowDownToLine
+                  className={cn("w-3 h-3", rts && "fill-current")}
+                />{" "}
+                RTS
+              </button>
+            </div>
+          </div>
         </div>
+
+        <div className="flex-col gap-1 items-end ml-4 hidden md:flex">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Buffer
+          </span>
+          <span className="text-[11px] font-mono text-foreground/80">
+            {inputBuffer.length} chars
+          </span>
+        </div>
+      </div>
+
+      <div className="p-4 bg-background/50 relative">
+        <div className="flex flex-col gap-3 w-full">
+          <Textarea
+            value={inputBuffer}
+            onChange={(e) => setInputBuffer(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="font-mono text-sm resize-none border-border bg-background focus-visible:border-primary focus-visible:ring-primary/30 p-3 leading-relaxed transition-all custom-scrollbar shadow-sm"
+            style={{ height: `${textareaHeight}px` }}
+            placeholder={
+              sendMode === "TEXT"
+                ? `Enter text...`
+                : sendMode === "HEX"
+                  ? `Enter Hex (e.g. AA BB 0D 0A for \\r\\n)...`
+                  : `Enter Binary (e.g. 01010101 00001101)...`
+            }
+            spellCheck={false}
+          />
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-primary/10 rounded-lg"
+                onClick={() => alert("File selection to be implemented.")}
+                title="Attach File (Upcoming)"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              {inputBuffer.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                  onClick={() => setInputBuffer("")}
+                  title="Clear Input"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            <Button
+              onClick={handleSend}
+              disabled={!isConnected}
+              className="h-10 px-6 rounded-lg bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg flex items-center justify-center gap-2 font-bold tracking-wide transition-all active:scale-95"
+            >
+              <span className="text-sm">SEND</span>
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

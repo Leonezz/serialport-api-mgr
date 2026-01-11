@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
-import { Button } from './Button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './Card';
+import React, { useEffect } from "react";
+import { X } from "lucide-react";
+import { Button } from "./Button";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "./Card";
 
 export interface ModalProps {
   /** Whether the modal is open */
@@ -20,7 +20,7 @@ export interface ModalProps {
   footer?: React.ReactNode;
 
   /** Modal size variant */
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
 
   /** z-index level (50 for standard, 100 for high priority) */
   zIndex?: 50 | 100;
@@ -42,12 +42,12 @@ export interface ModalProps {
 }
 
 const sizeClasses = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-  '2xl': 'max-w-2xl',
-  full: 'max-w-full'
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  "2xl": "max-w-2xl",
+  full: "max-w-full",
 };
 
 /**
@@ -60,31 +60,31 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   footer,
-  size = 'md',
+  size = "md",
   zIndex = 50,
   showCloseButton = true,
-  className = '',
-  headerClassName = '',
-  contentClassName = '',
-  footerClassName = ''
+  className = "",
+  headerClassName = "",
+  contentClassName = "",
+  footerClassName = "",
 }) => {
   // Handle Escape key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
+      document.addEventListener("keydown", handleEscape);
       // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, onClose]);
 
@@ -92,17 +92,17 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 ${zIndex === 100 ? 'z-[100]' : 'z-50'}`}
+      className={`fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 ${zIndex === 100 ? "z-[100]" : "z-50"}`}
       onClick={onClose} // Click backdrop to close
     >
       <Card
         className={`w-full ${sizeClasses[size]} shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200 ${className}`}
         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
       >
-        <CardHeader className={`flex flex-row items-center justify-between pb-2 border-b border-border bg-muted/20 ${headerClassName}`}>
-          <CardTitle className="text-lg">
-            {title}
-          </CardTitle>
+        <CardHeader
+          className={`flex flex-row items-center justify-between pb-2 border-b border-border bg-muted/20 ${headerClassName}`}
+        >
+          <CardTitle className="text-lg">{title}</CardTitle>
           {showCloseButton && (
             <Button
               variant="ghost"
@@ -121,7 +121,9 @@ export const Modal: React.FC<ModalProps> = ({
         </CardContent>
 
         {footer && (
-          <CardFooter className={`flex justify-end bg-muted/20 border-t border-border p-4 gap-2 ${footerClassName}`}>
+          <CardFooter
+            className={`flex justify-end bg-muted/20 border-t border-border p-4 gap-2 ${footerClassName}`}
+          >
             {footer}
           </CardFooter>
         )}

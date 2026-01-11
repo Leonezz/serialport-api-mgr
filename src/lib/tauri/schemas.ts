@@ -2,16 +2,16 @@
  * Zod schemas for runtime validation of Tauri command responses
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================================================
 // Rust Enum Schemas
 // ============================================================================
 
-export const RustDataBitsSchema = z.enum(['Five', 'Six', 'Seven', 'Eight']);
-export const RustFlowControlSchema = z.enum(['None', 'Hardware', 'Software']);
-export const RustParitySchema = z.enum(['None', 'Even', 'Odd']);
-export const RustStopBitsSchema = z.enum(['One', 'Two']);
+export const RustDataBitsSchema = z.enum(["Five", "Six", "Seven", "Eight"]);
+export const RustFlowControlSchema = z.enum(["None", "Hardware", "Software"]);
+export const RustParitySchema = z.enum(["None", "Even", "Odd"]);
+export const RustStopBitsSchema = z.enum(["One", "Two"]);
 
 // ============================================================================
 // Port Information Schemas
@@ -33,10 +33,10 @@ export const UsbPortInfoSchema = z.object({
  * Port type schema - tagged union for Rust enum serialization
  */
 export const PortTypeSchema = z.union([
-  z.object({ UsbPort: UsbPortInfoSchema }),  // USB connected
-  z.literal('PciPort'),                      // PCI/permanent port
-  z.literal('BluetoothPort'),                // Bluetooth connected
-  z.literal('Unknown'),                      // Unknown connection type
+  z.object({ UsbPort: UsbPortInfoSchema }), // USB connected
+  z.literal("PciPort"), // PCI/permanent port
+  z.literal("BluetoothPort"), // Bluetooth connected
+  z.literal("Unknown"), // Unknown connection type
 ]);
 
 /**
@@ -59,8 +59,8 @@ export const OpenedPortProfileSchema = z.object({
  * Port status schema - tagged union for Rust enum serialization
  */
 export const PortStatusSchema = z.union([
-  z.object({ Opened: OpenedPortProfileSchema }),  // Port is open
-  z.literal('Closed'),                            // Port is closed
+  z.object({ Opened: OpenedPortProfileSchema }), // Port is open
+  z.literal("Closed"), // Port is closed
 ]);
 
 /**
@@ -70,7 +70,7 @@ export const RustPortInfoSchema = z.object({
   port_name: z.string(),
   port_type: PortTypeSchema,
   port_status: PortStatusSchema,
-  bytes_read: z.number(),  // u128 from Rust
+  bytes_read: z.number(), // u128 from Rust
   bytes_write: z.number(), // u128 from Rust
 });
 

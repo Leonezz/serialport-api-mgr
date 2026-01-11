@@ -3,10 +3,10 @@
  * Provides compile-time type checking and runtime validation with Zod
  */
 
-import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import type { CommandArgs, CommandReturn, TauriCommand } from './commands';
-import { RustPortInfoArraySchema } from './schemas';
-import type { z } from 'zod';
+import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+import type { CommandArgs, CommandReturn, TauriCommand } from "./commands";
+import { RustPortInfoArraySchema } from "./schemas";
+import type { z } from "zod";
 
 // ============================================================================
 // Response Schema Registry
@@ -16,7 +16,7 @@ import type { z } from 'zod';
  * Maps command names to their Zod validation schemas
  * Only commands that return data need validation schemas
  */
-const RESPONSE_SCHEMAS: Partial<Record<TauriCommand['name'], z.ZodSchema>> = {
+const RESPONSE_SCHEMAS: Partial<Record<TauriCommand["name"], z.ZodSchema>> = {
   get_all_port_info: RustPortInfoArraySchema,
   // Commands that return void don't need schemas
   // (open_port, close_port, write_port, etc. all return void)
@@ -50,9 +50,9 @@ const RESPONSE_SCHEMAS: Partial<Record<TauriCommand['name'], z.ZodSchema>> = {
  *   timeoutMs: 1000,
  * });
  */
-export async function invokeCommand<T extends TauriCommand['name']>(
+export async function invokeCommand<T extends TauriCommand["name"]>(
   command: T,
-  args: CommandArgs<T>
+  args: CommandArgs<T>,
 ): Promise<CommandReturn<T>> {
   // Invoke the Tauri command
   const result = await tauriInvoke(command, args);
@@ -67,13 +67,16 @@ export async function invokeCommand<T extends TauriCommand['name']>(
       // Log detailed error information for debugging
       console.error(
         `[Tauri Command] Schema validation failed for command "${command}"`,
-        '\n[Raw Response]:', JSON.stringify(result, null, 2),
-        '\n[Parse Error]:', e instanceof Error ? e.message : String(e),
-        '\n[Full Error]:', e
+        "\n[Raw Response]:",
+        JSON.stringify(result, null, 2),
+        "\n[Parse Error]:",
+        e instanceof Error ? e.message : String(e),
+        "\n[Full Error]:",
+        e,
       );
       // Re-throw to let caller handle the error
       throw new Error(
-        `Schema validation failed for command "${command}": ${e instanceof Error ? e.message : String(e)}`
+        `Schema validation failed for command "${command}": ${e instanceof Error ? e.message : String(e)}`,
       );
     }
   }

@@ -1,15 +1,15 @@
-import { useRef } from 'react';
-import { ValidationMode } from '../types';
-import { executeUserScript } from '../lib/scripting';
-import { useStore } from '../lib/store';
-import { getErrorMessage } from '../lib/utils';
-import { TIMING } from '../lib/constants';
+import { useRef } from "react";
+import { ValidationMode } from "../types";
+import { executeUserScript } from "../lib/scripting";
+import { useStore } from "../lib/store";
+import { getErrorMessage } from "../lib/utils";
+import { TIMING } from "../lib/constants";
 
 interface ActiveValidation {
   sessionId: string;
-  mode: ValidationMode | 'ALWAYS_PASS' | 'SCRIPT';
+  mode: ValidationMode | "ALWAYS_PASS" | "SCRIPT";
   pattern?: string;
-  matchType?: 'CONTAINS' | 'REGEX';
+  matchType?: "CONTAINS" | "REGEX";
   valScript?: string;
   transformScript?: string;
   params?: Record<string, unknown>;
@@ -33,9 +33,9 @@ export function useValidation() {
   const registerValidation = (
     sessionId: string,
     config: {
-      mode: ValidationMode | 'ALWAYS_PASS' | 'SCRIPT';
+      mode: ValidationMode | "ALWAYS_PASS" | "SCRIPT";
       pattern?: string;
-      matchType?: 'CONTAINS' | 'REGEX';
+      matchType?: "CONTAINS" | "REGEX";
       valScript?: string;
       transformScript?: string;
       params?: Record<string, unknown>;
@@ -43,7 +43,7 @@ export function useValidation() {
     },
     cmdName: string,
     onSuccess?: () => void,
-    onError?: (err: Error) => void
+    onError?: (err: Error) => void,
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
       const validationId = `${sessionId}_${Date.now()}_${Math.random()}`;
@@ -52,7 +52,7 @@ export function useValidation() {
       const timer = setTimeout(() => {
         activeValidationsRef.current.delete(validationId);
         const errMsg = `Command "${cmdName}" validation timeout (${timeout}ms)`;
-        addSystemLog('ERROR', 'VALIDATION', errMsg);
+        addSystemLog("ERROR", "VALIDATION", errMsg);
         if (onError) onError(new Error(errMsg));
         reject(new Error(errMsg));
       }, timeout);
@@ -71,7 +71,7 @@ export function useValidation() {
           if (onSuccess) onSuccess();
           resolve();
         },
-        reject
+        reject,
       });
     });
   };
@@ -79,8 +79,12 @@ export function useValidation() {
   /**
    * Check incoming data against all active validations for a session
    */
-  const checkValidation = (data: Uint8Array, sessionId: string, logId?: string) => {
-    let textData = '';
+  const checkValidation = (
+    data: Uint8Array,
+    sessionId: string,
+    logId?: string,
+  ) => {
+    let textData = "";
     try {
       textData = new TextDecoder().decode(data);
     } catch (e) {
@@ -94,13 +98,13 @@ export function useValidation() {
       let passed = false;
 
       // Check validation mode
-      if (val.mode === 'ALWAYS_PASS') {
+      if (val.mode === "ALWAYS_PASS") {
         // Implicit validation for scripts - passes on any data received
         passed = true;
-      } else if (val.mode === 'PATTERN' && val.pattern) {
-        if (val.matchType === 'CONTAINS') {
+      } else if (val.mode === "PATTERN" && val.pattern) {
+        if (val.matchType === "CONTAINS") {
           if (textData.includes(val.pattern)) passed = true;
-        } else if (val.matchType === 'REGEX') {
+        } else if (val.matchType === "REGEX") {
           try {
             const regex = new RegExp(val.pattern);
             if (regex.test(textData)) passed = true;
@@ -108,9 +112,12 @@ export function useValidation() {
             console.error(`[Validation] Regex Error for ${val.cmdName}:`, e);
           }
         }
-      } else if (val.mode === 'SCRIPT' && val.valScript) {
+      } else if (val.mode === "SCRIPT" && val.valScript) {
         try {
-          const result = executeUserScript(val.valScript, { data: textData, raw: data });
+          const result = executeUserScript(val.valScript, {
+            data: textData,
+            raw: data,
+          });
           if (result === true) passed = true;
         } catch (err) {
           console.error(`[Validation] Script Error for ${val.cmdName}:`, err);
@@ -123,7 +130,11 @@ export function useValidation() {
         activeValidationsRef.current.delete(key);
 
         if (!val.resolve) {
-          addToast('success', 'Passed', `Command "${val.cmdName}" response received.`);
+          addToast(
+            "success",
+            "Passed",
+            `Command "${val.cmdName}" response received.`,
+          );
         }
 
         // Execute transform script if present
@@ -137,7 +148,7 @@ export function useValidation() {
               capturedVars[name] = value;
             };
             const log = (msg: string) => {
-              addSystemLog('INFO', 'SCRIPT', `[${val.cmdName}] Log: ${msg}`);
+              addSystemLog("INFO", "SCRIPT", `[${val.cmdName}] Log: ${msg}`);
             };
 
             const scriptArgs = {
@@ -145,7 +156,7 @@ export function useValidation() {
               raw: data,
               setVar,
               log,
-              params: val.params || {}
+              params: val.params || {},
             };
 
             const result = executeUserScript(val.transformScript, scriptArgs);
@@ -155,17 +166,31 @@ export function useValidation() {
               updateLog(logId, { extractedVars: capturedVars }, sessionId);
             }
 
-            addSystemLog('SUCCESS', 'SCRIPT', `Executed post-response script for ${val.cmdName}`, {
-              arguments: { data: textData, raw: Array.from(data), params: val.params },
-              returnValue: result === undefined ? 'undefined' : result,
-              extractedVars: capturedVars
-            });
+            addSystemLog(
+              "SUCCESS",
+              "SCRIPT",
+              `Executed post-response script for ${val.cmdName}`,
+              {
+                arguments: {
+                  data: textData,
+                  raw: Array.from(data),
+                  params: val.params,
+                },
+                returnValue: result === undefined ? "undefined" : result,
+                extractedVars: capturedVars,
+              },
+            );
           } catch (err: unknown) {
             const errorMsg = getErrorMessage(err);
-            addToast('error', 'Transformation Error', errorMsg);
-            addSystemLog('ERROR', 'SCRIPT', `Post-response script error in ${val.cmdName}: ${errorMsg}`, {
-              arguments: { data: textData }
-            });
+            addToast("error", "Transformation Error", errorMsg);
+            addSystemLog(
+              "ERROR",
+              "SCRIPT",
+              `Post-response script error in ${val.cmdName}: ${errorMsg}`,
+              {
+                arguments: { data: textData },
+              },
+            );
           }
         }
 
@@ -191,6 +216,6 @@ export function useValidation() {
     registerValidation,
     checkValidation,
     clearValidation,
-    activeValidationsRef // Export the ref for use by useCommandExecution
+    activeValidationsRef, // Export the ref for use by useCommandExecution
   };
 }

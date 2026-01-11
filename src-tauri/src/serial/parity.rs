@@ -1,13 +1,12 @@
 use std::{fmt, str::FromStr};
 
-use rootcause::{Report, report};
-
+use rootcause::{report, Report};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Parity {
     Odd,
     Even,
-    None
+    None,
 }
 
 impl FromStr for Parity {
@@ -17,7 +16,7 @@ impl FromStr for Parity {
             "odd" | "Odd" => Ok(Self::Odd),
             "even" | "Even" => Ok(Self::Even),
             "none" | "None" => Ok(Self::None),
-            _ => Err(report!("unknown parity: {}", s))
+            _ => Err(report!("unknown parity: {}", s)),
         }
     }
 }

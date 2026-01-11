@@ -32,7 +32,7 @@ export const FRAMING = {
 
 export const NETWORK = {
   /** Default network host */
-  DEFAULT_HOST: 'localhost',
+  DEFAULT_HOST: "localhost",
 
   /** Default network port */
   DEFAULT_PORT: 8080,

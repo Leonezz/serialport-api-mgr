@@ -1,7 +1,7 @@
-import React from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { Button } from './ui/Button';
-import { Modal } from './ui/Modal';
+import React from "react";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "./ui/Button";
+import { Modal } from "./ui/Modal";
 
 interface Props {
   title: string;
@@ -13,12 +13,12 @@ interface Props {
 }
 
 const ConfirmationModal: React.FC<Props> = ({
-    title,
-    message,
-    confirmLabel = 'Confirm',
-    isDestructive = false,
-    onConfirm,
-    onCancel
+  title,
+  message,
+  confirmLabel = "Confirm",
+  isDestructive = false,
+  onConfirm,
+  onCancel,
 }) => {
   const titleWithIcon = (
     <span className="flex items-center gap-2">
@@ -29,9 +29,11 @@ const ConfirmationModal: React.FC<Props> = ({
 
   const footer = (
     <>
-      <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+      <Button variant="ghost" onClick={onCancel}>
+        Cancel
+      </Button>
       <Button
-        variant={isDestructive ? 'destructive' : 'default'}
+        variant={isDestructive ? "destructive" : "default"}
         onClick={onConfirm}
       >
         {confirmLabel}

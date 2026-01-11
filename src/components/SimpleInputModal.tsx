@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Save } from 'lucide-react';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { Modal } from './ui/Modal';
+import React, { useState } from "react";
+import { Save } from "lucide-react";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
+import { Modal } from "./ui/Modal";
 
 interface Props {
   title: string;
@@ -12,20 +12,28 @@ interface Props {
   onClose: () => void;
 }
 
-const SimpleInputModal: React.FC<Props> = ({ title, defaultValue = '', placeholder, onSave, onClose }) => {
+const SimpleInputModal: React.FC<Props> = ({
+  title,
+  defaultValue = "",
+  placeholder,
+  onSave,
+  onClose,
+}) => {
   const [value, setValue] = useState(defaultValue);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (value.trim()) {
-        onSave(value.trim());
-        onClose();
+      onSave(value.trim());
+      onClose();
     }
   };
 
   const footer = (
     <>
-      <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+      <Button type="button" variant="ghost" onClick={onClose}>
+        Cancel
+      </Button>
       <Button type="submit" form="simple-input-form">
         <Save className="w-4 h-4 mr-2" /> Save
       </Button>

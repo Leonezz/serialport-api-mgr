@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { ChevronDown } from "lucide-react";
@@ -12,7 +11,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           className={cn(
             "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground hover:border-primary/50 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 appearance-none",
-            className
+            className,
           )}
           ref={ref}
           {...props}
@@ -22,7 +21,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <ChevronDown className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none" />
       </div>
     );
-  }
+  },
 );
 Select.displayName = "Select";
 

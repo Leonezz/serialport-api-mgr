@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "../../lib/utils";
@@ -20,12 +19,20 @@ const badgeVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
-export interface BadgeProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
-  variant?: "default" | "secondary" | "destructive" | "outline" | null | undefined;
+export interface BadgeProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "children"
+> {
+  variant?:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | null
+    | undefined;
   children?: React.ReactNode;
 }
 

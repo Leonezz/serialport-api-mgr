@@ -1,6 +1,5 @@
-
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
 
 const resources = {
   en: {
@@ -8,7 +7,7 @@ const resources = {
       "app.title": "SerialMan AI",
       "status.connected": "Connected",
       "status.offline": "Offline",
-      
+
       // Sidebar
       "sidebar.commands": "Cmds",
       "sidebar.sequences": "Seq",
@@ -56,7 +55,7 @@ const resources = {
       "cmd.tab.framing": "Framing",
       "cmd.tab.context": "Context",
       "cmd.tab.wizard": "Wizard",
-      
+
       // Processing Tab
       "proc.pre_req": "Pre-Request Script",
       "proc.pre_req_desc": "Modify payload dynamically before sending.",
@@ -78,16 +77,19 @@ const resources = {
       "settings.data.sequences": "Saved Sequences",
       "settings.clear_logs": "Clear All Logs",
       "settings.about": "About",
-      "settings.about.desc": "A web-based tool for serial communication, debugging, and protocol analysis enhanced with Generative AI.",
-      "settings.clear_confirm": "Are you sure you want to clear ALL logs (Data and System)? This cannot be undone.",
+      "settings.about.desc":
+        "A web-based tool for serial communication, debugging, and protocol analysis enhanced with Generative AI.",
+      "settings.clear_confirm":
+        "Are you sure you want to clear ALL logs (Data and System)? This cannot be undone.",
 
       // Dashboard
       "dash.title": "Live Telemetry",
       "dash.add": "Add Widget",
       "dash.clear": "Clear All",
       "dash.empty": "Telemetry Dashboard",
-      "dash.empty_desc": "No widgets defined. Variables from scripts will auto-create widgets, or you can add them manually.",
-      
+      "dash.empty_desc":
+        "No widgets defined. Variables from scripts will auto-create widgets, or you can add them manually.",
+
       // Notifications
       "toast.connected": "Connected",
       "toast.disconnected": "Disconnected",
@@ -95,7 +97,7 @@ const resources = {
       "toast.success": "Success",
       "toast.saved": "Saved",
       "toast.deleted": "Deleted",
-    }
+    },
   },
   zh: {
     translation: {
@@ -172,15 +174,18 @@ const resources = {
       "settings.data.sequences": "已存序列",
       "settings.clear_logs": "清空日志",
       "settings.about": "关于",
-      "settings.about.desc": "基于 Web Serial API 和 Generative AI 构建的串口调试与协议分析工具。",
-      "settings.clear_confirm": "确定要清空所有数据和系统日志吗？此操作不可撤销。",
+      "settings.about.desc":
+        "基于 Web Serial API 和 Generative AI 构建的串口调试与协议分析工具。",
+      "settings.clear_confirm":
+        "确定要清空所有数据和系统日志吗？此操作不可撤销。",
 
       // Dashboard
       "dash.title": "实时遥测",
       "dash.add": "添加组件",
       "dash.clear": "清空所有",
       "dash.empty": "遥测仪表盘",
-      "dash.empty_desc": "暂无组件。通过脚本提取的变量将自动显示，您也可以手动添加。",
+      "dash.empty_desc":
+        "暂无组件。通过脚本提取的变量将自动显示，您也可以手动添加。",
 
       // Notifications
       "toast.connected": "已连接",
@@ -189,19 +194,17 @@ const resources = {
       "toast.success": "成功",
       "toast.saved": "已保存",
       "toast.deleted": "已删除",
-    }
-  }
+    },
+  },
 };
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: 'en',
-    fallbackLng: 'en',
-    interpolation: {
-      escapeValue: false // React is safe from XSS
-    }
-  });
+i18n.use(initReactI18next).init({
+  resources,
+  lng: "en",
+  fallbackLng: "en",
+  interpolation: {
+    escapeValue: false, // React is safe from XSS
+  },
+});
 
 export default i18n;

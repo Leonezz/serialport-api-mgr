@@ -7,18 +7,18 @@
 // Rust Enum Types (what Rust backend expects)
 // ============================================================================
 
-export type RustDataBits = 'Five' | 'Six' | 'Seven' | 'Eight';
-export type RustFlowControl = 'None' | 'Hardware' | 'Software';
-export type RustParity = 'None' | 'Even' | 'Odd';
-export type RustStopBits = 'One' | 'Two';
+export type RustDataBits = "Five" | "Six" | "Seven" | "Eight";
+export type RustFlowControl = "None" | "Hardware" | "Software";
+export type RustParity = "None" | "Even" | "Odd";
+export type RustStopBits = "One" | "Two";
 
 // ============================================================================
 // TypeScript Enum Types (what our app uses)
 // ============================================================================
 
 export type TsDataBits = 5 | 6 | 7 | 8;
-export type TsFlowControl = 'none' | 'hardware' | 'software';
-export type TsParity = 'none' | 'even' | 'odd';
+export type TsFlowControl = "none" | "hardware" | "software";
+export type TsParity = "none" | "even" | "odd";
 export type TsStopBits = 1 | 2;
 
 // ============================================================================
@@ -42,10 +42,10 @@ export interface UsbPortInfo {
  * Serde serializes Rust enums as tagged unions
  */
 export type PortType =
-  | { UsbPort: UsbPortInfo }  // USB connected
-  | 'PciPort'                 // PCI/permanent port
-  | 'BluetoothPort'           // Bluetooth connected
-  | 'Unknown';                // Unknown connection type
+  | { UsbPort: UsbPortInfo } // USB connected
+  | "PciPort" // PCI/permanent port
+  | "BluetoothPort" // Bluetooth connected
+  | "Unknown"; // Unknown connection type
 
 /**
  * Profile of an opened port with current configuration
@@ -68,8 +68,8 @@ export interface OpenedPortProfile {
  * Serde serializes Rust enums as tagged unions
  */
 export type PortStatus =
-  | { Opened: OpenedPortProfile }  // Port is open with config
-  | 'Closed';                      // Port is closed
+  | { Opened: OpenedPortProfile } // Port is open with config
+  | "Closed"; // Port is closed
 
 /**
  * Port information returned by get_all_port_info command
@@ -79,6 +79,6 @@ export interface RustPortInfo {
   port_name: string;
   port_type: PortType;
   port_status: PortStatus;
-  bytes_read: number;  // u128 from Rust, may lose precision for very large values
+  bytes_read: number; // u128 from Rust, may lose precision for very large values
   bytes_write: number; // u128 from Rust, may lose precision for very large values
 }

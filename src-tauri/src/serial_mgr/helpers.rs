@@ -13,10 +13,7 @@ use rootcause::prelude::ResultExt;
 /// # Returns
 /// * `Ok(WritePortSender)` - Clone of the sender channel
 /// * `Err(String)` - Error message if port is not open
-pub async fn get_port_sender(
-    state: &AppState,
-    port_name: &str,
-) -> Result<WritePortSender, String> {
+pub async fn get_port_sender(state: &AppState, port_name: &str) -> Result<WritePortSender, String> {
     let guard = state.port_handles.read().await;
     guard
         .get(port_name)
