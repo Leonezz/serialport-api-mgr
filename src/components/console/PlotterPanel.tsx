@@ -20,8 +20,6 @@ import {
   Settings,
   X,
   LineChart as ChartIcon,
-  ChevronDown,
-  ChevronUp,
   ArrowRight,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -55,13 +53,21 @@ const PlotterPanel: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-  
+
   // Auto-Scroll & Zoom State
   const [isAutoScroll, setIsAutoScroll] = useState(true);
-  const [viewRange, setViewRange] = useState<{ start: number; end: number } | null>(null);
+  const [manualViewRange, setManualViewRange] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
 
   const plotter = session?.plotter;
-  const config = plotter?.config || { enabled: false, parser: "CSV", bufferSize: 1000, autoDiscover: true };
+  const config = plotter?.config || {
+    enabled: false,
+    parser: "CSV",
+    bufferSize: 1000,
+    autoDiscover: true,
+  };
   const data = plotter?.data || [];
   const series = plotter?.series || [];
 
@@ -69,14 +75,15 @@ const PlotterPanel: React.FC = () => {
   const [frozenData, setFrozenData] = useState<any[]>([]);
   const displayData = isPaused ? frozenData : data;
 
-  // --- Auto-Scroll Logic ---
-  useEffect(() => {
+  // Derived View Range
+  const viewRange = useMemo(() => {
     if (isAutoScroll && displayData.length > 0) {
       const end = displayData.length - 1;
       const start = Math.max(0, displayData.length - WINDOW_SIZE);
-      setViewRange({ start, end });
+      return { start, end };
     }
-  }, [displayData.length, isAutoScroll]);
+    return manualViewRange;
+  }, [isAutoScroll, displayData.length, manualViewRange]);
 
   // --- Handlers ---
 
@@ -87,10 +94,13 @@ const PlotterPanel: React.FC = () => {
     setIsPaused(!isPaused);
   };
 
-  const handleBrushChange = (range: { startIndex?: number; endIndex?: number }) => {
+  const handleBrushChange = (range: {
+    startIndex?: number;
+    endIndex?: number;
+  }) => {
     if (range.startIndex !== undefined && range.endIndex !== undefined) {
-      setViewRange({ start: range.startIndex, end: range.endIndex });
-      
+      setManualViewRange({ start: range.startIndex, end: range.endIndex });
+
       // Check if user dragged to the end -> Re-enable auto-scroll?
       // For now, simpler: User interaction disables auto-scroll.
       // We can add a "stick to end" logic if needed, but explicit is better.
@@ -169,22 +179,29 @@ const PlotterPanel: React.FC = () => {
 
         <div className="flex items-center gap-2">
           {!isAutoScroll && (
-             <Button
-             variant="secondary"
-             size="sm"
-             onClick={() => setIsAutoScroll(true)}
-             className="h-8 gap-1.5 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/20"
-           >
-             <ArrowRight className="w-3.5 h-3.5" /> Follow
-           </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsAutoScroll(true)}
+              className="h-8 gap-1.5 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/20"
+            >
+              <ArrowRight className="w-3.5 h-3.5" /> Follow
+            </Button>
           )}
           <Button
             variant="outline"
             size="sm"
             onClick={handleTogglePause}
-            className={cn("h-8 gap-1.5 text-xs", isPaused && "bg-amber-500/10 border-amber-500/50 text-amber-600")}
+            className={cn(
+              "h-8 gap-1.5 text-xs",
+              isPaused && "bg-amber-500/10 border-amber-500/50 text-amber-600",
+            )}
           >
-            {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+            {isPaused ? (
+              <Play className="w-3.5 h-3.5" />
+            ) : (
+              <Pause className="w-3.5 h-3.5" />
+            )}
             {isPaused ? "Resume" : "Pause"}
           </Button>
           <Button
@@ -213,7 +230,9 @@ const PlotterPanel: React.FC = () => {
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground opacity-50 bg-card/30 rounded-xl border-2 border-dashed border-border">
             <ChartIcon className="w-12 h-12 mb-4" />
             <p className="font-semibold">Plotter is Disabled</p>
-            <p className="text-sm mb-4">Enable to start visualizing incoming data</p>
+            <p className="text-sm mb-4">
+              Enable to start visualizing incoming data
+            </p>
             <Button onClick={togglePlotter}>Enable Plotter</Button>
           </div>
         ) : displayData.length === 0 ? (
@@ -227,24 +246,32 @@ const PlotterPanel: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div 
+          <div
             className="flex-1 bg-card border border-border rounded-xl shadow-sm p-4 min-h-0"
             onWheel={(e) => {
               const currentStart = viewRange?.start ?? 0;
-              const currentEnd = viewRange?.end ?? Math.max(0, displayData.length - 1);
-              
+              const currentEnd =
+                viewRange?.end ?? Math.max(0, displayData.length - 1);
+
               handleChartWheel(
                 e,
                 { start: currentStart, end: currentEnd },
                 displayData.length,
-                (newRange) => setViewRange(newRange),
-                () => setIsAutoScroll(false)
+                (newRange) => setManualViewRange(newRange),
+                () => setIsAutoScroll(false),
               );
             }}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+              <LineChart
+                data={displayData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  strokeOpacity={0.1}
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="time"
                   type="number"
@@ -253,7 +280,11 @@ const PlotterPanel: React.FC = () => {
                   tick={{ fontSize: 10 }}
                   height={30}
                 />
-                <YAxis width={40} tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
+                <YAxis
+                  width={40}
+                  tick={{ fontSize: 10 }}
+                  domain={["auto", "auto"]}
+                />
                 <Tooltip
                   labelFormatter={(t) => new Date(t).toLocaleTimeString()}
                   contentStyle={{
@@ -266,7 +297,11 @@ const PlotterPanel: React.FC = () => {
                 />
                 <Legend
                   iconType="circle"
-                  wrapperStyle={{ fontSize: "12px", paddingTop: "10px", cursor: "pointer" }}
+                  wrapperStyle={{
+                    fontSize: "12px",
+                    paddingTop: "10px",
+                    cursor: "pointer",
+                  }}
                   onClick={handleLegendClick}
                 />
                 {series.map((key, i) => (
@@ -299,26 +334,46 @@ const PlotterPanel: React.FC = () => {
         {/* Quick Config / Status Bar (Bottom) */}
         {config.enabled && series.length > 0 && (
           <div className="bg-card border border-border rounded-lg p-3 flex flex-wrap gap-4 items-center shrink-0 shadow-sm">
-             <div className="flex items-center gap-2 pr-4 border-r border-border">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground">Active Series</span>
-                <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">{series.length}</span>
-             </div>
-             {series.slice(0, 8).map((s, i) => {
-                const lastVal = displayData[displayData.length - 1]?.[s];
-                const isHidden = hiddenSeries.has(s);
-                return (
-                  <div 
-                    key={s} 
-                    className={cn("flex items-center gap-2 cursor-pointer transition-opacity", isHidden && "opacity-40 grayscale")}
-                    onClick={() => handleLegendClick({ dataKey: s })}
-                  >
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                    <span className="text-xs font-medium truncate max-w-[100px]">{s}:</span>
-                    <span className="text-xs font-mono font-bold text-primary">{typeof lastVal === 'number' ? lastVal.toFixed(2) : '--'}</span>
-                  </div>
-                )
-             })}
-             {series.length > 8 && <span className="text-xs text-muted-foreground">+{series.length - 8} more</span>}
+            <div className="flex items-center gap-2 pr-4 border-r border-border">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                Active Series
+              </span>
+              <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {series.length}
+              </span>
+            </div>
+            {series.slice(0, 8).map((s, i) => {
+              const lastVal = displayData[displayData.length - 1]?.[s];
+              const isHidden = hiddenSeries.has(s);
+              return (
+                <div
+                  key={s}
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer transition-opacity",
+                    isHidden && "opacity-40 grayscale",
+                  )}
+                  onClick={() => handleLegendClick({ dataKey: s })}
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                    }}
+                  />
+                  <span className="text-xs font-medium truncate max-w-[100px]">
+                    {s}:
+                  </span>
+                  <span className="text-xs font-mono font-bold text-primary">
+                    {typeof lastVal === "number" ? lastVal.toFixed(2) : "--"}
+                  </span>
+                </div>
+              );
+            })}
+            {series.length > 8 && (
+              <span className="text-xs text-muted-foreground">
+                +{series.length - 8} more
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -364,7 +419,11 @@ const PlotterPanel: React.FC = () => {
                   <Select
                     className="h-8 text-xs"
                     value={config.parser}
-                    onChange={(e) => setPlotterConfig({ parser: e.target.value as PlotterParserType })}
+                    onChange={(e) =>
+                      setPlotterConfig({
+                        parser: e.target.value as PlotterParserType,
+                      })
+                    }
                   >
                     <option value="CSV">Comma Separated (CSV)</option>
                     <option value="JSON">Structured JSON</option>
@@ -375,12 +434,16 @@ const PlotterPanel: React.FC = () => {
 
               {config.parser === "REGEX" && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                  <Label className="text-xs">Regular Expression (Capture Groups)</Label>
+                  <Label className="text-xs">
+                    Regular Expression (Capture Groups)
+                  </Label>
                   <Input
                     className="h-8 text-xs font-mono"
                     placeholder="e.g. temp=(\d+\.\d+)"
                     value={config.regexString || ""}
-                    onChange={(e) => setPlotterConfig({ regexString: e.target.value })}
+                    onChange={(e) =>
+                      setPlotterConfig({ regexString: e.target.value })
+                    }
                   />
                   <p className="text-[10px] text-muted-foreground italic">
                     Each capture group will create a new data series.
@@ -393,7 +456,9 @@ const PlotterPanel: React.FC = () => {
                 <Select
                   className="h-8 text-xs"
                   value={config.bufferSize.toString()}
-                  onChange={(e) => setPlotterConfig({ bufferSize: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setPlotterConfig({ bufferSize: parseInt(e.target.value) })
+                  }
                 >
                   <option value="100">100 points</option>
                   <option value="500">500 points</option>
@@ -403,7 +468,10 @@ const PlotterPanel: React.FC = () => {
               </div>
 
               <div className="pt-2">
-                <Button className="w-full h-9 gap-2" onClick={() => setShowSettings(false)}>
+                <Button
+                  className="w-full h-9 gap-2"
+                  onClick={() => setShowSettings(false)}
+                >
                   Close Settings
                 </Button>
               </div>
