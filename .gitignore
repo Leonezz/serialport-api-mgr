@@ -23,6 +23,7 @@ dist-ssr
 # Build artifacts and tool caches
 target/
 .serena/
+coverage/
 
 *.md
 !README.md
