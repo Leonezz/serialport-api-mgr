@@ -41,10 +41,10 @@ export type GlobalFormat = DataMode | "AUTO";
 
 export interface FramingConfig {
   strategy: FramingStrategy;
-  delimiter: string; // e.g., "\n", "03", "0D 0A"
-  timeout: number; // ms, for TIMEOUT strategy
-  prefixLengthSize: number; // 1 to 8 bytes
-  byteOrder: "LE" | "BE"; // Little Endian or Big Endian
+  delimiter?: string; // e.g., "\n", "03", "0D 0A"
+  timeout?: number; // ms, for TIMEOUT strategy
+  prefixLengthSize?: number; // 1 to 8 bytes
+  byteOrder?: "LE" | "BE"; // Little Endian or Big Endian
   script?: string; // Custom JS parser
 }
 
