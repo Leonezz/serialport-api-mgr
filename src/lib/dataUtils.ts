@@ -65,3 +65,68 @@ export const encodeText = (
 
   return new TextEncoder().encode(text);
 };
+
+/**
+ * Convert hex string to bytes
+ * @param hexStr - Hex string (e.g., "48656C6C6F" or "48 65 6C 6C 6F")
+ * @returns Uint8Array of bytes
+ * @throws Error if hex string is invalid (contains non-hex characters after cleaning spaces)
+ */
+export const hexToBytes = (hexStr: string): Uint8Array => {
+  // Remove only whitespace, preserve hex characters for validation
+  const noWhitespace = hexStr.replace(/\s+/g, "");
+
+  if (noWhitespace.length === 0) {
+    return new Uint8Array(0);
+  }
+
+  // Validate that string contains only hex characters
+  if (!/^[0-9A-Fa-f]+$/.test(noWhitespace)) {
+    throw new Error("Invalid hex string: contains non-hex characters");
+  }
+
+  // Left-pad with 0 if odd length
+  const cleanHex =
+    noWhitespace.length % 2 !== 0 ? "0" + noWhitespace : noWhitespace;
+
+  const bytes = new Uint8Array(cleanHex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(cleanHex.substring(i * 2, i * 2 + 2), 16);
+  }
+
+  return bytes;
+};
+
+/**
+ * Convert bytes to hex string
+ * @param bytes - Byte array
+ * @param uppercase - Whether to use uppercase hex letters (default: true)
+ * @param separator - Separator between bytes (default: " ")
+ * @returns Hex string representation
+ */
+export const bytesToHex = (
+  bytes: Uint8Array,
+  uppercase: boolean = true,
+  separator: string = " ",
+): string => {
+  const hexArray = Array.from(bytes).map((b) => {
+    const hex = b.toString(16).padStart(2, "0");
+    return uppercase ? hex.toUpperCase() : hex;
+  });
+
+  return hexArray.join(separator);
+};
+
+/**
+ * Parse hex data string, alias for hexToBytes with better error messages
+ * Handles various hex formats: "48656C6C6F", "48 65 6C 6C 6F", "0x48 0x65"
+ */
+export const parseHexData = (hexStr: string): Uint8Array => {
+  try {
+    return hexToBytes(hexStr);
+  } catch (error) {
+    throw new Error(
+      `Failed to parse hex data "${hexStr}": ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+};

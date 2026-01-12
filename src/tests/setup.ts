@@ -9,6 +9,11 @@ afterEach(() => {
   cleanup();
 });
 
+// Mock Tauri environment variables
+globalThis.__TAURI_ENV_TARGET_TRIPLE__ = "";
+globalThis.__TAURI_ENV_PLATFORM_VERSION__ = "";
+globalThis.__TAURI_ENV_DEBUG__ = false;
+
 // Mock Tauri API
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),

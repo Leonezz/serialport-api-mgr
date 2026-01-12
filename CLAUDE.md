@@ -214,3 +214,6 @@ Controlled by zustand UI slice state
     *   Run `pnpm run type-check` (or `tsc`) to detect type errors.
     *   Run `pnpm run format` to ensure code style consistency.
 -  **Mocking:** When implementing features that interact with hardware or external systems (like serial ports), **always** write or update mock implementations (e.g., `src/lib/mockPort.ts`) to allow testing without physical devices.
+
+## Documents
+- shadcn: https://ui.shadcn.com/llms.txt
