@@ -31,6 +31,7 @@
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-error-boundary": "^6.0.3",
     "react-i18next": "14.0.5",
     "react-markdown": "^10.1.0",
     "recharts": "2.15.0",

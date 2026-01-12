@@ -262,17 +262,6 @@ const App: React.FC = () => {
     setGeneratorModalData(null);
   };
 
-  // --- Effects for Theme ---
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove("dark");
-    root.setAttribute("data-theme", themeColor);
-    let isDark = themeMode === "dark";
-    if (themeMode === "system")
-      isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    if (isDark) root.classList.add("dark");
-  }, [themeMode, themeColor]);
-
   if (!isWebSerialSupported) {
     return (
       <div className="h-full flex items-center justify-center bg-background text-foreground p-4">

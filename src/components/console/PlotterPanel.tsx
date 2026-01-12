@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useDeferredValue } from "react";
 import {
   LineChart,
   Line,
@@ -49,7 +49,8 @@ const WINDOW_SIZE = 200; // Visible points in auto-scroll mode
 const PlotterPanel: React.FC = () => {
   const activeSessionId = useStore((state) => state.activeSessionId);
   const session = useStore((state) => state.sessions[activeSessionId]);
-  const { setPlotterConfig, clearPlotterData, setPlotterSeriesAlias } = useStore();
+  const { setPlotterConfig, clearPlotterData, setPlotterSeriesAlias } =
+    useStore();
 
   const [isPaused, setIsPaused] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -77,15 +78,19 @@ const PlotterPanel: React.FC = () => {
   const [frozenData, setFrozenData] = useState<any[]>([]);
   const displayData = isPaused ? frozenData : data;
 
-  // Derived View Range
+  // Defer displayData to keep UI responsive during high-frequency updates
+  const deferredDisplayData = useDeferredValue(displayData);
+  const isDataStale = displayData !== deferredDisplayData;
+
+  // Derived View Range - use deferred data for calculations
   const viewRange = useMemo(() => {
-    if (isAutoScroll && displayData.length > 0) {
-      const end = displayData.length - 1;
-      const start = Math.max(0, displayData.length - WINDOW_SIZE);
+    if (isAutoScroll && deferredDisplayData.length > 0) {
+      const end = deferredDisplayData.length - 1;
+      const start = Math.max(0, deferredDisplayData.length - WINDOW_SIZE);
       return { start, end };
     }
     return manualViewRange;
-  }, [isAutoScroll, displayData.length, manualViewRange]);
+  }, [isAutoScroll, deferredDisplayData.length, manualViewRange]);
 
   // --- Handlers ---
 
@@ -251,24 +256,30 @@ const PlotterPanel: React.FC = () => {
           </div>
         ) : (
           <div
-            className="flex-1 bg-card border border-border rounded-xl shadow-sm p-4 min-h-0"
+            className="flex-1 bg-card border border-border rounded-xl shadow-sm p-4 min-h-0 relative"
             onWheel={(e) => {
               const currentStart = viewRange?.start ?? 0;
               const currentEnd =
-                viewRange?.end ?? Math.max(0, displayData.length - 1);
+                viewRange?.end ?? Math.max(0, deferredDisplayData.length - 1);
 
               handleChartWheel(
                 e,
                 { start: currentStart, end: currentEnd },
-                displayData.length,
+                deferredDisplayData.length,
                 (newRange) => setManualViewRange(newRange),
                 () => setIsAutoScroll(false),
               );
             }}
           >
+            {/* Data Loading Indicator */}
+            {isDataStale && (
+              <div className="absolute top-2 right-2 z-10 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1 text-[10px] font-medium text-amber-600 animate-pulse">
+                Updating...
+              </div>
+            )}
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={displayData}
+                data={deferredDisplayData}
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
               >
                 <CartesianGrid
@@ -353,7 +364,8 @@ const PlotterPanel: React.FC = () => {
               </span>
             </div>
             {series.slice(0, 8).map((s, i) => {
-              const lastVal = displayData[displayData.length - 1]?.[s];
+              const lastVal =
+                deferredDisplayData[deferredDisplayData.length - 1]?.[s];
               const isHidden = hiddenSeries.has(s);
               return (
                 <div
@@ -408,7 +420,9 @@ const PlotterPanel: React.FC = () => {
                   <div className="h-6 w-6 bg-blue-500/10 rounded flex items-center justify-center text-blue-600">
                     <ChartIcon className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Data Parsing</span>
+                  <span className="text-xs font-bold uppercase text-muted-foreground">
+                    Data Parsing
+                  </span>
                 </div>
 
                 <div className="space-y-2">
@@ -494,7 +508,9 @@ const PlotterPanel: React.FC = () => {
                   <div className="h-6 w-6 bg-emerald-500/10 rounded flex items-center justify-center text-emerald-600">
                     <Edit2 className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Series Configuration</span>
+                  <span className="text-xs font-bold uppercase text-muted-foreground">
+                    Series Configuration
+                  </span>
                 </div>
 
                 {series.length === 0 ? (
@@ -508,17 +524,23 @@ const PlotterPanel: React.FC = () => {
                         <div
                           className="w-3 h-3 rounded-full shrink-0"
                           style={{
-                            backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                            backgroundColor:
+                              CHART_COLORS[i % CHART_COLORS.length],
                           }}
                         />
-                        <div className="text-xs font-mono shrink-0 w-24 truncate text-muted-foreground" title={s}>
+                        <div
+                          className="text-xs font-mono shrink-0 w-24 truncate text-muted-foreground"
+                          title={s}
+                        >
                           {s}
                         </div>
                         <Input
                           className="h-7 text-xs flex-1"
                           placeholder="Display Name"
                           value={aliases[s] || ""}
-                          onChange={(e) => setPlotterSeriesAlias(s, e.target.value)}
+                          onChange={(e) =>
+                            setPlotterSeriesAlias(s, e.target.value)
+                          }
                         />
                       </div>
                     ))}
@@ -526,7 +548,7 @@ const PlotterPanel: React.FC = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="p-4 border-t border-border shrink-0">
               <Button
                 className="w-full h-9 gap-2"

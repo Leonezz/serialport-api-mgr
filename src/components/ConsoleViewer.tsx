@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import { DataMode, GlobalFormat } from "../types";
 import {
   ArrowDown,
@@ -24,6 +25,7 @@ import StreamPanel from "./console/StreamPanel";
 import ChatBubble from "./console/ChatBubble";
 import DashboardPanel from "./console/DashboardPanel";
 import PlotterPanel from "./console/PlotterPanel";
+import { ErrorFallback } from "./ErrorFallback";
 
 type ViewLayout =
   | "LIST"
@@ -210,33 +212,58 @@ const ConsoleViewer: React.FC = () => {
 
       {viewLayout === "DASHBOARD" ? (
         <div className="flex-1 p-4 pt-14 min-h-0 overflow-hidden">
-          <DashboardPanel />
+          <ErrorBoundary
+            FallbackComponent={ErrorFallback}
+            resetKeys={[activeSessionId]}
+          >
+            <DashboardPanel />
+          </ErrorBoundary>
         </div>
       ) : viewLayout === "PLOTTER" ? (
         <div className="flex-1 p-4 pt-14 min-h-0 overflow-hidden">
-          <PlotterPanel />
+          <ErrorBoundary
+            FallbackComponent={ErrorFallback}
+            resetKeys={[activeSessionId]}
+          >
+            <PlotterPanel />
+          </ErrorBoundary>
         </div>
       ) : viewLayout === "GRAPHIC" ? (
         <div className="flex-1 p-4 pt-14 min-h-0 overflow-hidden">
-          <LogicAnalyzerPanel logs={logs} />
+          <ErrorBoundary
+            FallbackComponent={ErrorFallback}
+            resetKeys={[activeSessionId, logs.length]}
+          >
+            <LogicAnalyzerPanel logs={logs} />
+          </ErrorBoundary>
         </div>
       ) : viewLayout === "STREAM" ? (
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 pt-14 min-h-0">
           {/* Center Wrapper: Fits content width and centers it with mx-auto */}
           <div className="flex flex-col md:flex-row gap-4 h-full w-full md:w-fit mx-auto">
-            <StreamPanel
-              title="INCOMING (RX)"
-              logs={logs}
-              direction="RX"
-              className="w-full md:w-fit shrink-0 border-emerald-500/20 shadow-sm min-w-[320px]"
-            />
-            <StreamPanel
-              title="OUTGOING (TX)"
-              logs={logs}
-              direction="TX"
-              className="w-full md:w-fit shrink-0 border-primary/20 shadow-sm min-w-[320px]"
-              accentColorClass="bg-primary/10 text-primary"
-            />
+            <ErrorBoundary
+              FallbackComponent={ErrorFallback}
+              resetKeys={[activeSessionId, logs.length]}
+            >
+              <StreamPanel
+                title="INCOMING (RX)"
+                logs={logs}
+                direction="RX"
+                className="w-full md:w-fit shrink-0 border-emerald-500/20 shadow-sm min-w-[320px]"
+              />
+            </ErrorBoundary>
+            <ErrorBoundary
+              FallbackComponent={ErrorFallback}
+              resetKeys={[activeSessionId, logs.length]}
+            >
+              <StreamPanel
+                title="OUTGOING (TX)"
+                logs={logs}
+                direction="TX"
+                className="w-full md:w-fit shrink-0 border-primary/20 shadow-sm min-w-[320px]"
+                accentColorClass="bg-primary/10 text-primary"
+              />
+            </ErrorBoundary>
           </div>
         </div>
       ) : (

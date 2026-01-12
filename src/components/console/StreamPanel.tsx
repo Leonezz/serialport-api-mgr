@@ -1,4 +1,10 @@
-import React, { useRef, useState, useMemo, useEffect } from "react";
+import React, {
+  useRef,
+  useState,
+  useMemo,
+  useEffect,
+  useDeferredValue,
+} from "react";
 import { LogEntry } from "../../types";
 import { ArrowDown, X, Binary } from "lucide-react";
 import { cn, getBytes } from "../../lib/utils";
@@ -28,9 +34,12 @@ const StreamPanel: React.FC<StreamPanelProps> = ({
     end: number;
   } | null>(null);
 
-  // 1. Combine Data
+  // 1. Combine Data - defer logs to keep UI responsive
+  const deferredLogs = useDeferredValue(logs);
+  const isLogsStale = logs !== deferredLogs;
+
   const combinedData = useMemo(() => {
-    const relevantLogs = logs.filter((l) => l.direction === direction);
+    const relevantLogs = deferredLogs.filter((l) => l.direction === direction);
     if (relevantLogs.length === 0) return new Uint8Array(0);
 
     const arrays = relevantLogs.map((l) => getBytes(l.data));
@@ -43,7 +52,7 @@ const StreamPanel: React.FC<StreamPanelProps> = ({
       offset += arr.length;
     }
     return result;
-  }, [logs, direction]);
+  }, [deferredLogs, direction]);
 
   // 2. Auto Scroll Logic
   useEffect(() => {
@@ -88,6 +97,11 @@ const StreamPanel: React.FC<StreamPanelProps> = ({
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
+          )}
+          {isLogsStale && (
+            <span className="font-mono text-[10px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded border border-amber-500/30 animate-pulse">
+              Updating...
+            </span>
           )}
           <span className="font-mono opacity-70 text-[10px]">
             {combinedData.length} B
