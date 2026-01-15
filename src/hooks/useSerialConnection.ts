@@ -133,6 +133,24 @@ export const useSerialConnection = (
 
       // Start Reading
       readLoop(sessionId, newPort);
+
+      // Return the port name for state tracking
+      if (newPort instanceof MockPort) {
+        return (newPort as any).type || "mock";
+      } else if (newPort instanceof NetworkPort) {
+        return `ws://${networkConfig.host}:${networkConfig.port}`;
+      } else {
+        // It's a real serial port (WebSerial or Tauri)
+        // Try to get info if available
+        if ("getInfo" in newPort) {
+          const info = (newPort as ISerialPort).getInfo();
+          // If it's a TauriPort, it has a portName property directly (we saw this in serialService.ts)
+          if ("portName" in newPort) {
+            return (newPort as any).portName;
+          }
+        }
+        return "serial_port";
+      }
     } catch (err) {
       console.error(`[${sessionId}] Connect error:`, err);
       throw err;

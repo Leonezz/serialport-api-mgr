@@ -39,11 +39,12 @@ const RightSidebar: React.FC = () => {
     setEditingCommand,
     setPendingParamCommand,
     addToast,
+    rightSidebarCollapsed,
+    setRightSidebarCollapsed,
   } = useStore();
 
   const [width, setWidth] = useState(450);
   const [isResizing, setIsResizing] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const selectedCommand = commands.find((c) => c.id === selectedCommandId);
 
@@ -117,11 +118,11 @@ const RightSidebar: React.FC = () => {
 
   return (
     <div
-      style={{ width: isCollapsed ? 48 : width }}
+      style={{ width: rightSidebarCollapsed ? 48 : width }}
       className="bg-card border-l border-border flex flex-row shadow-xl h-full relative shrink-0 transition-[width] duration-200 ease-in-out z-40 overflow-hidden"
     >
       {/* Resize Handle */}
-      {!isCollapsed && (
+      {!rightSidebarCollapsed && (
         <div
           onMouseDown={(e) => {
             e.preventDefault();
@@ -136,11 +137,11 @@ const RightSidebar: React.FC = () => {
       {/* Vertical Tab Rail */}
       <div className="w-12 flex flex-col items-center py-3 gap-3 bg-muted/20 border-r border-border shrink-0 z-10">
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
           className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mb-2"
-          title={isCollapsed ? "Expand" : "Collapse"}
+          title={rightSidebarCollapsed ? "Expand" : "Collapse"}
         >
-          {isCollapsed ? (
+          {rightSidebarCollapsed ? (
             <ChevronsLeft className="w-4 h-4" />
           ) : (
             <ChevronsRight className="w-4 h-4" />
@@ -149,13 +150,13 @@ const RightSidebar: React.FC = () => {
 
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = rightSidebarTab === tab.id && !isCollapsed;
+          const isActive = rightSidebarTab === tab.id && !rightSidebarCollapsed;
           return (
             <button
               key={tab.id}
               onClick={() => {
                 setRightSidebarTab(tab.id);
-                if (isCollapsed) setIsCollapsed(false);
+                if (rightSidebarCollapsed) setRightSidebarCollapsed(false);
               }}
               className={cn(
                 "p-2.5 rounded-lg transition-all relative group",
@@ -181,7 +182,9 @@ const RightSidebar: React.FC = () => {
       <div
         className={cn(
           "flex-1 overflow-hidden flex flex-col bg-background/50 transition-opacity duration-200 relative",
-          isCollapsed ? "opacity-0 pointer-events-none" : "opacity-100",
+          rightSidebarCollapsed
+            ? "opacity-0 pointer-events-none"
+            : "opacity-100",
         )}
       >
         {/* Header for Editor Tabs */}

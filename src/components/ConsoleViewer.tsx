@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { DataMode, GlobalFormat } from "../types";
+import { DataMode, GlobalFormat, LogEntry } from "../types";
 import {
   ArrowDown,
   Binary,
@@ -14,9 +14,12 @@ import {
   LineChart as ChartIcon,
   LayoutDashboard,
   Palette,
+  History,
+  Loader2,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useStore } from "../lib/store";
+import { TauriSerialAPI } from "../lib/tauri/api";
 
 // Sub Components
 import LogicAnalyzerPanel from "./console/LogicAnalyzerPanel";
@@ -39,9 +42,11 @@ const ConsoleViewer: React.FC = () => {
   // Optimized Selectors: Only subscribe to activeSessionId and logs.
   // Input buffer changes trigger 'sessions' object updates, but 'logs' array reference remains consistent if only input changed.
   const activeSessionId = useStore((state) => state.activeSessionId);
-  const logs = useStore((state) => state.sessions[activeSessionId].logs || []);
+  const activeSession = useStore((state) => state.sessions[activeSessionId]);
+  const logs = activeSession.logs || [];
+  const portName = activeSession.portName;
   const contexts = useStore((state) => state.contexts);
-  const { themeMode } = useStore();
+  const { themeMode, addToast } = useStore();
 
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,6 +55,62 @@ const ConsoleViewer: React.FC = () => {
   const [viewLayout, setViewLayout] = useState<ViewLayout>("LIST");
   const [enableAnsi, setEnableAnsi] = useState(true);
   const [isDark, setIsDark] = useState(false);
+
+  // History State
+  const [historyLogs, setHistoryLogs] = useState<LogEntry[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [hasMoreHistory, setHasMoreHistory] = useState(true);
+
+  // Clear history when session changes or port changes
+  useEffect(() => {
+    setHistoryLogs([]);
+    setHasMoreHistory(true);
+  }, [activeSessionId, portName]);
+
+  // Combine history and live logs
+  // Use useMemo to avoid re-calculating on every render if logs haven't changed
+  const displayLogs = useMemo(() => {
+    return [...historyLogs, ...logs];
+  }, [historyLogs, logs]);
+
+  const HISTORY_BATCH_SIZE = 100;
+
+  const loadHistory = async () => {
+    if (!activeSessionId || isLoadingHistory) return;
+
+    setIsLoadingHistory(true);
+    try {
+      const offset = displayLogs.length;
+      const limit = HISTORY_BATCH_SIZE;
+
+      const newLogs = await TauriSerialAPI.getLogs(
+        activeSessionId,
+        limit,
+        offset,
+      );
+
+      if (newLogs.length < limit) {
+        setHasMoreHistory(false);
+      }
+
+      if (newLogs.length > 0) {
+        const sortedNewLogs = [...newLogs].reverse();
+        setHistoryLogs((prev) => [...sortedNewLogs, ...prev]);
+        setAutoScroll(false);
+      } else {
+        addToast(
+          "info",
+          "No more history",
+          "You have reached the beginning of the logs.",
+        );
+      }
+    } catch (err) {
+      console.error("Failed to load history:", err);
+      addToast("error", "History Error", "Failed to load older logs.");
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
 
   // Detect effective theme for ANSI contrast
   useEffect(() => {
@@ -278,7 +339,7 @@ const ConsoleViewer: React.FC = () => {
             setAutoScroll(isNearBottom);
           }}
         >
-          {logs.length === 0 && (
+          {logs.length === 0 && historyLogs.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground/30 select-none">
               <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-4">
                 <Binary className="w-8 h-8" />
@@ -300,7 +361,29 @@ const ConsoleViewer: React.FC = () => {
                   : "max-w-4xl",
             )}
           >
-            {logs.map((log) =>
+            {/* History Loader */}
+            {portName && (logs.length > 0 || historyLogs.length > 0) && (
+              <div className="flex justify-center py-4">
+                <button
+                  onClick={loadHistory}
+                  disabled={isLoadingHistory || !hasMoreHistory}
+                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary disabled:opacity-50 transition-colors"
+                >
+                  {isLoadingHistory ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <History className="w-3 h-3" />
+                  )}
+                  {isLoadingHistory
+                    ? "Loading..."
+                    : hasMoreHistory
+                      ? "Load older logs"
+                      : "No more history"}
+                </button>
+              </div>
+            )}
+
+            {displayLogs.map((log) =>
               viewLayout === "LIST" ? (
                 <ChatBubble
                   key={log.id}

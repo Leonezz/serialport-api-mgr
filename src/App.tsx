@@ -74,6 +74,7 @@ const App: React.FC = () => {
     addSystemLog,
     setVariable,
     setFramingOverride,
+    setPortName,
 
     // Modal States
     editingCommand,
@@ -339,8 +340,18 @@ const App: React.FC = () => {
         <ControlPanel
           onConnect={async (port) => {
             try {
-              await connect(activeSessionId, config, networkConfig, port);
+              const connectedPortName = await connect(
+                activeSessionId,
+                config,
+                networkConfig,
+                port,
+              );
               setIsConnected(true);
+              // Save the port name to the session state for log retrieval
+              if (connectedPortName && typeof connectedPortName === "string") {
+                setPortName(connectedPortName);
+              }
+
               addToast(
                 "success",
                 "Connected",
