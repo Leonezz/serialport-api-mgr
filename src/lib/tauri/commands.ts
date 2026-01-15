@@ -121,6 +121,24 @@ export interface DebugCommand {
   returns: void;
 }
 
+export interface GetLogsCommand {
+  name: "get_logs";
+  args: {
+    sessionId: string;
+    limit: number;
+    offset: number;
+  };
+  returns: {
+    id: number;
+    sessionId: string;
+    deviceFingerprint: string;
+    portName: string;
+    direction: string;
+    timestamp: number;
+    data: number[];
+  }[];
+}
+
 // ============================================================================
 // Discriminated Union of All Commands
 // ============================================================================
@@ -136,7 +154,8 @@ export type TauriCommand =
   | InfoCommand
   | WarnCommand
   | ErrorCommand
-  | DebugCommand;
+  | DebugCommand
+  | GetLogsCommand;
 
 // ============================================================================
 // Helper Types for Type Extraction

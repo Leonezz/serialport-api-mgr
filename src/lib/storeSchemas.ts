@@ -140,6 +140,7 @@ export const SessionSchema = z.object({
   config: SerialConfigSchema,
   networkConfig: NetworkConfigSchema,
   isConnected: z.boolean(),
+  portName: z.string().optional(),
   logs: z.array(LogEntrySchema),
   variables: z.record(z.string(), TelemetryVariableSchema),
   widgets: z.array(DashboardWidgetSchema),

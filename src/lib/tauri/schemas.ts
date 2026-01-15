@@ -75,3 +75,16 @@ export const RustPortInfoSchema = z.object({
 });
 
 export const RustPortInfoArraySchema = z.array(RustPortInfoSchema);
+
+/**
+ * Log entry schema
+ */
+export const LogEntrySchema = z.object({
+  id: z.number(),
+  portName: z.string(),
+  direction: z.enum(["TX", "RX"]),
+  timestamp: z.number(), // u128 in Rust (as millis) -> number in JS (safe for dates)
+  data: z.array(z.number()),
+});
+
+export const LogEntryArraySchema = z.array(LogEntrySchema);

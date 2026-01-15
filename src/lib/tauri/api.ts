@@ -181,4 +181,30 @@ export class TauriSerialAPI {
     debug: (prefix: string, content: string) =>
       invokeCommand("debug", { prefix, content }),
   };
+
+  /**
+   * Retrieve historical logs from storage
+   * @param sessionId - The session ID to fetch logs for
+   * @param limit - Max number of logs to retrieve
+   * @param offset - Offset for pagination
+   */
+  static async getLogs(
+    sessionId: string,
+    limit: number = 100,
+    offset: number = 0,
+  ): Promise<import("../../types").LogEntry[]> {
+    const rawLogs = await invokeCommand("get_logs", {
+      sessionId,
+      limit,
+      offset,
+    });
+
+    return rawLogs.map((log) => ({
+      id: log.id.toString(),
+      timestamp: log.timestamp,
+      direction: log.direction === "in" ? "RX" : "TX",
+      data: new Uint8Array(log.data),
+      format: "HEX" as const,
+    }));
+  }
 }

@@ -240,6 +240,7 @@ export interface Session {
   config: SerialConfig;
   networkConfig: NetworkConfig;
   isConnected: boolean; // Logical connection state (synced with actual port)
+  portName?: string; // The physical port name (e.g. COM3, /dev/ttyUSB0)
 
   // Data State
   logs: LogEntry[];

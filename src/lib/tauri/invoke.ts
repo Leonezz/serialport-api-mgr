@@ -5,7 +5,7 @@
 
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import type { CommandArgs, CommandReturn, TauriCommand } from "./commands";
-import { RustPortInfoArraySchema } from "./schemas";
+import { RustPortInfoArraySchema, LogEntryArraySchema } from "./schemas";
 import type { z } from "zod";
 
 // ============================================================================
@@ -18,6 +18,7 @@ import type { z } from "zod";
  */
 const RESPONSE_SCHEMAS: Partial<Record<TauriCommand["name"], z.ZodSchema>> = {
   get_all_port_info: RustPortInfoArraySchema,
+  get_logs: LogEntryArraySchema,
   // Commands that return void don't need schemas
   // (open_port, close_port, write_port, etc. all return void)
 };
