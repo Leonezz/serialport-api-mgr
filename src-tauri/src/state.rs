@@ -4,6 +4,7 @@ use crate::{
         stop_bits::StopBits,
     },
     serial_mgr::port_task::WritePortSender,
+    serial_mgr::storage::Storage,
 };
 use std::collections::HashMap;
 
@@ -57,4 +58,5 @@ pub struct PortHandles {
 pub struct AppState {
     pub ports: tokio::sync::RwLock<HashMap<String, PortInfo>>,
     pub port_handles: tokio::sync::RwLock<HashMap<String, PortHandles>>,
+    pub storage: Storage,
 }

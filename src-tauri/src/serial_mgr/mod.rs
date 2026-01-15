@@ -3,5 +3,6 @@ pub mod helpers;
 pub mod log;
 pub mod open_port;
 pub mod port_task;
+pub mod storage;
 pub mod update_ports;
 pub mod write_port;
