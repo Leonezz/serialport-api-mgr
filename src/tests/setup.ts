@@ -10,9 +10,26 @@ afterEach(() => {
 });
 
 // Mock Tauri environment variables
-globalThis.__TAURI_ENV_TARGET_TRIPLE__ = "";
-globalThis.__TAURI_ENV_PLATFORM_VERSION__ = "";
-globalThis.__TAURI_ENV_DEBUG__ = false;
+Object.defineProperty(globalThis, "__TAURI_ENV_TARGET_TRIPLE__", {
+  value: "test",
+  writable: true,
+});
+Object.defineProperty(globalThis, "__TAURI_ENV_PLATFORM_VERSION__", {
+  value: "test",
+  writable: true,
+});
+Object.defineProperty(globalThis, "__TAURI_ENV_ARCH__", {
+  value: "test",
+  writable: true,
+});
+Object.defineProperty(globalThis, "__TAURI_ENV_FAMILY__", {
+  value: "test",
+  writable: true,
+});
+Object.defineProperty(globalThis, "__TAURI_ENV_DEBUG__", {
+  value: "false",
+  writable: true,
+});
 
 // Mock Tauri API
 vi.mock("@tauri-apps/api/core", () => ({

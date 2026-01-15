@@ -1,9 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock Tauri environment
-globalThis.__TAURI_ENV_TARGET_TRIPLE__ = "";
-globalThis.__TAURI_ENV_PLATFORM_VERSION__ = "";
-globalThis.__TAURI_ENV_DEBUG__ = false;
+Object.defineProperty(globalThis, "__TAURI_ENV_TARGET_TRIPLE__", {
+  value: "",
+  writable: true,
+});
+Object.defineProperty(globalThis, "__TAURI_ENV_PLATFORM_VERSION__", {
+  value: "",
+  writable: true,
+});
+Object.defineProperty(globalThis, "__TAURI_ENV_DEBUG__", {
+  value: "false",
+  writable: true,
+});
 
 describe("serialService", () => {
   describe("WebSerialProvider", () => {

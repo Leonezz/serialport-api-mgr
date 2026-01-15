@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useStore } from "@/lib/store";
 import { act, renderHook } from "@testing-library/react";
-import { DataMode, TextEncoding, ChecksumAlgorithm } from "@/types";
+import {
+  DataMode,
+  TextEncoding,
+  ChecksumAlgorithm,
+  SerialPreset,
+} from "@/types";
 
 describe("Zustand Store", () => {
   beforeEach(() => {
@@ -107,10 +112,10 @@ describe("Zustand Store", () => {
       const { result } = renderHook(() => useStore());
 
       act(() => {
-        result.current.setRightSidebarTab("dashboard");
+        result.current.setRightSidebarTab("basic");
       });
 
-      expect(result.current.rightSidebarTab).toBe("dashboard");
+      expect(result.current.rightSidebarTab).toBe("basic");
     });
   });
 
