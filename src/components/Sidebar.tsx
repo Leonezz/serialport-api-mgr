@@ -5,24 +5,25 @@ import {
   Trash2,
   Plus,
   Folder,
-  ChevronDown,
-  ChevronRight,
   Terminal,
   ListVideo,
   Sliders,
-  Info,
   Link2,
-  Check,
-  Save,
-  Coins,
   FileClock,
   Settings,
-  Activity,
-  MousePointer2,
+  Coins,
   Edit2,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "./ui/Accordion";
 import { cn, generateId } from "../lib/utils";
 import SequenceFormModal from "./SequenceFormModal";
 import SimpleInputModal from "./SimpleInputModal";
@@ -49,7 +50,6 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
     commands,
     sequences,
     presets,
-    activeSequenceId: runningSeqId,
     loadedPresetId,
     selectedCommandId,
     setSelectedCommandId,
@@ -60,13 +60,14 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
     addCommand,
     addSequence,
     updateSequence,
-    deleteSequence,
     setLoadedPresetId,
     setPresets,
     addToast,
     setShowSystemLogs,
     setShowAppSettings,
     setShowAI,
+    leftSidebarCollapsed,
+    setLeftSidebarCollapsed,
   } = useStore();
 
   const activeSession = sessions[activeSessionId];
@@ -75,6 +76,8 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
   const [activeTab, setActiveTab] = useState<
     "commands" | "sequences" | "presets"
   >("commands");
+
+  // Track collapsed groups (folders) - inverse logic: if in set, it is collapsed (closed)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     new Set(),
   );
@@ -179,14 +182,11 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
 
   const handleCommandClick = (cmd: SavedCommand) => {
     if (selectedCommandId === cmd.id) {
-      // Deselect
       setSelectedCommandId(null);
       setEditingCommand(null);
     } else {
-      // Select
       setSelectedCommandId(cmd.id);
-      setEditingCommand({ ...cmd }); // Initialize draft
-
+      setEditingCommand({ ...cmd });
       const currentTab = useStore.getState().rightSidebarTab;
       if (currentTab === "ai") {
         setRightSidebarTab("basic");
@@ -215,343 +215,393 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
       createdAt: timestamp,
       updatedAt: timestamp,
     });
-
     setRightSidebarTab("basic");
     setShowAI(true);
   };
 
+  const tabs = [
+    { id: "commands" as const, icon: Terminal, label: t("sidebar.commands") },
+    {
+      id: "sequences" as const,
+      icon: ListVideo,
+      label: t("sidebar.sequences"),
+    },
+    { id: "presets" as const, icon: Sliders, label: t("sidebar.presets") },
+  ];
+
   return (
     <div
-      className="flex flex-col bg-card border-r border-border h-full relative z-40 shadow-xl shrink-0 transition-[width] ease-out duration-75"
-      style={{ width: sidebarWidth }}
+      className="flex flex-row bg-card border-r border-border h-full relative z-40 shadow-xl shrink-0 transition-[width] ease-out duration-75"
+      style={{ width: leftSidebarCollapsed ? 48 : sidebarWidth }}
     >
-      <div className="flex items-center p-2 border-b border-border gap-1 shrink-0">
+      {/* Vertical Rail */}
+      <div className="w-12 flex flex-col items-center py-3 gap-3 bg-muted/20 border-r border-border shrink-0 z-10">
         <button
-          onClick={() => setActiveTab("commands")}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-md transition-all uppercase tracking-wide border",
-            activeTab === "commands"
-              ? "bg-primary/10 text-primary border-primary/20"
-              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
-          )}
-          title={t("sidebar.commands")}
+          onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
+          className="p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mb-2"
+          title={leftSidebarCollapsed ? "Expand" : "Collapse"}
         >
-          <Terminal className="w-3.5 h-3.5" /> {t("sidebar.commands")}
-        </button>
-        <button
-          onClick={() => setActiveTab("sequences")}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-md transition-all uppercase tracking-wide border",
-            activeTab === "sequences"
-              ? "bg-primary/10 text-primary border-primary/20"
-              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
+          {leftSidebarCollapsed ? (
+            <ChevronsRight className="w-4 h-4" />
+          ) : (
+            <ChevronsLeft className="w-4 h-4" />
           )}
-          title={t("sidebar.sequences")}
-        >
-          <ListVideo className="w-3.5 h-3.5" /> {t("sidebar.sequences")}
         </button>
-        <button
-          onClick={() => setActiveTab("presets")}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 rounded-md transition-all uppercase tracking-wide border",
-            activeTab === "presets"
-              ? "bg-primary/10 text-primary border-primary/20"
-              : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
-          )}
-          title={t("sidebar.presets")}
-        >
-          <Sliders className="w-3.5 h-3.5" /> {t("sidebar.presets")}
-        </button>
-      </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-        {activeTab === "commands" && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between pb-2 sticky top-0 bg-card z-10">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                {t("sidebar.library")}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => handleCreateNewCommand()}
-                title={t("sidebar.new_command")}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {commands.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground text-xs italic whitespace-pre-wrap">
-                {t("sidebar.no_commands")}
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id && !leftSidebarCollapsed;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                if (leftSidebarCollapsed) setLeftSidebarCollapsed(false);
+              }}
+              className={cn(
+                "p-2.5 rounded-lg transition-all relative group",
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+              title={tab.label}
+            >
+              <Icon className="w-5 h-5" />
+              {isActive && (
+                <div className="absolute -left-px top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary-foreground rounded-full" />
+              )}
+              {/* Tooltip */}
+              <div className="absolute left-full ml-2 px-2 py-1 bg-popover border border-border text-[10px] font-bold rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                {tab.label}
               </div>
-            )}
+            </button>
+          );
+        })}
 
-            {groupedCommands.map((group) => {
-              if (group.items.length === 0) return null;
-              const isCollapsed = collapsedGroups.has(group.name);
-              return (
-                <div key={group.name} className="flex flex-col gap-1">
-                  {group.name !== "Ungrouped" && (
-                    <div className="flex items-center justify-between group/header pr-1">
-                      <button
-                        onClick={() => toggleGroup(group.name)}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground py-1 px-1 transition-colors select-none flex-1 text-left"
-                      >
-                        {isCollapsed ? (
-                          <ChevronRight className="w-3 h-3" />
-                        ) : (
-                          <ChevronDown className="w-3 h-3" />
-                        )}
-                        <Folder className="w-3 h-3 fill-current opacity-50" />{" "}
-                        {group.name}
-                      </button>
-                      <div className="flex gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCreateNewCommand(group.name);
-                          }}
-                          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-primary transition-all"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setConfirmation({
-                              title: t("modal.delete"),
-                              message: `Delete "${group.name}" and all its commands?`,
-                              action: () =>
-                                deleteCommands(group.items.map((i) => i.id)),
-                            });
-                          }}
-                          className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-all"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {(!isCollapsed || group.name === "Ungrouped") && (
-                    <div
-                      className={cn(
-                        "flex flex-col gap-1.5",
-                        group.name !== "Ungrouped" &&
-                          "pl-2 border-l border-border/40 ml-1.5",
-                      )}
-                    >
-                      {group.items.map((cmd) => {
-                        const isSelected = selectedCommandId === cmd.id;
-                        return (
-                          <div
-                            key={cmd.id}
-                            onClick={() => handleCommandClick(cmd)}
-                            className={cn(
-                              "group flex flex-col gap-1 p-2 rounded-md border transition-all relative cursor-pointer",
-                              isSelected
-                                ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20 shadow-sm"
-                                : "border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border",
-                            )}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 overflow-hidden">
-                                <span
-                                  className={cn(
-                                    "font-medium text-sm truncate",
-                                    isSelected && "text-primary",
-                                  )}
-                                >
-                                  {cmd.name}
-                                </span>
-                                {cmd.usedBy?.length ? (
-                                  <span className="text-[9px] opacity-50">
-                                    <Link2 className="w-2.5 h-2.5" />
-                                  </span>
-                                ) : null}
-                              </div>
-                              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSendCommand(cmd);
-                                  }}
-                                  className="p-1 text-primary hover:text-primary/80"
-                                >
-                                  <Play className="w-3 h-3 fill-current" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setConfirmation({
-                                      title: t("modal.delete"),
-                                      message: `Delete command "${cmd.name}"?`,
-                                      action: () => deleteCommand(cmd.id),
-                                    });
-                                  }}
-                                  className="p-1 text-muted-foreground hover:text-destructive"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                variant="outline"
-                                className="text-[8px] h-3.5 px-1 py-0 border-border/60 text-muted-foreground uppercase"
-                              >
-                                {cmd.mode}
-                              </Badge>
-                              <code className="text-[10px] text-muted-foreground truncate font-mono flex-1 opacity-70">
-                                {(cmd.payload || "")
-                                  .replace(/\r/g, "CR")
-                                  .replace(/\n/g, "LF")}
-                              </code>
-                            </div>
-                            {isSelected && (
-                              <div className="absolute -left-px top-2 bottom-2 w-1 bg-primary rounded-full" />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        <div className="flex-1" />
+
+        {/* Footer Actions in Rail */}
+        <button
+          onClick={() => setShowSystemLogs(true)}
+          className="p-2.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all relative group"
+          title={t("sidebar.logs")}
+        >
+          <FileClock className="w-5 h-5" />
+          <div className="absolute left-full ml-2 px-2 py-1 bg-popover border border-border text-[10px] font-bold rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+            {t("sidebar.logs")}
+          </div>
+        </button>
+
+        <button
+          onClick={() => setShowAppSettings(true)}
+          className="p-2.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all relative group"
+          title={t("sidebar.settings")}
+        >
+          <Settings className="w-5 h-5" />
+          <div className="absolute left-full ml-2 px-2 py-1 bg-popover border border-border text-[10px] font-bold rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+            {t("sidebar.settings")}
+          </div>
+        </button>
+
+        {aiTokenUsage.total > 0 && (
+          <div
+            className="flex flex-col items-center gap-0.5 mt-2"
+            title={`Token Usage: ${aiTokenUsage.total}`}
+          >
+            <Coins className="w-3 h-3 text-amber-500" />
+            <span className="text-[9px] font-mono text-muted-foreground">
+              {(aiTokenUsage.total / 1000).toFixed(1)}k
+            </span>
           </div>
         )}
+      </div>
 
-        {activeTab === "sequences" && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between pb-2 sticky top-0 bg-card z-10">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                {t("sidebar.sequences")}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => handleOpenSeqModal()}
-                title="Create Sequence"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+      {/* Content Area */}
+      <div
+        className={cn(
+          "flex-1 overflow-hidden flex flex-col bg-background/50 transition-opacity duration-200 relative",
+          leftSidebarCollapsed
+            ? "opacity-0 pointer-events-none"
+            : "opacity-100",
+        )}
+      >
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+          {activeTab === "commands" && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between pb-2 sticky top-0 bg-card z-10 border-b border-border/40 mb-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-2">
+                  <Terminal className="w-3 h-3" /> {t("sidebar.library")}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => handleCreateNewCommand()}
+                  title={t("sidebar.new_command")}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {commands.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground text-xs italic whitespace-pre-wrap">
+                  {t("sidebar.no_commands")}
+                </div>
+              )}
+
+              <Accordion className="w-full space-y-1">
+                {groupedCommands.map((group) => {
+                  if (group.items.length === 0) return null;
+                  const isUngrouped = group.name === "Ungrouped";
+                  const isExpanded = !collapsedGroups.has(group.name);
+
+                  // If ungrouped, we render items directly or in a simpler container?
+                  // Existing logic rendered them differently. Let's wrap Ungrouped in a pseudo-accordion or just render.
+                  // For consistency, let's treat Ungrouped as a group but maybe always open or different styling?
+                  // The previous implementation treated Ungrouped as a group that IS collapsible.
+
+                  return (
+                    <AccordionItem key={group.name} className="border-none">
+                      {/* Only show trigger if not ungrouped or if we want to allow collapsing ungrouped */}
+                      {!isUngrouped && (
+                        <div className="flex items-center justify-between group/header pr-1 hover:bg-muted/30 rounded-md">
+                          <AccordionTrigger
+                            isOpen={isExpanded}
+                            onClick={() => toggleGroup(group.name)}
+                            className="py-1.5 px-2 hover:no-underline hover:text-primary"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Folder className="w-3.5 h-3.5 fill-current opacity-50" />
+                              <span className="text-xs font-semibold">
+                                {group.name}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <div className="flex gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity mr-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCreateNewCommand(group.name);
+                              }}
+                              className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-primary transition-all"
+                              title="Add command to group"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmation({
+                                  title: t("modal.delete"),
+                                  message: `Delete "${group.name}" and all its commands?`,
+                                  action: () =>
+                                    deleteCommands(
+                                      group.items.map((i) => i.id),
+                                    ),
+                                });
+                              }}
+                              className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-all"
+                              title="Delete group"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Content: If Ungrouped, always show. If Grouped, show based on expansion */}
+                      <AccordionContent
+                        isOpen={isUngrouped ? true : isExpanded}
+                        className={cn(
+                          !isUngrouped && "pl-2 ml-2 border-l border-border/40",
+                        )}
+                      >
+                        <div className="flex flex-col gap-1.5 pt-1">
+                          {group.items.map((cmd) => {
+                            const isSelected = selectedCommandId === cmd.id;
+                            return (
+                              <div
+                                key={cmd.id}
+                                onClick={() => handleCommandClick(cmd)}
+                                className={cn(
+                                  "group flex flex-col gap-1 p-2 rounded-md border transition-all relative cursor-pointer",
+                                  isSelected
+                                    ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20 shadow-sm"
+                                    : "border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border",
+                                )}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 overflow-hidden">
+                                    <span
+                                      className={cn(
+                                        "font-medium text-sm truncate",
+                                        isSelected && "text-primary",
+                                      )}
+                                    >
+                                      {cmd.name}
+                                    </span>
+                                    {cmd.usedBy?.length ? (
+                                      <span className="text-[9px] opacity-50">
+                                        <Link2 className="w-2.5 h-2.5" />
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSendCommand(cmd);
+                                      }}
+                                      className="p-1 text-primary hover:text-primary/80"
+                                      title="Send"
+                                    >
+                                      <Play className="w-3 h-3 fill-current" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setConfirmation({
+                                          title: t("modal.delete"),
+                                          message: `Delete command "${cmd.name}"?`,
+                                          action: () => deleteCommand(cmd.id),
+                                        });
+                                      }}
+                                      className="p-1 text-muted-foreground hover:text-destructive"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[8px] h-3.5 px-1 py-0 border-border/60 text-muted-foreground uppercase"
+                                  >
+                                    {cmd.mode}
+                                  </Badge>
+                                  <code className="text-[10px] text-muted-foreground truncate font-mono flex-1 opacity-70">
+                                    {(cmd.payload || "")
+                                      .replace(/\r/g, "CR")
+                                      .replace(/\n/g, "LF")}
+                                  </code>
+                                </div>
+                                {isSelected && (
+                                  <div className="absolute -left-px top-2 bottom-2 w-1 bg-primary rounded-full" />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
             </div>
-            {sequences.map((seq) => (
-              <div
-                key={seq.id}
-                className={cn(
-                  "group flex flex-col gap-1 p-2 rounded-md border border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border transition-all relative",
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm truncate">
-                    {seq.name}
-                  </span>
-                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => onRunSequence(seq)}
-                      className="p-1 text-primary"
-                    >
-                      <Play className="w-3 h-3 fill-current" />
-                    </button>
-                    <button
-                      onClick={() => handleOpenSeqModal(seq)}
-                      className="p-1 text-muted-foreground"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
+          )}
+
+          {activeTab === "sequences" && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between pb-2 sticky top-0 bg-card z-10 border-b border-border/40 mb-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-2">
+                  <ListVideo className="w-3 h-3" /> {t("sidebar.sequences")}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => handleOpenSeqModal()}
+                  title="Create Sequence"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {sequences.map((seq) => (
+                <div
+                  key={seq.id}
+                  className={cn(
+                    "group flex flex-col gap-1 p-2 rounded-md border border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border transition-all relative",
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm truncate">
+                      {seq.name}
+                    </span>
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => onRunSequence(seq)}
+                        className="p-1 text-primary"
+                        title="Run Sequence"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenSeqModal(seq)}
+                        className="p-1 text-muted-foreground"
+                        title="Edit Sequence"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === "presets" && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between pb-2 sticky top-0 bg-card z-10">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                {t("sidebar.presets")}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setIsSavePresetModalOpen(true)}
-                title="Save current config as preset"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+              ))}
             </div>
-            {presets.map((preset) => {
-              const isActive = loadedPresetId === preset.id;
-              return (
-                <div
-                  key={preset.id}
-                  className={cn(
-                    "group flex items-center justify-between p-2 rounded-md border transition-all cursor-pointer",
-                    isActive
-                      ? "bg-primary/5 border-primary"
-                      : "border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border",
-                  )}
-                  onClick={() => setLoadedPresetId(preset.id)}
-                >
-                  <span className="font-medium text-sm truncate">
-                    {preset.name}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+          )}
 
-      <div className="border-t border-border bg-muted/10 shrink-0">
-        <div className="flex items-center justify-between p-2">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSystemLogs(true)}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              title={t("sidebar.logs")}
-            >
-              <FileClock className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowAppSettings(true)}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              title={t("sidebar.settings")}
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
-          </div>
-          {aiTokenUsage.total > 0 && (
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <Coins className="w-3 h-3 text-amber-500" />
-              <span className="font-mono">
-                {aiTokenUsage.total.toLocaleString()}
-              </span>
+          {activeTab === "presets" && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between pb-2 sticky top-0 bg-card z-10 border-b border-border/40 mb-2">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-2">
+                  <Sliders className="w-3 h-3" /> {t("sidebar.presets")}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setIsSavePresetModalOpen(true)}
+                  title="Save current config as preset"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {presets.map((preset) => {
+                const isActive = loadedPresetId === preset.id;
+                return (
+                  <div
+                    key={preset.id}
+                    className={cn(
+                      "group flex items-center justify-between p-2 rounded-md border transition-all cursor-pointer",
+                      isActive
+                        ? "bg-primary/5 border-primary"
+                        : "border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border",
+                    )}
+                    onClick={() => setLoadedPresetId(preset.id)}
+                  >
+                    <span className="font-medium text-sm truncate">
+                      {preset.name}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
 
       {/* Resize Handle */}
-      <div
-        onMouseDown={(e) => {
-          e.preventDefault();
-          setIsResizing(true);
-        }}
-        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-50 flex items-center justify-center group/handle"
-      >
-        <div className="h-10 w-0.5 bg-border rounded-full group-hover/handle:bg-primary/50 transition-colors" />
-      </div>
+      {!leftSidebarCollapsed && (
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setIsResizing(true);
+          }}
+          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-50 flex items-center justify-center group/handle"
+        >
+          <div className="h-10 w-0.5 bg-border rounded-full group-hover/handle:bg-primary/50 transition-colors" />
+        </div>
+      )}
 
       {isSeqModalOpen && (
         <SequenceFormModal
