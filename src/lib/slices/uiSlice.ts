@@ -42,6 +42,8 @@ export interface UISliceState {
   loadedPresetId: string | null;
   selectedCommandId: string | null;
   rightSidebarTab: RightSidebarTab;
+  leftSidebarCollapsed: boolean;
+  rightSidebarCollapsed: boolean;
 }
 
 // Actions interface (all methods)
@@ -80,6 +82,8 @@ export interface UISliceActions {
   setLoadedPresetId: (id: string | null) => void;
   setSelectedCommandId: (id: string | null) => void;
   setRightSidebarTab: (tab: RightSidebarTab) => void;
+  setLeftSidebarCollapsed: (collapsed: boolean) => void;
+  setRightSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 // Complete slice: State & Actions
@@ -130,6 +134,8 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
   loadedPresetId: null,
   selectedCommandId: null,
   rightSidebarTab: "ai",
+  leftSidebarCollapsed: false,
+  rightSidebarCollapsed: false,
 
   setEditingCommand: (cmd) => set({ editingCommand: cmd }),
   setIsCommandModalOpen: (open) => set({ isCommandModalOpen: open }),
@@ -143,4 +149,8 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
   setLoadedPresetId: (id) => set({ loadedPresetId: id }),
   setSelectedCommandId: (id) => set({ selectedCommandId: id }),
   setRightSidebarTab: (tab) => set({ rightSidebarTab: tab }),
+  setLeftSidebarCollapsed: (collapsed) =>
+    set({ leftSidebarCollapsed: collapsed }),
+  setRightSidebarCollapsed: (collapsed) =>
+    set({ rightSidebarCollapsed: collapsed }),
 });

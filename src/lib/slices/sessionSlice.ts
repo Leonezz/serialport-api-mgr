@@ -116,6 +116,7 @@ export interface SessionSliceActions {
   ) => void;
   setConnectionType: (type: "SERIAL" | "NETWORK") => void;
   setIsConnected: (connected: boolean) => void;
+  setPortName: (name: string) => void;
 
   setInputBuffer: (buffer: string) => void;
   setSendMode: (mode: DataMode) => void;
@@ -243,6 +244,9 @@ export const createSessionSlice: StateCreator<
 
   setIsConnected: (connected) =>
     set((state) => updateActiveSession(state, { isConnected: connected })),
+
+  setPortName: (name) =>
+    set((state) => updateActiveSession(state, { portName: name })),
 
   setInputBuffer: (buffer) =>
     set((state) => updateActiveSession(state, { inputBuffer: buffer })),
