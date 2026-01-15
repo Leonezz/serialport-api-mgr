@@ -10,20 +10,23 @@ mod util;
 
 use serial_mgr::{
     close_port::close_port,
-    log::{debug, error, info, log, warn},
+    log::{debug, error, get_logs, info, log, warn},
     open_port::open_port,
+    storage::Storage,
     update_ports::get_all_port_info,
     write_port::{write_data_terminal_ready, write_port, write_request_to_send},
 };
+use std::collections::HashMap;
 use tauri::{self, Manager};
 use tauri_plugin_fs::FsExt;
 use time::macros::{format_description, offset};
+#[cfg(all(desktop, not(debug_assertions)))]
 use tracing_appender::rolling::Rotation;
-use tracing_subscriber::fmt::{self, time::OffsetTime};
+use tracing_subscriber::fmt::time::OffsetTime;
 
 use crate::state::AppState;
 
-pub fn setup_logging(app: &tauri::App) {
+pub fn setup_logging(_app: &tauri::App) {
     let fmt = if cfg!(debug_assertions) {
         format_description!("[hour]:[minute]:[second].[subsecond digits:3]")
     } else {
@@ -77,11 +80,11 @@ pub fn run() {
             info,
             log,
             warn,
-            error
+            error,
+            get_logs
         ])
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_fs::init())
-        .manage(AppState::default())
         .setup(|app| {
             setup_logging(app);
             let scope = app.fs_scope();
@@ -91,15 +94,36 @@ pub fn run() {
                 app_local_data_dir.to_string_lossy()
             );
             if !app_local_data_dir.exists() {
-                std::fs::create_dir_all(app_local_data_dir)
+                std::fs::create_dir_all(&app_local_data_dir)
                     .expect("error create app local data dir");
             }
             let _ = scope.allow_directory(app.path().app_local_data_dir().unwrap(), true);
+
+            let db_path = app_local_data_dir.join("serial_logs.db");
+            let (tx, rx) = std::sync::mpsc::channel();
+            tauri::async_runtime::spawn(async move {
+                let storage = match Storage::new(&db_path).await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        tracing::error!("Failed to initialize storage: {}", e);
+                        Storage::new_in_memory().await
+                    }
+                };
+                let _ = tx.send(storage);
+            });
+            let storage = rx.recv().expect("failed to connect local database");
+            let app_state = AppState {
+                ports: tokio::sync::RwLock::new(HashMap::new()),
+                port_handles: tokio::sync::RwLock::new(HashMap::new()),
+                storage,
+            };
+            app.manage(app_state);
+
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("error whiling running tauri application")
-        .run(|app, event| match event {
+        .run(|_app, event| match event {
             tauri::RunEvent::Ready => {
                 tracing::info!("App is running!");
             }

@@ -10,30 +10,62 @@ use crate::{
     serial::{data_bits::DataBits, flow_control::FlowControl, parity::Parity, stop_bits::StopBits},
     serial_mgr::{
         port_task::{spawn_serial_task, SerialEvent, WritePortSender},
+        storage::generate_device_fingerprint,
         update_ports::update_available_ports,
     },
     state::{AppState, OpenedPortProfile, PortHandles, PortStatus},
 };
 
+fn generate_session_id() -> String {
+    uuid::Uuid::new_v4().to_string()
+}
+
+/// Result of opening a port, containing the session ID for log queries
+#[derive(serde::Serialize)]
+pub struct OpenPortResult {
+    pub session_id: String,
+}
+
 fn setup_port_task(
     port_name: String,
     port: tokio_serial::SerialStream,
     app: AppHandle,
-) -> Result<WritePortSender, Report> {
+    device_fingerprint: String,
+) -> Result<(WritePortSender, String), Report> {
+    let session_id = generate_session_id();
     let span = tracing::debug_span!("port name", port_name);
     let (write_tx, mut read_rx, status_rx, mut write_notifier_rx) =
         spawn_serial_task(port_name.clone(), port);
     let app_for_read = app.clone();
     let port_name_for_read = port_name.clone();
+    let session_id_for_read = session_id.clone();
+    let fingerprint_for_read = device_fingerprint.clone();
     tokio::spawn(
         async move {
             while let Some(message) = read_rx.recv().await {
                 match message {
                     SerialEvent::Message(message) => {
                         let len = message.data.len();
-                        if let Err(err) = app_for_read.emit(event_names::PORT_READ, message) {
+                        if let Err(err) = app_for_read.emit(event_names::PORT_READ, message.clone())
+                        {
                             tracing::error!("emit port read failed: {}", err);
                         }
+
+                        let storage = app_for_read.state::<AppState>().storage.clone();
+                        let _ = storage
+                            .insert(
+                                &fingerprint_for_read,
+                                &session_id_for_read,
+                                None,
+                                None,
+                                None,
+                                &port_name_for_read,
+                                "RX",
+                                message.data.as_slice(),
+                            )
+                            .await
+                            .map_err(|e| tracing::error!("Failed to log read: {}", e));
+
                         app_for_read
                             .state::<AppState>()
                             .ports
@@ -108,6 +140,8 @@ fn setup_port_task(
     );
     let app_for_write = app.clone();
     let port_name_for_write = port_name.clone();
+    let session_id_for_write = session_id.clone();
+    let fingerprint_for_write = device_fingerprint.clone();
     tokio::spawn(
         async move {
             while let Some(len) = write_notifier_rx.recv().await {
@@ -125,6 +159,22 @@ fn setup_port_task(
                             entry.bytes_write
                         );
                     });
+
+                let storage = app_for_write.state::<AppState>().storage.clone();
+                let msg = format!("<{} bytes written>", len).into_bytes();
+                let _ = storage
+                    .insert(
+                        &fingerprint_for_write,
+                        &session_id_for_write,
+                        None,
+                        None,
+                        None,
+                        &port_name_for_write,
+                        "TX",
+                        &msg,
+                    )
+                    .await
+                    .map_err(|e| tracing::error!("Failed to log write: {}", e));
             }
             app_for_write
                 .state::<AppState>()
@@ -147,7 +197,7 @@ fn setup_port_task(
         .instrument(span),
     );
 
-    Ok(write_tx)
+    Ok((write_tx, session_id))
 }
 
 pub fn open_port_unchecked(
@@ -160,7 +210,8 @@ pub fn open_port_unchecked(
     data_terminal_ready: bool,
     timeout: Duration,
     app: AppHandle,
-) -> Result<WritePortSender, Report> {
+    device_fingerprint: String,
+) -> Result<(WritePortSender, String), Report> {
     let span = tracing::debug_span!("port name", port_name);
     let _guard = span.enter();
     let builder = tokio_serial::new(port_name.clone(), baud_rate)
@@ -172,7 +223,8 @@ pub fn open_port_unchecked(
         .timeout(timeout);
     let port = tokio_serial::SerialStream::open(&builder)?;
     tracing::info!("serial port: {} opened with baud_rate: {}, flow_control: {}, parity: {}, stop_bits: {}, timeout_nanos: {}", port_name, baud_rate, flow_control, parity, stop_bits, timeout.as_nanos());
-    let write_tx = setup_port_task(port_name.clone(), port, app.clone())?;
+    let (write_tx, session_id) =
+        setup_port_task(port_name.clone(), port, app.clone(), device_fingerprint)?;
     if let Err(err) = app.emit(
         event_names::PORT_OPENED,
         PortOpenedEvent::new(port_name.clone()),
@@ -181,7 +233,7 @@ pub fn open_port_unchecked(
         return Err(err.into());
     }
 
-    Ok(write_tx)
+    Ok((write_tx, session_id))
 }
 
 // remember to call `.manage(MyState::default())`
@@ -197,7 +249,7 @@ pub async fn open_port(
     stop_bits: String,
     data_terminal_ready: bool,
     timeout_ms: u64,
-) -> Result<(), String> {
+) -> Result<OpenPortResult, String> {
     let span = tracing::debug_span!("open port", port_name);
     let _guard = span.enter();
     tracing::info!(
@@ -229,7 +281,14 @@ pub async fn open_port(
     if state.port_handles.read().await.contains_key(&port_name) {
         return Err(format!("{} already opened", port_name));
     }
-    let write_tx = open_port_unchecked(
+    let device_fingerprint = {
+        let ports = state.ports.read().await;
+        let port_info = ports
+            .get(&port_name)
+            .ok_or_else(|| format!("port {} not found", port_name))?;
+        generate_device_fingerprint(&port_name, &port_info.port_type)
+    };
+    let (write_tx, session_id) = open_port_unchecked(
         port_name.clone(),
         baud_rate,
         data_bits,
@@ -239,6 +298,7 @@ pub async fn open_port(
         data_terminal_ready,
         std::time::Duration::from_millis(timeout_ms),
         app,
+        device_fingerprint,
     )
     .map_err(|err| {
         tracing::error!("open port failed with err: {}", err);
@@ -272,5 +332,5 @@ pub async fn open_port(
             });
         });
     tracing::info!("set port state to opened");
-    Ok(())
+    Ok(OpenPortResult { session_id })
 }
