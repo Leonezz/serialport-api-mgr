@@ -44,3 +44,7 @@ tracing-subscriber = { version = "0.3.22", features = [
     "env-filter",
 ] }
 # nutype = "0.5.0"
+
+sea-orm = { version = "1.1", features = ["runtime-tokio-rustls", "sqlx-sqlite"] }
+uuid = { version = "1.11", features = ["v4"] }
+hex = "0.4"
