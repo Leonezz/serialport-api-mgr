@@ -1,4 +1,5 @@
 pub mod close_port;
+pub mod execute_saved_command;
 pub mod helpers;
 pub mod log;
 pub mod open_port;

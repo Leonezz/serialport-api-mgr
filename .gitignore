@@ -28,3 +28,16 @@ coverage/
 *.md
 !README.md
 claude
+.claude/
+.codex/
+.cursor/
+.gemini/
+.kiro/
+.octto
+.opencode/
+.prd/
+.roo
+.shared/
+.trae/
+.windsurf/
+docs/

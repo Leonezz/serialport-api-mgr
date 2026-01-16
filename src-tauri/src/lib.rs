@@ -10,6 +10,7 @@ mod util;
 
 use serial_mgr::{
     close_port::close_port,
+    execute_saved_command::execute_saved_command,
     log::{debug, error, get_logs, info, log, warn},
     open_port::open_port,
     storage::Storage,
@@ -73,6 +74,7 @@ pub fn run() {
             get_all_port_info,
             open_port,
             close_port,
+            execute_saved_command,
             write_data_terminal_ready,
             write_request_to_send,
             write_port,
