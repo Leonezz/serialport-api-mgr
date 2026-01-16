@@ -15,12 +15,21 @@ describe("utils", () => {
       expect(result).toContain("class2");
     });
 
-    it("should handle conditional classes", () => {
-      const result = cn("base", false && "hidden", "visible");
-      expect(result).toContain("base");
-      expect(result).toContain("visible");
-      expect(result).not.toContain("hidden");
-    });
+    it.each([
+      [true, false, ["base", "visible"]],
+      [false, true, ["base", "hidden"]],
+      [true, true, ["base", "visible", "hidden"]],
+      [false, false, ["base"]],
+    ])(
+      "handles conditional classes (visible=%s, hidden=%s)",
+      (isVisible, isHidden, expectedClasses) => {
+        const result = cn("base", isVisible && "visible", isHidden && "hidden");
+        expect(result).toContain("base");
+        expectedClasses.forEach((cls) => {
+          expect(result).toContain(cls);
+        });
+      },
+    );
 
     it("should merge Tailwind classes correctly", () => {
       const result = cn("p-4", "p-8");

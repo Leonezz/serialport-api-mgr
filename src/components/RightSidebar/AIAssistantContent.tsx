@@ -9,6 +9,8 @@ import {
   AlertCircle,
   Play,
   Coins,
+  Paperclip,
+  X,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn, generateId } from "../../lib/utils";
@@ -56,6 +58,7 @@ const AIAssistantContent: React.FC = () => {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatSessionRef = useRef<Chat | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -141,6 +144,29 @@ const AIAssistantContent: React.FC = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        console.warn("File is too large (max 5MB).");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(",")[1];
+        setAttachment({
+          name: file.name,
+          mimeType: file.type,
+          data: base64,
+        });
+      };
+      reader.onerror = () => console.error("Failed to read file.");
+      reader.readAsDataURL(file);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="p-3 bg-muted/20 border-b border-border flex justify-between items-center shrink-0">
@@ -186,6 +212,25 @@ const AIAssistantContent: React.FC = () => {
       </div>
 
       <div className="p-4 bg-background border-t border-border">
+        {attachment && (
+          <div className="mb-2 flex items-center gap-2 text-xs bg-muted/50 p-2 rounded-lg">
+            <Paperclip className="w-3 h-3 text-muted-foreground" />
+            <span className="truncate flex-1">{attachment.name}</span>
+            <button
+              onClick={() => setAttachment(null)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,.pdf,.txt,.json,.csv"
+          onChange={handleFileChange}
+          className="hidden"
+        />
         <div className="bg-muted/30 border border-border rounded-2xl flex flex-col focus-within:ring-1 focus-within:ring-primary/20 transition-all shadow-sm">
           <Textarea
             value={inputValue}
@@ -199,10 +244,19 @@ const AIAssistantContent: React.FC = () => {
             placeholder="Message SerialMan..."
             className="min-h-[40px] max-h-[150px] resize-none py-2 px-3 text-xs bg-transparent border-none shadow-none focus-visible:ring-0"
           />
-          <div className="flex justify-end p-1.5">
+          <div className="flex justify-between items-center p-1.5">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing}
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 rounded-full"
+            >
+              <Paperclip className="w-3.5 h-3.5" />
+            </Button>
             <Button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isProcessing}
+              disabled={(!inputValue.trim() && !attachment) || isProcessing}
               size="icon"
               className="h-7 w-7 rounded-full bg-primary text-primary-foreground"
             >
