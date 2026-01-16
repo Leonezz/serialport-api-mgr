@@ -157,7 +157,7 @@ export interface LogEntry {
   direction: "TX" | "RX";
   data: string | Uint8Array; // String for TEXT, Uint8Array for HEX/Binary
   format: DataMode;
-  contextId?: string; // Link to the specific protocol/manual context
+  contextIds?: string[]; // Links to protocol/manual contexts (multiple supported)
   commandParams?: Record<string, any>; // For TX: Parameters used to generate this command
   extractedVars?: Record<string, any>; // For RX: Variables extracted via script from this response
   payloadStart?: number; // Start index of actual payload in raw data (if framed)
@@ -193,7 +193,7 @@ export interface SavedCommand extends BaseEntity {
   responseFraming?: FramingConfig; // Override framing for the response of this command
   framingPersistence?: "TRANSIENT" | "PERSISTENT"; // How to apply the framing
   usedBy?: string[]; // IDs of sequences using this command
-  contextId?: string; // Link to ProjectContext
+  contextIds?: string[]; // Links to ProjectContexts (multiple supported)
 }
 
 export interface SequenceStep {

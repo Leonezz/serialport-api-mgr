@@ -127,7 +127,7 @@ export interface SessionSliceActions {
   addLog: (
     data: string | Uint8Array,
     direction: "TX" | "RX",
-    contextId?: string,
+    contextIds?: string[],
     sessionId?: string,
     commandParams?: Record<string, any>,
     payloadStart?: number,
@@ -266,7 +266,7 @@ export const createSessionSlice: StateCreator<
   addLog: (
     data,
     direction,
-    contextId,
+    contextIds,
     sessionId,
     commandParams,
     payloadStart,
@@ -284,7 +284,7 @@ export const createSessionSlice: StateCreator<
         direction,
         data,
         format: typeof data === "string" ? "TEXT" : "HEX",
-        contextId,
+        contextIds,
         commandParams,
         payloadStart,
         payloadLength,

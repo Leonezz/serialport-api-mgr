@@ -644,38 +644,72 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
   }
 
   if (activeTab === "context") {
-    const activeCtx = contexts.find((c) => c.id === editingCommand.contextId);
+    const activeContexts = contexts.filter((c) =>
+      editingCommand.contextIds?.includes(c.id),
+    );
 
     return (
       <div className="p-4 space-y-4 h-full flex flex-col">
-        <div className="space-y-1">
-          <Label className="text-xs">Linked Context</Label>
-          <Select
-            value={editingCommand.contextId || ""}
-            onChange={(e) =>
-              updateCmd({ contextId: e.target.value || undefined })
-            }
-            className="h-8 text-xs"
-          >
-            <option value="">-- None --</option>
-            {contexts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </Select>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Linked Contexts</Label>
+          <div className="space-y-2 max-h-[200px] overflow-y-auto border border-border rounded-md p-2 bg-muted/10">
+            {contexts.length === 0 ? (
+              <div className="text-xs text-muted-foreground italic py-2 text-center">
+                No contexts available
+              </div>
+            ) : (
+              contexts.map((context) => (
+                <div key={context.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`ctx-editor-${context.id}`}
+                    checked={
+                      editingCommand.contextIds?.includes(context.id) || false
+                    }
+                    onChange={(e) => {
+                      const currentIds = editingCommand.contextIds || [];
+                      if (e.target.checked) {
+                        updateCmd({ contextIds: [...currentIds, context.id] });
+                      } else {
+                        updateCmd({
+                          contextIds: currentIds.filter(
+                            (id) => id !== context.id,
+                          ),
+                        });
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <label
+                    htmlFor={`ctx-editor-${context.id}`}
+                    className="text-xs cursor-pointer"
+                  >
+                    {context.title}
+                  </label>
+                </div>
+              ))
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Select one or more contexts to link to this command.
+          </p>
         </div>
 
-        {activeCtx ? (
+        {activeContexts.length > 0 ? (
           <div className="flex-1 bg-muted/20 border border-border rounded-md p-3 overflow-y-auto text-xs font-mono whitespace-pre-wrap">
-            <div className="font-bold border-b border-border/50 mb-2 pb-1">
-              {activeCtx.title}
-            </div>
-            {activeCtx.content}
+            {activeContexts.map((ctx, idx) => (
+              <div key={ctx.id}>
+                {idx > 0 && <hr className="my-2 border-border/50" />}
+                <div className="font-bold border-b border-border/50 mb-2 pb-1">
+                  {ctx.title}
+                </div>
+                {ctx.content}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs italic border border-dashed rounded-md">
-            Select a context to view documentation overlay.
+            Select contexts to view documentation overlay.
           </div>
         )}
       </div>

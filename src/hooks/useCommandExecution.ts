@@ -281,7 +281,7 @@ export function useCommandExecution(
 
       await write(activeSessionId, dataBytes);
       // Pass command parameters to log
-      addLog(dataBytes, "TX", cmdInfo?.contextId, activeSessionId, params);
+      addLog(dataBytes, "TX", cmdInfo?.contextIds, activeSessionId, params);
 
       // System Log
       const displayPayload =

@@ -95,14 +95,20 @@ const CommandFormModal: React.FC<Props> = ({
     initialData?.parameters || [],
   );
 
-  const [contextId, setContextId] = useState<string | undefined>(
-    initialData?.contextId,
+  const [contextIds, setContextIds] = useState<string[]>(
+    initialData?.contextIds || [],
   );
-  const activeContext = contexts.find((c) => c.id === contextId);
+  const activeContexts = contexts.filter((c) => contextIds.includes(c.id));
   const [contextContent, setContextContent] = useState(
-    activeContext?.content || "",
+    activeContexts.length > 0
+      ? activeContexts.map((c) => c.content).join("\n\n---\n\n")
+      : "",
   );
-  const [contextTitle, setContextTitle] = useState(activeContext?.title || "");
+  const [contextTitle, setContextTitle] = useState(
+    activeContexts.length > 0
+      ? activeContexts.map((c) => c.title).join(", ")
+      : "",
+  );
 
   // Unified Processing State
   const [preRequestEnabled, setPreRequestEnabled] = useState(
@@ -163,9 +169,9 @@ const CommandFormModal: React.FC<Props> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeContext && onUpdateContext)
+    if (activeContexts.length === 1 && onUpdateContext)
       onUpdateContext({
-        ...activeContext,
+        ...activeContexts[0],
         content: contextContent,
         title: contextTitle,
       });
@@ -196,7 +202,7 @@ const CommandFormModal: React.FC<Props> = ({
       framingPersistence: framingEnabled ? framingPersistence : undefined,
       createdAt: initialData?.createdAt || Date.now(),
       updatedAt: Date.now(),
-      contextId,
+      contextIds,
     });
     onClose();
   };
@@ -827,43 +833,49 @@ return { frames: [], remaining: chunks };`;
                 <div className="flex items-end gap-2">
                   <div className="space-y-1 flex-1">
                     <Label>Context ID / Link</Label>
-                    <Select
-                      value={contextId || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "__new__") {
-                          setContextId(undefined);
-                          setContextTitle("");
-                          setContextContent("");
-                        } else {
-                          setContextId(val);
-                          const c = contexts.find((cx) => cx.id === val);
-                          if (c) {
-                            setContextTitle(c.title);
-                            setContextContent(c.content);
-                          }
-                        }
-                      }}
-                      className="h-9"
-                    >
-                      <option value="">-- No Context --</option>
-                      <option value="__new__">+ Create New Context</option>
-                      {contexts.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title}
-                        </option>
+                    <div className="space-y-2">
+                      {contexts.map((context) => (
+                        <div
+                          key={context.id}
+                          className="flex items-center space-x-2"
+                        >
+                          <input
+                            type="checkbox"
+                            id={`context-${context.id}`}
+                            checked={contextIds.includes(context.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setContextIds([...contextIds, context.id]);
+                              } else {
+                                setContextIds(
+                                  contextIds.filter((id) => id !== context.id),
+                                );
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <label
+                            htmlFor={`context-${context.id}`}
+                            className="text-sm"
+                          >
+                            {context.title}
+                          </label>
+                        </div>
                       ))}
-                    </Select>
+                    </div>
                   </div>
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={() => {
                       if (contextTitle && contextContent) {
-                        if (contextId && activeContext) {
+                        if (
+                          contextIds.length === 1 &&
+                          activeContexts.length === 1
+                        ) {
                           if (onUpdateContext)
                             onUpdateContext({
-                              ...activeContext,
+                              ...activeContexts[0],
                               title: contextTitle,
                               content: contextContent,
                             });
@@ -876,7 +888,7 @@ return { frames: [], remaining: chunks };`;
                             createdAt: Date.now(),
                           };
                           onCreateContext(newCtx);
-                          setContextId(newCtx.id);
+                          setContextIds([...contextIds, newCtx.id]);
                         }
                       }
                     }}

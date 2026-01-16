@@ -18,7 +18,7 @@ import Ansi from "ansi-to-react";
 interface Props {
   log: LogEntry;
   globalFormat: GlobalFormat;
-  context?: ProjectContext;
+  contexts?: ProjectContext[];
   enableAnsi?: boolean;
   isDark?: boolean;
 }
@@ -26,7 +26,7 @@ interface Props {
 const ChatBubble: React.FC<Props> = ({
   log,
   globalFormat,
-  context,
+  contexts,
   enableAnsi = true,
   isDark = false,
 }) => {
@@ -152,20 +152,31 @@ const ChatBubble: React.FC<Props> = ({
             </span>
 
             {/* Context Indicator */}
-            {context && (
+            {contexts && contexts.length > 0 && (
               <div className="ml-2 flex items-center gap-1 group/ctx relative">
                 <BookOpen className="w-3 h-3" />
                 <span className="text-[9px] font-bold border-b border-dotted cursor-help max-w-[100px] truncate">
-                  {context.title}
+                  {contexts.length === 1
+                    ? contexts[0].title
+                    : `Context (${contexts.length})`}
                 </span>
                 {/* Tooltip */}
-                <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-popover border border-border rounded-md shadow-lg text-[10px] text-popover-foreground invisible group-hover/ctx:visible z-50 text-left">
-                  <p className="font-bold mb-1 border-b pb-1 opacity-70 truncate">
-                    {context.title}
-                  </p>
-                  <p className="opacity-80 line-clamp-6 whitespace-pre-wrap">
-                    {context.content}
-                  </p>
+                <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-popover border border-border rounded-md shadow-lg text-[10px] text-popover-foreground invisible group-hover/ctx:visible z-50 text-left max-h-48 overflow-y-auto">
+                  {contexts.map((ctx, index) => (
+                    <div
+                      key={ctx.id}
+                      className={
+                        index > 0 ? "mt-3 pt-3 border-t border-border/50" : ""
+                      }
+                    >
+                      <p className="font-bold mb-1 border-b pb-1 opacity-70 truncate">
+                        {ctx.title}
+                      </p>
+                      <p className="opacity-80 line-clamp-6 whitespace-pre-wrap">
+                        {ctx.content}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

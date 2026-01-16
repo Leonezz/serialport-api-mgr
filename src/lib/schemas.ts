@@ -149,7 +149,7 @@ export const SavedCommandSchema = z.object({
     .optional()
     .default("TRANSIENT"),
   usedBy: z.array(z.string()).optional(),
-  contextId: z.string().optional(),
+  contextIds: z.array(z.string()).optional(),
 });
 
 // --- Sequences ---
@@ -168,6 +168,7 @@ export const SerialSequenceSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number(),
   steps: z.array(SequenceStepSchema),
+  contextIds: z.array(z.string()).optional(),
 });
 
 export const ProjectContextSchema = z.object({

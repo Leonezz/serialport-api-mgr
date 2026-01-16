@@ -85,6 +85,7 @@ export const LogEntrySchema = z.object({
   direction: z.enum(["TX", "RX"]),
   timestamp: z.number(), // u128 in Rust (as millis) -> number in JS (safe for dates)
   data: z.array(z.number()),
+  contextIds: z.array(z.string()).optional(),
 });
 
 export const LogEntryArraySchema = z.array(LogEntrySchema);

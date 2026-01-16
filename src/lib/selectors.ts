@@ -161,7 +161,9 @@ export const useToasts = () => useStore((state) => state.toasts);
 export const useCommands = (contextId?: string) =>
   useStore((state) => {
     if (contextId) {
-      return state.commands.filter((cmd) => cmd.contextId === contextId);
+      return state.commands.filter((cmd) =>
+        cmd.contextIds?.includes(contextId),
+      );
     }
     return state.commands;
   });

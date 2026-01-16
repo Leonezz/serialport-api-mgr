@@ -136,7 +136,8 @@ const ConsoleViewer: React.FC = () => {
   }, [logs, autoScroll, viewLayout]);
 
   // Helper to find context for a log
-  const getContext = (id?: string) => contexts.find((c) => c.id === id);
+  const getContexts = (ids?: string[]) =>
+    ids ? contexts.filter((c) => ids.includes(c.id)) : [];
 
   return (
     <div className="flex-1 relative bg-background flex flex-col min-h-0 transition-colors duration-300">
@@ -389,7 +390,7 @@ const ConsoleViewer: React.FC = () => {
                   key={log.id}
                   log={log}
                   globalFormat={globalFormat}
-                  context={getContext(log.contextId)}
+                  contexts={getContexts(log.contextIds)}
                   enableAnsi={enableAnsi}
                   isDark={isDark}
                 />

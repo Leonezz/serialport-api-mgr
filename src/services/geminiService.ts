@@ -433,8 +433,11 @@ export const analyzeSerialLog = async (
     const logLines = logs
       .map((l) => {
         let line = `[${new Date(l.timestamp).toISOString().split("T")[1]}] ${l.direction}: ${formatContent(l.data, l.format)}`;
-        if (l.contextId && contexts.has(l.contextId)) {
-          line += ` [Ref: Context_${l.contextId}]`;
+        if (l.contextIds && l.contextIds.length > 0) {
+          const validContexts = l.contextIds.filter((id) => contexts.has(id));
+          if (validContexts.length > 0) {
+            line += ` [Ref: Context_${validContexts.join(",")}]`;
+          }
         }
         return line;
       })
@@ -442,7 +445,7 @@ export const analyzeSerialLog = async (
 
     // 2. Extract unique referenced contexts
     const referencedContextIds = new Set(
-      logs.map((l) => l.contextId).filter(Boolean) as string[],
+      logs.flatMap((l) => l.contextIds || []).filter(Boolean) as string[],
     );
     let contextBlock = "";
 

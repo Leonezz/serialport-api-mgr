@@ -227,10 +227,530 @@ export const STORE_VERSION = "1.0.0";
 export const DEFAULT_PERSISTED_STATE = {
   themeMode: "system" as const,
   themeColor: "zinc" as const,
-  presets: [],
-  commands: [],
-  sequences: [],
-  contexts: [],
+  presets: [
+    {
+      id: "preset-arduino-default",
+      name: "Arduino Default",
+      type: "SERIAL" as const,
+      config: {
+        baudRate: 9600,
+        dataBits: 8 as const,
+        stopBits: 1 as const,
+        parity: "none" as const,
+        flowControl: "none" as const,
+        bufferSize: 1024,
+        lineEnding: "LF" as const,
+        framing: {
+          strategy: "DELIMITER" as const,
+          delimiter: "\\n",
+          timeout: 50,
+          prefixLengthSize: 1,
+          byteOrder: "LE" as const,
+        },
+      },
+      widgets: [],
+    },
+    {
+      id: "preset-modbus-rtu",
+      name: "Modbus RTU",
+      type: "SERIAL" as const,
+      config: {
+        baudRate: 19200,
+        dataBits: 8 as const,
+        stopBits: 1 as const,
+        parity: "even" as const,
+        flowControl: "none" as const,
+        bufferSize: 2048,
+        lineEnding: "NONE" as const,
+        framing: {
+          strategy: "TIMEOUT" as const,
+          timeout: 35,
+          prefixLengthSize: 1,
+          byteOrder: "BE" as const,
+        },
+      },
+      widgets: [],
+    },
+    {
+      id: "preset-high-speed",
+      name: "High Speed Debug",
+      type: "SERIAL" as const,
+      config: {
+        baudRate: 115200,
+        dataBits: 8 as const,
+        stopBits: 1 as const,
+        parity: "none" as const,
+        flowControl: "hardware" as const,
+        bufferSize: 4096,
+        lineEnding: "CRLF" as const,
+        framing: {
+          strategy: "NONE" as const,
+          timeout: 50,
+          prefixLengthSize: 1,
+          byteOrder: "LE" as const,
+        },
+      },
+      widgets: [],
+    },
+  ],
+  commands: [
+    {
+      id: "cmd-hello-world",
+      name: "Hello World",
+      description: "Send a basic hello message with context",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      payload: "Hello, World!",
+      mode: "TEXT" as const,
+      parameters: [],
+      validation: null,
+      scripting: null,
+      responseFraming: null,
+      framingPersistence: null,
+      contextIds: ["ctx-api-docs", "ctx-protocol-spec"],
+      usedBy: [],
+    },
+    {
+      id: "cmd-sensor-read",
+      name: "Read Sensor Data",
+      description: "Read temperature and humidity sensor data",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      payload: "READ_SENSOR\\n",
+      mode: "TEXT" as const,
+      parameters: [],
+      validation: {
+        enabled: true,
+        mode: "PATTERN" as const,
+        matchType: "REGEX" as const,
+        pattern: "TEMP:[\\d.]+°C HUM:[\\d.]+%",
+        timeout: 5000,
+      },
+      scripting: null,
+      responseFraming: null,
+      framingPersistence: null,
+      contextIds: ["ctx-sensor-api", "ctx-error-handling"],
+      usedBy: ["seq-monitor-environment"],
+    },
+    {
+      id: "cmd-status-check",
+      name: "Device Status Check",
+      description: "Check device operational status",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      payload: "STATUS\\n",
+      mode: "TEXT" as const,
+      parameters: [],
+      validation: {
+        enabled: true,
+        mode: "PATTERN" as const,
+        matchType: "CONTAINS" as const,
+        pattern: "OK",
+        timeout: 3000,
+      },
+      scripting: null,
+      responseFraming: null,
+      framingPersistence: null,
+      contextIds: ["ctx-protocol-spec"],
+      usedBy: ["seq-monitor-environment"],
+    },
+    {
+      id: "cmd-set-led",
+      name: "Set LED State",
+      description: "Control LED brightness and color with parameters",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      payload: "LED {{ledId}} {{color}} {{brightness}}\\n",
+      mode: "TEXT" as const,
+      parameters: [
+        {
+          id: "param-led-id",
+          name: "ledId",
+          label: "LED Number",
+          description: "LED identifier (0-7)",
+          type: "INTEGER" as const,
+          defaultValue: 0,
+          required: true,
+          min: 0,
+          max: 7,
+        },
+        {
+          id: "param-color",
+          name: "color",
+          label: "Color",
+          description: "LED color selection",
+          type: "ENUM" as const,
+          defaultValue: "RED",
+          required: true,
+          options: [
+            { label: "Red", value: "RED" },
+            { label: "Green", value: "GREEN" },
+            { label: "Blue", value: "BLUE" },
+            { label: "White", value: "WHITE" },
+          ],
+        },
+        {
+          id: "param-brightness",
+          name: "brightness",
+          label: "Brightness",
+          description: "LED brightness (0.0-1.0)",
+          type: "FLOAT" as const,
+          defaultValue: 0.5,
+          required: false,
+          min: 0.0,
+          max: 1.0,
+        },
+      ],
+      validation: {
+        enabled: true,
+        mode: "PATTERN" as const,
+        matchType: "CONTAINS" as const,
+        pattern: "LED_SET",
+        timeout: 2000,
+      },
+      scripting: null,
+      responseFraming: null,
+      framingPersistence: null,
+      contextIds: ["ctx-led-api"],
+      usedBy: ["seq-led-test"],
+    },
+    {
+      id: "cmd-modbus-read",
+      name: "Modbus Read Registers",
+      description: "Read holding registers via Modbus RTU (HEX mode)",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      payload: "01 03 00 00 00 0A C5 CD",
+      mode: "HEX" as const,
+      parameters: [],
+      validation: null,
+      scripting: {
+        enabled: true,
+        preRequestScript:
+          "// Calculate CRC16 before sending\\nconst crc = calculateCRC16(payload);\\nreturn payload + crc;",
+        postResponseScript:
+          "// Parse Modbus response\\nconst data = parseModbusResponse(response);\\nreturn { registers: data };",
+      },
+      responseFraming: {
+        strategy: "TIMEOUT" as const,
+        timeout: 35,
+        prefixLengthSize: 1,
+        byteOrder: "BE" as const,
+      },
+      framingPersistence: "TRANSIENT" as const,
+      contextIds: ["ctx-modbus-spec"],
+      usedBy: [],
+    },
+    {
+      id: "cmd-binary-frame",
+      name: "Binary Frame Test",
+      description: "Send binary frame with length prefix",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      payload: "00001010 00001111 11110000",
+      mode: "BINARY" as const,
+      parameters: [],
+      validation: null,
+      scripting: null,
+      responseFraming: {
+        strategy: "PREFIX_LENGTH" as const,
+        prefixLengthSize: 2,
+        byteOrder: "BE" as const,
+        timeout: 100,
+      },
+      framingPersistence: "PERSISTENT" as const,
+      contextIds: [],
+      usedBy: [],
+    },
+    {
+      id: "cmd-config-device",
+      name: "Configure Device",
+      description: "Configure device settings with multiple parameter types",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      payload: "CONFIG {{deviceName}} {{enabled}} {{sampleRate}} {{mode}}\\n",
+      mode: "TEXT" as const,
+      parameters: [
+        {
+          id: "param-device-name",
+          name: "deviceName",
+          label: "Device Name",
+          description: "Device identifier string",
+          type: "STRING" as const,
+          defaultValue: "DEVICE_01",
+          required: true,
+          maxLength: 20,
+        },
+        {
+          id: "param-enabled",
+          name: "enabled",
+          label: "Enabled",
+          description: "Enable or disable the device",
+          type: "BOOLEAN" as const,
+          defaultValue: true,
+          required: true,
+        },
+        {
+          id: "param-sample-rate",
+          name: "sampleRate",
+          label: "Sample Rate (Hz)",
+          description: "Sampling frequency",
+          type: "INTEGER" as const,
+          defaultValue: 100,
+          required: true,
+          min: 1,
+          max: 10000,
+        },
+        {
+          id: "param-mode",
+          name: "mode",
+          label: "Operating Mode",
+          description: "Device operating mode",
+          type: "ENUM" as const,
+          defaultValue: "NORMAL",
+          required: true,
+          options: [
+            { label: "Normal Mode", value: "NORMAL" },
+            { label: "Debug Mode", value: "DEBUG" },
+            { label: "Low Power", value: "LOW_POWER" },
+            { label: "High Performance", value: "HIGH_PERF" },
+          ],
+        },
+      ],
+      validation: {
+        enabled: true,
+        mode: "PATTERN" as const,
+        matchType: "REGEX" as const,
+        pattern: "CONFIG_(OK|ERROR:\\w+)",
+        timeout: 5000,
+      },
+      scripting: {
+        enabled: true,
+        preRequestScript:
+          "// Log configuration attempt\\nconsole.log('Configuring device:', params.deviceName);\\nreturn payload;",
+        postResponseScript:
+          "// Extract configuration result\\nif (response.includes('OK')) {\\n  return { success: true, device: params.deviceName };\\n}\\nreturn { success: false, error: response };",
+      },
+      responseFraming: null,
+      framingPersistence: null,
+      contextIds: ["ctx-api-docs", "ctx-error-handling"],
+      usedBy: ["seq-device-setup"],
+    },
+  ],
+  sequences: [
+    {
+      id: "seq-monitor-environment",
+      name: "Monitor Environment",
+      description: "Monitor temperature, humidity, and device status",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      steps: [
+        {
+          id: "step-sensor-read",
+          commandId: "cmd-sensor-read",
+          delay: 0,
+          stopOnError: true,
+        },
+        {
+          id: "step-status-check",
+          commandId: "cmd-status-check",
+          delay: 1000,
+          stopOnError: false,
+        },
+      ],
+      contextIds: ["ctx-sensor-api", "ctx-error-handling", "ctx-protocol-spec"],
+    },
+    {
+      id: "seq-led-test",
+      name: "LED Test Sequence",
+      description: "Test all LED colors in sequence",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      steps: [
+        {
+          id: "step-led-red",
+          commandId: "cmd-set-led",
+          delay: 0,
+          stopOnError: true,
+        },
+        {
+          id: "step-led-green",
+          commandId: "cmd-set-led",
+          delay: 500,
+          stopOnError: true,
+        },
+        {
+          id: "step-led-blue",
+          commandId: "cmd-set-led",
+          delay: 500,
+          stopOnError: true,
+        },
+      ],
+      contextIds: ["ctx-led-api"],
+    },
+    {
+      id: "seq-device-setup",
+      name: "Device Setup",
+      description: "Initialize and configure device on startup",
+      creator: "system",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      steps: [
+        {
+          id: "step-hello",
+          commandId: "cmd-hello-world",
+          delay: 0,
+          stopOnError: true,
+        },
+        {
+          id: "step-config",
+          commandId: "cmd-config-device",
+          delay: 500,
+          stopOnError: true,
+        },
+        {
+          id: "step-verify",
+          commandId: "cmd-status-check",
+          delay: 1000,
+          stopOnError: false,
+        },
+      ],
+      contextIds: ["ctx-api-docs", "ctx-protocol-spec"],
+    },
+  ],
+  contexts: [
+    {
+      id: "ctx-api-docs",
+      title: "API Documentation",
+      content: `# SerialPort API Documentation
+
+## Basic Commands
+- Hello World: Send "Hello, World!" to establish connection
+- Response: Device echoes the message back
+
+## Error Handling
+- All commands should end with \\n
+- Invalid commands return "ERROR: INVALID_COMMAND"`,
+      source: "USER" as const,
+      createdAt: Date.now(),
+    },
+    {
+      id: "ctx-protocol-spec",
+      title: "Protocol Specification",
+      content: `# Communication Protocol v1.0
+
+## Message Format
+- Commands: ASCII text followed by \\n
+- Responses: ASCII text followed by \\n
+- Timeout: 5 seconds for responses
+
+## Command Structure
+COMMAND_NAME [PARAMETERS]\\n
+
+## Response Codes
+- OK: Command successful
+- ERROR: Command failed
+- TIMEOUT: No response received`,
+      source: "USER" as const,
+      createdAt: Date.now(),
+    },
+    {
+      id: "ctx-sensor-api",
+      title: "Sensor API Reference",
+      content: `# Sensor Device API
+
+## READ_SENSOR Command
+Reads current temperature and humidity values.
+
+**Request:** READ_SENSOR\\n
+**Response:** TEMP:25.5°C HUM:60.2%\\n
+
+## Data Format
+- Temperature: XX.X°C (0.0-50.0)
+- Humidity: XX.X% (0.0-100.0)
+
+## Error Conditions
+- Sensor offline: ERROR:SENSOR_OFFLINE
+- Invalid reading: ERROR:INVALID_READING`,
+      source: "USER" as const,
+      createdAt: Date.now(),
+    },
+    {
+      id: "ctx-error-handling",
+      title: "Error Handling Patterns",
+      content: `# Error Handling Guide
+
+## Common Error Patterns
+- TIMEOUT: No response within 5 seconds
+- INVALID_COMMAND: Unknown command sent
+- SENSOR_OFFLINE: Hardware sensor not available
+
+## Recovery Strategies
+1. Retry command after 1 second
+2. Check device connection
+3. Reset device if persistent errors
+
+## Logging
+All errors should be logged with timestamp and context.`,
+      source: "USER" as const,
+      createdAt: Date.now(),
+    },
+    {
+      id: "ctx-led-api",
+      title: "LED Control API",
+      content: `# LED Control API
+
+## LED Command Format
+LED <id> <color> <brightness>\\n
+
+## Parameters
+- id: LED number (0-7)
+- color: RED, GREEN, BLUE, WHITE
+- brightness: 0.0-1.0 (float)
+
+## Response
+- Success: LED_SET <id> <color> <brightness>
+- Error: LED_ERROR:<reason>
+
+## Example
+Request: LED 0 RED 0.5\\n
+Response: LED_SET 0 RED 0.5`,
+      source: "USER" as const,
+      createdAt: Date.now(),
+    },
+    {
+      id: "ctx-modbus-spec",
+      title: "Modbus RTU Specification",
+      content: `# Modbus RTU Protocol
+
+## Frame Format
+[Address][Function][Data][CRC]
+
+## Read Holding Registers (0x03)
+Request: [Addr][03][Start Hi][Start Lo][Qty Hi][Qty Lo][CRC]
+Response: [Addr][03][Byte Count][Data...][CRC]
+
+## CRC Calculation
+- CRC-16 (Modbus)
+- Polynomial: 0x8005
+- Initial: 0xFFFF
+
+## Timing
+- Character timeout: 1.5 char times
+- Frame timeout: 3.5 char times`,
+      source: "USER" as const,
+      createdAt: Date.now(),
+    },
+  ],
   loadedPresetId: null,
   sessions: {},
   activeSessionId: "",
