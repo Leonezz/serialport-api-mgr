@@ -13,9 +13,6 @@ export { TauriSerialAPI } from "./api";
 // Low-level typed invoke wrapper
 export { invokeCommand } from "./invoke";
 
-// Enum conversion utilities
-export { EnumConverter } from "./enums";
-
 // Strongly-typed event system
 export {
   TauriEventNames,
@@ -24,7 +21,9 @@ export {
   listenOnce,
 } from "./events";
 
-// Type exports
-export type * from "./types";
+// Unified serial port type exports
+export type { SerialPortInfo, SerialPortInfoArray } from "./types";
+
+// Command type exports
 export type * from "./commands";
 export type * from "./events";

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { ValidationMode } from "../types";
+import { ValidationMode, TelemetryVariableValue } from "../types";
 import { executeUserScript } from "../lib/scripting";
 import { useStore } from "../lib/store";
 import { getErrorMessage } from "../lib/utils";
@@ -87,7 +87,7 @@ export function useValidation() {
     let textData = "";
     try {
       textData = new TextDecoder().decode(data);
-    } catch (e) {
+    } catch {
       // Ignore decode errors
     }
 
@@ -144,7 +144,7 @@ export function useValidation() {
 
             // Inject setVar for telemetry and log for debugging
             const setVar = (name: string, value: unknown) => {
-              setVariable(name, value, sessionId);
+              setVariable(name, value as TelemetryVariableValue, sessionId);
               capturedVars[name] = value;
             };
             const log = (msg: string) => {

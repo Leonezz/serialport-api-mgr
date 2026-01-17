@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Activity, Trash2, Plus, X, Wifi, Usb } from "lucide-react";
 import { SavedCommand, SequenceStep, Session } from "./types";
 import { AIProjectResult } from "./services/geminiService";
@@ -28,42 +28,25 @@ const App: React.FC = () => {
   // Store
   const {
     // State
-    themeMode,
-    themeColor,
-    presets,
     commands,
-    sequences,
-    contexts,
     toasts,
     sessions,
     activeSessionId,
     // Actions
     setConfig,
-    setNetworkConfig,
     setPresets,
     setCommands,
-    setSequences,
     setContexts,
-    addCommand,
-    updateCommand,
-    deleteCommand,
     addSequence,
-    updateSequence,
-    deleteSequence,
     setSendMode,
     setEncoding,
-    setChecksum,
-    addLog,
-    updateLog,
     clearLogs,
     addToast,
     removeToast,
-    setEditingCommand,
     setEditingPreset,
     setPendingParamCommand,
     setShowGeneratorModal,
     setActiveSequenceId,
-    setLoadedPresetId,
     setIsConnected,
     addSession,
     removeSession,
@@ -72,12 +55,10 @@ const App: React.FC = () => {
 
     // New Actions
     addSystemLog,
-    setVariable,
     setFramingOverride,
     setPortName,
 
     // Modal States
-    editingCommand,
     editingPreset,
     pendingParamCommand,
     showGeneratorModal,
@@ -86,21 +67,17 @@ const App: React.FC = () => {
   } = useStore();
 
   const activeSession = sessions[activeSessionId];
+  // Type assertion: config always has required fields due to defaults applied at session creation
+  const config = activeSession.config as Required<typeof activeSession.config>;
   const {
-    config,
     networkConfig,
     sendMode,
     encoding,
     checksum,
-    logs,
     isConnected: sessionIsConnected,
     connectionType,
   } = activeSession;
 
-  const [initialAiPrompt, setInitialAiPrompt] = useState<string | undefined>(
-    undefined,
-  );
-  const [showAI, setShowAI] = useState(false);
   const [generatorModalData, setGeneratorModalData] =
     useState<AIProjectResult | null>(null);
 
@@ -167,12 +144,6 @@ const App: React.FC = () => {
     validation.activeValidationsRef, // Use shared ref from validation hook
     framing.overrideTimerRef,
   );
-
-  // --- AI Handlers ---
-  const handleOpenAIAssistant = async () => {
-    setInitialAiPrompt(undefined);
-    setShowAI(true);
-  };
 
   const handleAIImport = (result: AIProjectResult) => {
     let newContextId: string | undefined;

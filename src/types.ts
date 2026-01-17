@@ -1,7 +1,14 @@
-import { TsFlowControl, TsParity } from "./lib/tauri";
+/**
+ * Central type definitions for the entire application
+ * All types are derived from Zod schemas using z.infer<>
+ * Schema files export ONLY schemas, this file exports types AND re-exports schemas
+ */
+
 import { z } from "zod";
 
-// Import schemas for reference (validation) but use manual type definitions for runtime
+// ============================================================================
+// SCHEMA IMPORTS - From core domain schemas
+// ============================================================================
 import {
   LineEndingSchema,
   DataModeSchema,
@@ -14,24 +21,89 @@ import {
   ConnectionTypeSchema,
   ParameterTypeSchema,
   FramingStrategySchema,
+  AttachmentCategorySchema,
+  FramingConfigSchema,
+  SerialOptionsSchema,
+  SerialConfigSchema,
+  NetworkConfigSchema,
+  WidgetConfigSchema,
+  DashboardWidgetSchema,
+  SerialPresetSchema,
+  CommandParameterSchema,
+  CommandValidationSchema,
+  CommandScriptingSchema,
+  BaseEntitySchema,
+  SavedCommandSchema,
+  SequenceStepSchema,
+  SerialSequenceSchema,
+  ProjectContextSchema,
+  DeviceAttachmentSchema,
+  DeviceSchema,
+  AIProjectResultSchema,
+  ExportProfileSchema,
+  DataBitsSchema,
+  StopBitsSchema,
+  ParitySchema,
+  FlowControlSchema,
+  WidgetTypeSchema,
 } from "./lib/schemas";
 
-import { LogLevelSchema, LogCategorySchema } from "./lib/storeSchemas";
+import {
+  RightSidebarTabSchema,
+  LogLevelSchema,
+  LogCategorySchema,
+  SystemLogEntrySchema,
+  ToastMessageSchema,
+  TelemetryVariableSchema,
+  PlotterParserTypeSchema,
+  PlotterDataPointSchema,
+  PlotterConfigSchema,
+  PlotterStateSchema,
+  LogEntrySchema,
+  ChatMessageSchema,
+  SessionSchema,
+  UISliceStateSchema,
+  ProjectSliceStateSchema,
+  SessionSliceStateSchema,
+  PersistedUIStateSchema,
+  PersistedProjectStateSchema,
+  PersistedSessionStateSchema,
+  PersistedStoreStateSchema,
+} from "./lib/storeSchemas";
 
 import {
-  ProjectSliceActions,
-  ProjectSliceState,
-} from "./lib/slices/projectSlice";
-import {
-  SessionSliceActions,
-  SessionSliceState,
-} from "./lib/slices/sessionSlice";
-import { UISliceActions, UISliceState } from "./lib/slices/uiSlice";
-import { DeviceSlice } from "./lib/slices/deviceSlice";
+  UsbPortInfoSchema,
+  PortTypeSchema,
+  OpenedPortProfileSchema,
+  PortStatusSchema,
+  SerialPortInfoSchema,
+  SerialPortInfoArraySchema,
+  SerialOutputSignalsSchema,
+  SerialInputSignalsSchema,
+  SerialPortFilterSchema,
+  SerialPortRequestOptionsSchema,
+} from "./lib/tauri/schemas";
 
-// Infer simple enum types from schemas (these work well with z.infer)
+import {
+  PortOpenedEventSchema,
+  PortClosedEventSchema,
+  PortReadEventSchema,
+  PortErrorEventSchema,
+  PortStatusEventSchema,
+  TauriEventNames,
+  listenToTauriEvent,
+  listenToMultipleEvents,
+  listenOnce,
+} from "./lib/tauri/events";
+
+// ============================================================================
+// CORE DOMAIN TYPES (from schemas.ts)
+// ============================================================================
+
+// Enums
 export type LineEnding = z.infer<typeof LineEndingSchema>;
 export type DataMode = z.infer<typeof DataModeSchema>;
+export type GlobalFormat = DataMode | "AUTO";
 export type TextEncoding = z.infer<typeof TextEncodingSchema>;
 export type ChecksumAlgorithm = z.infer<typeof ChecksumAlgorithmSchema>;
 export type MatchType = z.infer<typeof MatchTypeSchema>;
@@ -41,302 +113,224 @@ export type ThemeMode = z.infer<typeof ThemeModeSchema>;
 export type ConnectionType = z.infer<typeof ConnectionTypeSchema>;
 export type ParameterType = z.infer<typeof ParameterTypeSchema>;
 export type FramingStrategy = z.infer<typeof FramingStrategySchema>;
+export type AttachmentCategory = z.infer<typeof AttachmentCategorySchema>;
+
+// Unified serial types (use EnumConverter when communicating with Rust/Tauri)
+export type DataBits = z.infer<typeof DataBitsSchema>;
+export type StopBits = z.infer<typeof StopBitsSchema>;
+export type Parity = z.infer<typeof ParitySchema>;
+export type FlowControl = z.infer<typeof FlowControlSchema>;
+
+// Configs
+export type FramingConfig = z.infer<typeof FramingConfigSchema>;
+export type SerialOptions = z.infer<typeof SerialOptionsSchema>;
+export type SerialConfig = z.infer<typeof SerialConfigSchema>;
+export type NetworkConfig = z.infer<typeof NetworkConfigSchema>;
+export type WidgetConfig = z.infer<typeof WidgetConfigSchema>;
+export type WidgetType = z.infer<typeof WidgetTypeSchema>;
+export type DashboardWidget = z.infer<typeof DashboardWidgetSchema>;
+
+// Domain entities
+export type SerialPreset = z.infer<typeof SerialPresetSchema>;
+export type CommandParameter = z.infer<typeof CommandParameterSchema>;
+export type CommandValidation = z.infer<typeof CommandValidationSchema>;
+export type CommandScripting = z.infer<typeof CommandScriptingSchema>;
+export type BaseEntity = z.infer<typeof BaseEntitySchema>;
+export type SavedCommand = z.infer<typeof SavedCommandSchema>;
+export type SequenceStep = z.infer<typeof SequenceStepSchema>;
+export type SerialSequence = z.infer<typeof SerialSequenceSchema>;
+export type ProjectContext = z.infer<typeof ProjectContextSchema>;
+export type DeviceAttachment = z.infer<typeof DeviceAttachmentSchema>;
+export type Device = z.infer<typeof DeviceSchema>;
+
+// Export/AI
+export type ExportProfile = z.infer<typeof ExportProfileSchema>;
+export type AIProjectResult = z.infer<typeof AIProjectResultSchema>;
+
+// ============================================================================
+// STORE/RUNTIME TYPES (from storeSchemas.ts)
+// ============================================================================
+
+// Slice-specific
+export type RightSidebarTab = z.infer<typeof RightSidebarTabSchema>;
+
+// Logging
 export type LogLevel = z.infer<typeof LogLevelSchema>;
 export type LogCategory = z.infer<typeof LogCategorySchema>;
+export type SystemLogEntry = z.infer<typeof SystemLogEntrySchema>;
+export type ToastMessage = z.infer<typeof ToastMessageSchema>;
 
-// Type not defined by schema (extends DataMode)
-export type GlobalFormat = DataMode | "AUTO";
+// Telemetry & Plotter
+export type TelemetryVariable = z.infer<typeof TelemetryVariableSchema>;
+export type TelemetryVariableValue = z.infer<
+  typeof TelemetryVariableSchema
+>["value"];
+export type PlotterParserType = z.infer<typeof PlotterParserTypeSchema>;
+export type PlotterDataPoint = z.infer<typeof PlotterDataPointSchema>;
+export type PlotterConfig = z.infer<typeof PlotterConfigSchema>;
+export type PlotterState = z.infer<typeof PlotterStateSchema>;
 
-// Complex types defined manually (schemas used for validation only)
-// This avoids issues with optional fields and defaults in Zod schemas
+// Log entries (unified schema)
+export type LogEntry = z.infer<typeof LogEntrySchema>;
 
-export interface FramingConfig {
-  strategy: FramingStrategy;
-  delimiter?: string; // e.g., "\n", "03", "0D 0A"
-  timeout?: number; // ms, for TIMEOUT strategy
-  prefixLengthSize?: number; // 1 to 8 bytes
-  byteOrder?: "LE" | "BE"; // Little Endian or Big Endian
-  script?: string; // Custom JS parser
+// Chat
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+
+// Session
+export type Session = z.infer<typeof SessionSchema>;
+
+// Slice states
+export type UISliceState = z.infer<typeof UISliceStateSchema>;
+export type ProjectSliceState = z.infer<typeof ProjectSliceStateSchema>;
+export type SessionSliceState = z.infer<typeof SessionSliceStateSchema>;
+
+// Persisted states
+export type PersistedUIState = z.infer<typeof PersistedUIStateSchema>;
+export type PersistedProjectState = z.infer<typeof PersistedProjectStateSchema>;
+export type PersistedSessionState = z.infer<typeof PersistedSessionStateSchema>;
+export type PersistedStoreState = z.infer<typeof PersistedStoreStateSchema>;
+
+// Port info
+export type UsbPortInfo = z.infer<typeof UsbPortInfoSchema>;
+export type PortType = z.infer<typeof PortTypeSchema>;
+export type OpenedPortProfile = z.infer<typeof OpenedPortProfileSchema>;
+export type PortStatus = z.infer<typeof PortStatusSchema>;
+export type SerialPortInfo = z.infer<typeof SerialPortInfoSchema>;
+export type SerialPortInfoArray = z.infer<typeof SerialPortInfoArraySchema>;
+
+// Serial signals
+export type SerialOutputSignals = z.infer<typeof SerialOutputSignalsSchema>;
+export type SerialInputSignals = z.infer<typeof SerialInputSignalsSchema>;
+
+// Filters
+export type SerialPortFilter = z.infer<typeof SerialPortFilterSchema>;
+export type SerialPortRequestOptions = z.infer<
+  typeof SerialPortRequestOptionsSchema
+>;
+
+// ============================================================================
+// TAURI EVENT TYPES (from tauri/events.ts)
+// ============================================================================
+
+export type PortOpenedEvent = z.infer<typeof PortOpenedEventSchema>;
+export type PortClosedEvent = z.infer<typeof PortClosedEventSchema>;
+export type PortReadEvent = z.infer<typeof PortReadEventSchema>;
+export type PortErrorEvent = z.infer<typeof PortErrorEventSchema>;
+export type PortStatusEvent = z.infer<typeof PortStatusEventSchema>;
+
+export type TauriEventName =
+  (typeof TauriEventNames)[keyof typeof TauriEventNames];
+
+export interface TauriEventPayloadMap {
+  [TauriEventNames.PORT_OPENED]: PortOpenedEvent;
+  [TauriEventNames.PORT_CLOSED]: PortClosedEvent;
+  [TauriEventNames.PORT_READ]: PortReadEvent;
+  [TauriEventNames.PORT_ERROR]: PortErrorEvent;
+  [TauriEventNames.PORT_STATUS]: PortStatusEvent;
 }
 
-export interface CommandParameter {
-  id: string;
-  name: string;
-  label?: string; // User friendly label
-  description?: string;
-  type: ParameterType;
-  defaultValue?: string | number | boolean;
-  required?: boolean;
-  // Constraints
-  min?: number;
-  max?: number;
-  maxLength?: number;
-  // For ENUM
-  options?: { label: string; value: string | number }[];
-}
+// ============================================================================
+// UTILITY TYPES
+// ============================================================================
 
-export interface ChatMessage {
-  id: string;
-  role: "user" | "model" | "system";
-  text?: string;
-  isToolCall?: boolean;
-  toolName?: string;
-  toolArgs?: any;
-  toolResult?: string;
-  timestamp: number;
-  attachment?: {
-    name: string;
-    mimeType: string;
-    data: string; // base64
-  };
-}
+/**
+ * Type alias for Rust port info (matches SerialPortInfo)
+ * Used by portUtils.ts
+ */
+export type RustPortInfo = SerialPortInfo;
 
-export interface NetworkConfig {
-  host: string;
-  port: number;
-}
+// ============================================================================
+// RE-EXPORT SCHEMAS (for runtime validation)
+// ============================================================================
 
-export interface CommandValidation {
-  enabled: boolean;
-  mode: ValidationMode;
-  matchType?: MatchType; // Used when mode === 'PATTERN'
-  pattern?: string; // Used when mode === 'PATTERN'
-  timeout: number; // in ms
-}
+export {
+  // Core schemas
+  LineEndingSchema,
+  DataModeSchema,
+  TextEncodingSchema,
+  ChecksumAlgorithmSchema,
+  MatchTypeSchema,
+  ValidationModeSchema,
+  ThemeColorSchema,
+  ThemeModeSchema,
+  ConnectionTypeSchema,
+  ParameterTypeSchema,
+  FramingStrategySchema,
+  AttachmentCategorySchema,
+  FramingConfigSchema,
+  SerialOptionsSchema,
+  SerialConfigSchema,
+  NetworkConfigSchema,
+  WidgetConfigSchema,
+  DashboardWidgetSchema,
+  SerialPresetSchema,
+  CommandParameterSchema,
+  CommandValidationSchema,
+  CommandScriptingSchema,
+  BaseEntitySchema,
+  SavedCommandSchema,
+  SequenceStepSchema,
+  SerialSequenceSchema,
+  ProjectContextSchema,
+  DeviceAttachmentSchema,
+  DeviceSchema,
+  AIProjectResultSchema,
+  ExportProfileSchema,
+  // Unified serial configuration schemas
+  DataBitsSchema,
+  StopBitsSchema,
+  ParitySchema,
+  FlowControlSchema,
 
-export interface CommandScripting {
-  enabled: boolean;
-  preRequestScript?: string; // JavaScript code to execute before sending (Generates payload)
-  postResponseScript?: string; // JavaScript code to execute on incoming data. Return true to complete command.
-}
+  // Store schemas
+  RightSidebarTabSchema,
+  LogLevelSchema,
+  LogCategorySchema,
+  SystemLogEntrySchema,
+  ToastMessageSchema,
+  TelemetryVariableSchema,
+  PlotterParserTypeSchema,
+  PlotterDataPointSchema,
+  PlotterConfigSchema,
+  PlotterStateSchema,
+  LogEntrySchema,
+  ChatMessageSchema,
+  SessionSchema,
+  UISliceStateSchema,
+  ProjectSliceStateSchema,
+  SessionSliceStateSchema,
+  PersistedUIStateSchema,
+  PersistedProjectStateSchema,
+  PersistedSessionStateSchema,
+  PersistedStoreStateSchema,
+  UsbPortInfoSchema,
+  PortTypeSchema,
+  OpenedPortProfileSchema,
+  PortStatusSchema,
+  SerialPortInfoSchema,
+  SerialPortInfoArraySchema,
+  SerialOutputSignalsSchema,
+  SerialInputSignalsSchema,
+  SerialPortFilterSchema,
+  SerialPortRequestOptionsSchema,
 
-export interface SerialConfig {
-  baudRate: number;
-  dataBits: 7 | 8;
-  stopBits: 1 | 2;
-  parity: TsParity;
-  flowControl: TsFlowControl;
-  bufferSize: number;
-  lineEnding: LineEnding;
-  framing: FramingConfig;
-}
+  // Event schemas
+  PortOpenedEventSchema,
+  PortClosedEventSchema,
+  PortReadEventSchema,
+  PortErrorEventSchema,
+  PortStatusEventSchema,
+  TauriEventNames,
 
-export interface WidgetConfig {
-  type: "CARD" | "LINE" | "GAUGE";
-  width: 1 | 2 | 3; // 1=1col (33%), 2=2cols (66%), 3=full width (100%)
-  min?: number;
-  max?: number;
-  unit?: string;
-}
+  // Event helpers
+  listenToTauriEvent,
+  listenToMultipleEvents,
+  listenOnce,
+};
 
-export interface DashboardWidget {
-  id: string;
-  title: string;
-  variableName: string; // The binding key to the data variable
-  config: WidgetConfig;
-  order: number;
-}
-
-export interface TelemetryVariable {
-  name: string;
-  type: "number" | "string" | "boolean" | "object";
-  value: any;
-  lastUpdate: number;
-  history: any[]; // Flexible history: { time: number, [key: string]: number }
-}
-
-export interface SerialPreset {
-  id: string;
-  name: string;
-  type: ConnectionType;
-  config: SerialConfig;
-  network?: NetworkConfig;
-  widgets?: DashboardWidget[]; // Saved dashboard layout
-  deviceId?: string;
-}
-
-export interface ProjectContext {
-  id: string;
-  title: string;
-  content: string; // The raw text, manual snippet, or description
-  source: "USER" | "AI_GENERATED";
-  createdAt: number;
-}
-
-export interface LogEntry {
-  id: string;
-  timestamp: number;
-  direction: "TX" | "RX";
-  data: string | Uint8Array; // String for TEXT, Uint8Array for HEX/Binary
-  format: DataMode;
-  contextIds?: string[]; // Links to protocol/manual contexts (multiple supported)
-  commandParams?: Record<string, any>; // For TX: Parameters used to generate this command
-  extractedVars?: Record<string, any>; // For RX: Variables extracted via script from this response
-  payloadStart?: number; // Start index of actual payload in raw data (if framed)
-  payloadLength?: number; // Length of payload
-}
-
-export interface SystemLogEntry {
-  id: string;
-  timestamp: number;
-  level: LogLevel;
-  category: LogCategory;
-  message: string;
-  details?: any; // JSON object for configs, raw bytes, error stacks
-}
-
-export interface BaseEntity {
-  id: string;
-  name: string;
-  description?: string;
-  creator?: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface SavedCommand extends BaseEntity {
-  group?: string;
-  payload: string;
-  mode: DataMode;
-  encoding?: TextEncoding;
-  parameters?: CommandParameter[]; // Dynamic parameters
-  validation?: CommandValidation;
-  scripting?: CommandScripting;
-  responseFraming?: FramingConfig; // Override framing for the response of this command
-  framingPersistence?: "TRANSIENT" | "PERSISTENT"; // How to apply the framing
-  usedBy?: string[]; // IDs of sequences using this command
-  contextIds?: string[]; // Links to protocol/manual contexts (multiple supported)
-  deviceId?: string;
-}
-
-export interface SequenceStep {
-  id: string;
-  commandId: string;
-  delay: number; // ms to wait AFTER command validation/sending before next step
-  stopOnError: boolean;
-}
-
-export interface SerialSequence extends BaseEntity {
-  steps: SequenceStep[];
-  contextIds?: string[];
-  deviceId?: string | null;
-}
-
-export type AttachmentCategory =
-  | "DATASHEET"
-  | "MANUAL"
-  | "SCHEMATIC"
-  | "PROTOCOL"
-  | "IMAGE"
-  | "OTHER";
-
-export interface DeviceAttachment {
-  id: string;
-  name: string;
-  filename: string;
-  mimeType: string;
-  size: number;
-  data: string; // Base64 encoded content
-  description?: string;
-  category: AttachmentCategory;
-  createdAt: number;
-}
-
-export interface Device {
-  id: string;
-  name: string;
-  description?: string;
-  icon?: string;
-  manufacturer?: string;
-  model?: string;
-  createdAt: number;
-  updatedAt: number;
-  presetIds: string[];
-  commandIds: string[];
-  sequenceIds: string[];
-  contextIds: string[];
-  attachments: DeviceAttachment[];
-}
-
-export interface ProjectStore
-  extends
-    ProjectSliceState,
-    ProjectSliceActions,
-    SessionSliceState,
-    SessionSliceActions,
-    UISliceState,
-    UISliceActions,
-    DeviceSlice {}
-
-// --- Plotter ---
-
-export type PlotterParserType = "CSV" | "JSON" | "REGEX";
-
-export interface PlotterDataPoint {
-  time: number;
-  [seriesId: string]: number;
-}
-
-export interface PlotterConfig {
-  enabled: boolean;
-  parser: PlotterParserType;
-  regexString?: string;
-  bufferSize: number; // Max points in buffer
-  autoDiscover: boolean; // Auto-detect CSV vs JSON
-}
-
-export interface PlotterState {
-  config: PlotterConfig;
-  data: PlotterDataPoint[];
-  series: string[]; // List of detected series IDs/names
-  aliases: Record<string, string>; // Map series ID -> User Display Name
-}
-
-// --- Multi-Session ---
-export interface Session {
-  id: string;
-  name: string;
-  // Connection Configuration
-  connectionType: ConnectionType;
-  config: SerialConfig;
-  networkConfig: NetworkConfig;
-  isConnected: boolean; // Logical connection state (synced with actual port)
-  portName?: string; // The physical port name (e.g. COM3, /dev/ttyUSB0)
-
-  // Data State
-  logs: LogEntry[];
-  variables: Record<string, TelemetryVariable>; // Session-specific variables (Data)
-  widgets: DashboardWidget[]; // Dashboard Layout (View)
-  plotter: PlotterState; // New: Real-time Plotter state
-
-  // Input State
-  inputBuffer: string;
-  sendMode: DataMode;
-  encoding: TextEncoding;
-  checksum: ChecksumAlgorithm;
-
-  // Dynamic State
-  framingOverride?: FramingConfig; // Temporary override active after a command is sent
-
-  // AI State
-  aiMessages: ChatMessage[];
-  aiTokenUsage: { prompt: number; response: number; total: number };
-}
-
-// --- Web Serial API Type Definitions (Exported for usage in services) ---
-export interface SerialOptions {
-  baudRate: number;
-  dataBits?: number;
-  stopBits?: number;
-  parity?: TsParity;
-  bufferSize?: number;
-  flowControl?: TsFlowControl;
-}
-
-export interface SerialPortInfo {
-  usbVendorId?: number;
-  usbProductId?: number;
-}
+// ============================================================================
+// WEB SERIAL API (browser types - keep as-is)
+// ============================================================================
 
 declare global {
   interface Navigator {
@@ -344,8 +338,8 @@ declare global {
   }
 
   interface Serial {
-    onconnect: ((this: Serial, ev: Event) => any) | null;
-    ondisconnect: ((this: Serial, ev: Event) => any) | null;
+    onconnect: ((this: Serial, ev: Event) => void) | null;
+    ondisconnect: ((this: Serial, ev: Event) => void) | null;
     getPorts(): Promise<SerialPort[]>;
     requestPort(options?: SerialPortRequestOptions): Promise<SerialPort>;
     addEventListener(
@@ -365,8 +359,8 @@ declare global {
   }
 
   interface SerialPort {
-    onconnect: ((this: SerialPort, ev: Event) => any) | null;
-    ondisconnect: ((this: SerialPort, ev: Event) => any) | null;
+    onconnect: ((this: SerialPort, ev: Event) => void) | null;
+    ondisconnect: ((this: SerialPort, ev: Event) => void) | null;
     readonly readable: ReadableStream<Uint8Array> | null;
     readonly writable: WritableStream<Uint8Array> | null;
     open(options: SerialOptions): Promise<void>;
@@ -376,26 +370,6 @@ declare global {
     setSignals(signals: SerialOutputSignals): Promise<void>;
     getSignals(): Promise<SerialInputSignals>;
   }
-
-  interface SerialOutputSignals {
-    dataTerminalReady?: boolean;
-    requestToSend?: boolean;
-    break?: boolean;
-  }
-
-  interface SerialInputSignals {
-    dataCarrierDetect: boolean;
-    clearToSend: boolean;
-    ringIndicator: boolean;
-    dataSetReady: boolean;
-  }
-
-  interface SerialPortRequestOptions {
-    filters?: SerialPortFilter[];
-  }
-
-  interface SerialPortFilter {
-    usbVendorId?: number;
-    usbProductId?: number;
-  }
 }
+
+export {};

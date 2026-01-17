@@ -1,21 +1,18 @@
 import React, { useState } from "react";
 import { useStore } from "../../lib/store";
 import {
-  Settings,
   Link2,
   FileText,
   BookOpen,
   Edit2,
-  Trash2,
   Plus,
   ArrowRight,
-  ExternalLink,
   Cpu,
   Info,
+  LucideIcon,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
 import { AttachmentManager } from "../AttachmentManager";
 
 type DeviceTab = "info" | "connections" | "attachments" | "contexts";
@@ -42,7 +39,7 @@ export const DevicePanel: React.FC = () => {
     );
   }
 
-  const tabs: { id: DeviceTab; icon: any; label: string }[] = [
+  const tabs: { id: DeviceTab; icon: LucideIcon; label: string }[] = [
     { id: "info", icon: Info, label: "Info" },
     { id: "connections", icon: Link2, label: "Connections" },
     { id: "attachments", icon: FileText, label: "Attachments" },

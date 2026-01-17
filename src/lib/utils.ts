@@ -41,6 +41,7 @@ export const formatContent = (
   try {
     return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
   } catch (e) {
+    console.warn("formatContent", "Failed to decode UTF-8", e);
     return String.fromCharCode(...bytes);
   }
 };

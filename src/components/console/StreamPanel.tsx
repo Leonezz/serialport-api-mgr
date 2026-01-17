@@ -5,10 +5,10 @@ import React, {
   useEffect,
   useDeferredValue,
 } from "react";
-import { LogEntry } from "../../types";
 import { ArrowDown, X, Binary } from "lucide-react";
 import { cn, getBytes } from "../../lib/utils";
 import HexDataView from "./HexDataView";
+import { LogEntry } from "@/types";
 
 interface StreamPanelProps {
   title: string;

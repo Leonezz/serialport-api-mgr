@@ -246,7 +246,7 @@ function findFrameInView(
 export class SerialFramer {
   private chunks: TimedChunk[] = [];
   // Fix: Using any instead of NodeJS.Timeout to avoid namespace errors in browser environment
-  private timer: any | null = null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private config: FramingConfig,

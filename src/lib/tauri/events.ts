@@ -7,55 +7,6 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { z } from "zod";
 
 // ============================================================================
-// Event Payload Types (matching Rust event structs)
-// ============================================================================
-
-/**
- * Payload when a serial port is opened
- */
-export interface PortOpenedEvent {
-  port_name: string;
-  timestamp_ms: number;
-}
-
-/**
- * Payload when a serial port is closed
- */
-export interface PortClosedEvent {
-  port_name: string;
-  reason: string;
-  timestamp_ms: number;
-}
-
-/**
- * Payload when data is read from a serial port
- */
-export interface PortReadEvent {
-  port_name: string;
-  timestamp_ms: number;
-  data: number[]; // Vec<u8> from Rust becomes number[]
-}
-
-/**
- * Payload for port errors
- */
-export interface PortErrorEvent {
-  port_name?: string;
-  error: string;
-}
-
-/**
- * Payload for modem status changes
- */
-export interface PortStatusEvent {
-  port_name: string;
-  cts: boolean;
-  dsr: boolean;
-  cd: boolean;
-  ring: boolean;
-}
-
-// ============================================================================
 // Event Name Constants (matching Rust event_names module)
 // ============================================================================
 
@@ -67,42 +18,49 @@ export const TauriEventNames = {
   PORT_STATUS: "port_status",
 } as const;
 
-export type TauriEventName =
-  (typeof TauriEventNames)[keyof typeof TauriEventNames];
-
 // ============================================================================
-// Event Payload Schemas (Zod validation)
+// Event Payload Schemas (Zod validation) - Using camelCase to match Rust serde
 // ============================================================================
 
 export const PortOpenedEventSchema = z.object({
-  port_name: z.string(),
-  timestamp_ms: z.number(),
+  portName: z.string(),
+  timestampMs: z.number(),
 });
 
 export const PortClosedEventSchema = z.object({
-  port_name: z.string(),
+  portName: z.string(),
   reason: z.string(),
-  timestamp_ms: z.number(),
+  timestampMs: z.number(),
 });
 
 export const PortReadEventSchema = z.object({
-  port_name: z.string(),
-  timestamp_ms: z.number(),
+  portName: z.string(),
+  timestampMs: z.number(),
   data: z.array(z.number()),
 });
 
 export const PortErrorEventSchema = z.object({
-  port_name: z.string().optional(),
+  portName: z.string().optional(),
   error: z.string(),
 });
 
 export const PortStatusEventSchema = z.object({
-  port_name: z.string(),
+  portName: z.string(),
   cts: z.boolean(),
   dsr: z.boolean(),
   cd: z.boolean(),
   ring: z.boolean(),
 });
+
+// Type inference from schemas - types will be exported from central types.ts
+type PortOpenedEvent = z.infer<typeof PortOpenedEventSchema>;
+type PortClosedEvent = z.infer<typeof PortClosedEventSchema>;
+type PortReadEvent = z.infer<typeof PortReadEventSchema>;
+type PortErrorEvent = z.infer<typeof PortErrorEventSchema>;
+type PortStatusEvent = z.infer<typeof PortStatusEventSchema>;
+
+export type TauriEventName =
+  (typeof TauriEventNames)[keyof typeof TauriEventNames];
 
 // ============================================================================
 // Event Payload Map (maps event names to payload types)
@@ -139,7 +97,7 @@ const EVENT_SCHEMAS: Record<TauriEventName, z.ZodSchema> = {
  * @example
  * // Listen to port read events with full type safety
  * const unlisten = await listenToTauriEvent('port_read', (event) => {
- *   console.log(event.payload.port_name); // ✅ Type-safe
+ *   console.log(event.payload.portName); // ✅ Type-safe
  *   console.log(event.payload.data);      // ✅ Type-safe
  *   console.log(event.payload.invalid);   // ❌ Compile error
  * });
@@ -147,7 +105,7 @@ const EVENT_SCHEMAS: Record<TauriEventName, z.ZodSchema> = {
  * @example
  * // Listen to port opened events
  * const unlisten = await listenToTauriEvent('port_opened', (event) => {
- *   console.log(`Port ${event.payload.port_name} opened at ${event.payload.timestamp_ms}`);
+ *   console.log(`Port ${event.payload.portName} opened at ${event.payload.timestampMs}`);
  * });
  */
 export async function listenToTauriEvent<T extends TauriEventName>(
@@ -157,7 +115,7 @@ export async function listenToTauriEvent<T extends TauriEventName>(
 ): Promise<UnlistenFn> {
   const validatePayload = options?.validatePayload ?? true;
 
-  return listen(eventName, (event: any) => {
+  return listen(eventName, (event: { payload: unknown }) => {
     if (validatePayload) {
       // Runtime validation with Zod
       const schema = EVENT_SCHEMAS[eventName];
@@ -196,9 +154,9 @@ export async function listenToTauriEvent<T extends TauriEventName>(
  *   ['port_opened', 'port_closed'],
  *   (eventName, payload) => {
  *     if (eventName === 'port_opened') {
- *       console.log('Port opened:', payload.port_name);
+ *       console.log('Port opened:', payload.portName);
  *     } else {
- *       console.log('Port closed:', payload.port_name, payload.reason);
+ *       console.log('Port closed:', payload.portName, payload.reason);
  *     }
  *   }
  * );
@@ -233,7 +191,7 @@ export async function listenToMultipleEvents<T extends TauriEventName>(
  * @example
  * // Wait for port to open
  * const event = await listenOnce('port_opened');
- * console.log(`Port ${event.payload.port_name} is now open`);
+ * console.log(`Port ${event.payload.portName} is now open`);
  */
 export async function listenOnce<T extends TauriEventName>(
   eventName: T,

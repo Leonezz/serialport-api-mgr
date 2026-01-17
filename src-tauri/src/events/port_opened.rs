@@ -4,6 +4,7 @@ use crate::serial_mgr::helpers::timestamp_now_ms;
 
 /// Payload for port opened events.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PortOpenedEvent {
     /// Name of the port that was opened
     pub port_name: String,

@@ -7,10 +7,10 @@ import {
 
 export const DEFAULT_CONFIG: SerialConfig = {
   baudRate: 115200,
-  dataBits: 8,
-  stopBits: 1,
-  parity: "none",
-  flowControl: "none",
+  dataBits: "Eight",
+  stopBits: "One",
+  parity: "None",
+  flowControl: "None",
   bufferSize: 1000,
   lineEnding: "CRLF",
   framing: {

@@ -1,8 +1,8 @@
 import React from "react";
-import { SavedCommand } from "../types";
-import { Play, Trash2, Hash, Type } from "lucide-react";
+import { Play, Trash2 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
+import { SavedCommand } from "@/types";
 
 interface Props {
   commands: SavedCommand[];
@@ -49,7 +49,7 @@ const CommandList: React.FC<Props> = ({ commands, onSend, onDelete }) => {
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <code className="text-xs text-muted-foreground font-mono truncate max-w-[140px] bg-muted px-1.5 py-0.5 rounded">
+            <code className="text-xs text-muted-foreground font-mono truncate max-w-35 bg-muted px-1.5 py-0.5 rounded">
               {(cmd.payload || "").replace(/\r/g, "\\r").replace(/\n/g, "\\n")}
             </code>
             <Badge

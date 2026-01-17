@@ -14,9 +14,9 @@ export class MockPort implements GenericPort {
   private controller?: ReadableStreamDefaultController<Uint8Array>;
   private active: boolean = true;
   // Fix: Use any instead of NodeJS.Timeout to avoid namespace errors in pure browser environments
-  private interval?: any;
+  private interval?: ReturnType<typeof setInterval>;
 
-  constructor(private type: string) {
+  constructor(public readonly type: string) {
     this.readable = new ReadableStream({
       start: (controller) => {
         this.controller = controller;

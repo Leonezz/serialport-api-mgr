@@ -29,6 +29,7 @@ export const RightSidebarTabSchema = z.enum([
   "framing",
   "context",
   "wizard",
+  "device",
 ]);
 
 // ============================================================================
@@ -51,7 +52,7 @@ export const SystemLogEntrySchema = z.object({
   level: LogLevelSchema,
   category: LogCategorySchema,
   message: z.string(),
-  details: z.any().optional(),
+  details: z.unknown().optional(),
 });
 
 export const ToastMessageSchema = z.object({
@@ -64,13 +65,24 @@ export const ToastMessageSchema = z.object({
 // ============================================================================
 // TELEMETRY & PLOTTER SCHEMAS
 // ============================================================================
+export const TelemetryVariableBasicValueSchema = z.union([
+  z.number(),
+  z.string(),
+  z.boolean(),
+  // z.instanceof(Uint8Array),
+]);
+export const TelemetryVariableValueSchema = z.union([
+  TelemetryVariableBasicValueSchema,
+  // z.array(TelemetryVariableBasicValueSchema),
+  z.map(z.string(), TelemetryVariableBasicValueSchema),
+]);
 
 export const TelemetryVariableSchema = z.object({
   name: z.string(),
   type: z.enum(["number", "string", "boolean", "object"]),
-  value: z.any(),
+  value: TelemetryVariableValueSchema,
   lastUpdate: z.number(),
-  history: z.array(z.any()),
+  history: z.array(z.record(z.string(), z.any())),
 });
 
 export const PlotterParserTypeSchema = z.enum(["CSV", "JSON", "REGEX"]);
@@ -89,19 +101,23 @@ export const PlotterStateSchema = z.object({
   config: PlotterConfigSchema,
   data: z.array(PlotterDataPointSchema),
   series: z.array(z.string()),
+  aliases: z.record(z.string(), z.string()).optional(),
 });
 
 // ============================================================================
 // LOG ENTRY SCHEMA
 // ============================================================================
 
+// Unified LogEntrySchema - supports both Tauri events and store state
 export const LogEntrySchema = z.object({
-  id: z.string(),
+  id: z.union([z.string(), z.number()]), // string for store, number for Tauri
   timestamp: z.number(),
   direction: z.enum(["TX", "RX"]),
   data: z.union([z.string(), z.instanceof(Uint8Array)]),
   format: DataModeSchema,
-  contextId: z.string().optional(),
+  portName: z.string().optional(), // Only for Tauri events
+  contextId: z.string().optional(), // Singular (store)
+  contextIds: z.array(z.string()).optional(), // Plural (Tauri)
   commandParams: z.record(z.string(), z.any()).optional(),
   extractedVars: z.record(z.string(), z.any()).optional(),
   payloadStart: z.number().optional(),
@@ -311,10 +327,10 @@ export const DEFAULT_PERSISTED_STATE: z.infer<
       type: "SERIAL" as const,
       config: {
         baudRate: 9600,
-        dataBits: 8 as const,
-        stopBits: 1 as const,
-        parity: "none" as const,
-        flowControl: "none" as const,
+        dataBits: "Eight" as const,
+        stopBits: "One" as const,
+        parity: "None" as const,
+        flowControl: "None" as const,
         bufferSize: 1024,
         lineEnding: "LF" as const,
         framing: {
@@ -334,10 +350,10 @@ export const DEFAULT_PERSISTED_STATE: z.infer<
       type: "SERIAL" as const,
       config: {
         baudRate: 19200,
-        dataBits: 8 as const,
-        stopBits: 1 as const,
-        parity: "even" as const,
-        flowControl: "none" as const,
+        dataBits: "Eight" as const,
+        stopBits: "One" as const,
+        parity: "Even" as const,
+        flowControl: "None" as const,
         bufferSize: 2048,
         lineEnding: "NONE" as const,
         framing: {
@@ -356,10 +372,10 @@ export const DEFAULT_PERSISTED_STATE: z.infer<
       type: "SERIAL" as const,
       config: {
         baudRate: 115200,
-        dataBits: 8 as const,
-        stopBits: 1 as const,
-        parity: "none" as const,
-        flowControl: "hardware" as const,
+        dataBits: "Eight" as const,
+        stopBits: "One" as const,
+        parity: "None" as const,
+        flowControl: "Hardware" as const,
         bufferSize: 4096,
         lineEnding: "CRLF" as const,
         framing: {

@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from "react";
-import { TelemetryVariable, WidgetConfig, DashboardWidget } from "../../types";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   LayoutDashboard,
   Trash2,
@@ -30,6 +29,8 @@ import ConfirmationModal from "../ConfirmationModal";
 import GaugeWidget from "./widgets/GaugeWidget";
 import LineChartWidget from "./widgets/LineChartWidget";
 import ValueCardWidget from "./widgets/ValueCardWidget";
+import { DashboardWidget, WidgetConfig, WidgetType } from "@/types";
+import { TelemetryVariable } from "@/types";
 
 const DashboardPanel: React.FC = () => {
   const {
@@ -38,12 +39,14 @@ const DashboardPanel: React.FC = () => {
     clearVariables,
     reorderWidgets,
     addWidget,
-    updateWidget,
     removeWidget,
   } = useStore();
   const session = sessions[activeSessionId];
-  const widgets = session?.widgets || [];
-  const variables = session?.variables || {};
+  const widgets = useMemo(() => session?.widgets || [], [session?.widgets]);
+  const variables = useMemo(
+    () => session?.variables || {},
+    [session?.variables],
+  );
 
   const [editingWidget, setEditingWidget] = useState<DashboardWidget | null>(
     null,
@@ -100,7 +103,7 @@ const DashboardPanel: React.FC = () => {
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+  const handleDragOver = (e: React.DragEvent, _targetId: string) => {
     e.preventDefault(); // Necessary to allow dropping
   };
 
@@ -202,7 +205,7 @@ const DashboardPanel: React.FC = () => {
 
       {/* Maximized Overlay */}
       {maximizedWidgetId && (
-        <div className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm p-4 md:p-8 flex items-center justify-center animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-60 bg-background/80 backdrop-blur-sm p-4 md:p-8 flex items-center justify-center animate-in fade-in duration-200">
           <div className="w-full h-full bg-background border border-border rounded-xl shadow-2xl overflow-hidden relative flex flex-col">
             {(() => {
               const w = widgets.find((w) => w.id === maximizedWidgetId);
@@ -409,10 +412,10 @@ const WidgetCard: React.FC<{
     const localMax = data[data.length - 1].time;
 
     if (localMin > globalMinTime) {
-      data.unshift({ time: globalMinTime } as any);
+      data.unshift({ time: globalMinTime } as Record<string, unknown>);
     }
     if (localMax < globalMaxTime) {
-      data.push({ time: globalMaxTime } as any);
+      data.push({ time: globalMaxTime } as Record<string, unknown>);
     }
     return data;
   }, [safeVar.history, globalMinTime, globalMaxTime]);
@@ -448,8 +451,13 @@ const WidgetCard: React.FC<{
     return { startIndex, endIndex };
   }, [processedData, brushTimeRange]);
 
+  interface BrushEvent {
+    startIndex?: number;
+    endIndex?: number;
+  }
+
   const handleBrushChange = useCallback(
-    (e: any) => {
+    (e: BrushEvent) => {
       if (!processedData.length) return;
       if (e.startIndex !== undefined && e.endIndex !== undefined) {
         const startItem = processedData[e.startIndex];
@@ -543,7 +551,7 @@ const WidgetCard: React.FC<{
         "bg-card border rounded-xl shadow-sm flex flex-col relative transition-all duration-200 group",
         isMaximized
           ? "h-full w-full border-0 shadow-none"
-          : `h-[200px] ${widthClass}`,
+          : `h-50 ${widthClass}`,
         isDragging
           ? "opacity-50 border-dashed border-primary"
           : isMaximized
@@ -571,7 +579,7 @@ const WidgetCard: React.FC<{
             <h4
               className={cn(
                 "font-bold text-muted-foreground uppercase tracking-wide truncate flex items-center gap-1.5",
-                isMaximized ? "text-xl max-w-full" : "text-xs max-w-[120px]",
+                isMaximized ? "text-xl max-w-full" : "text-xs max-w-30",
               )}
               title={widget.title}
             >
@@ -700,7 +708,7 @@ const WidgetSettingsModal: React.FC<{
   };
 
   return (
-    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-70 flex items-center justify-center p-4">
       <Card className="w-[320px] shadow-xl border-border animate-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between p-3 border-b border-border bg-muted/20">
           <span className="font-bold text-xs flex items-center gap-2">
@@ -796,7 +804,7 @@ const AddWidgetModal: React.FC<{
 }> = ({ onAdd, onClose, availableVariables }) => {
   const [title, setTitle] = useState("");
   const [variableName, setVariableName] = useState("");
-  const [type, setType] = useState<"CARD" | "LINE" | "GAUGE">("CARD");
+  const [type, setType] = useState<WidgetType>("CARD");
   const [unit, setUnit] = useState("");
   const [min, setMin] = useState("0");
   const [max, setMax] = useState("100");
@@ -825,7 +833,7 @@ const AddWidgetModal: React.FC<{
   };
 
   return (
-    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-70 flex items-center justify-center p-4">
       <Card className="w-[320px] shadow-xl border-border animate-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between p-3 border-b border-border bg-muted/20">
           <span className="font-bold text-xs">Add New Widget</span>
@@ -867,7 +875,7 @@ const AddWidgetModal: React.FC<{
             <Select
               className="h-8 text-xs"
               value={type}
-              onChange={(e) => setType(e.target.value as any)}
+              onChange={(e) => setType(e.target.value as unknown as WidgetType)}
             >
               <option value="CARD">Value Card</option>
               <option value="LINE">Line Chart</option>

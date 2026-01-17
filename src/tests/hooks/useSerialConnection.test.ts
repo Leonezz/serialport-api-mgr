@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Mock } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useSerialConnection } from "@/hooks/useSerialConnection";
-import type { SerialConfig, NetworkConfig } from "../../../types";
+import { NetworkConfig, SerialConfig } from "@/types";
 
 describe("useSerialConnection", () => {
   let onDataReceived: Mock<(data: Uint8Array, sessionId: string) => void>;
@@ -16,10 +16,10 @@ describe("useSerialConnection", () => {
 
     defaultConfig = {
       baudRate: 115200,
-      dataBits: 8,
-      stopBits: 1,
-      parity: "none",
-      flowControl: "none",
+      dataBits: "Eight",
+      stopBits: "One",
+      parity: "None",
+      flowControl: "None",
       bufferSize: 4096,
       lineEnding: "LF",
       framing: {

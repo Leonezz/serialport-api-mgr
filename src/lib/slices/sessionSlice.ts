@@ -18,6 +18,7 @@ import type {
   PlotterConfig,
   PlotterDataPoint,
   PlotterState,
+  TelemetryVariableValue,
 } from "../../types";
 
 // Re-export types for convenience
@@ -129,7 +130,7 @@ export interface SessionSliceActions {
     direction: "TX" | "RX",
     contextIds?: string[],
     sessionId?: string,
-    commandParams?: Record<string, any>,
+    commandParams?: Record<string, unknown>,
     payloadStart?: number,
     payloadLength?: number,
   ) => string;
@@ -141,7 +142,11 @@ export interface SessionSliceActions {
   clearLogs: () => void;
 
   // Telemetry (Variables & Widgets)
-  setVariable: (name: string, value: any, sessionId?: string) => void;
+  setVariable: (
+    name: string,
+    value: TelemetryVariableValue,
+    sessionId?: string,
+  ) => void;
   // Widget Actions
   addWidget: (widget: Omit<DashboardWidget, "id" | "order">) => void;
   removeWidget: (widgetId: string) => void;
@@ -189,7 +194,8 @@ export const createSessionSlice: StateCreator<
 
   removeSession: (id) =>
     set((state) => {
-      const { [id]: removed, ...remaining } = state.sessions;
+      const remaining = { ...state.sessions };
+      delete remaining[id];
       const keys = Object.keys(remaining);
       if (keys.length === 0) {
         const newDefault = createSession("Session 1");
@@ -282,7 +288,7 @@ export const createSessionSlice: StateCreator<
         id,
         timestamp: Date.now(),
         direction,
-        data,
+        data: typeof data === "string" ? data : new Uint8Array(data),
         format: typeof data === "string" ? "TEXT" : "HEX",
         contextIds,
         commandParams,
@@ -358,7 +364,7 @@ export const createSessionSlice: StateCreator<
           -HISTORY_BUFFER_SIZE,
         );
       } else if (type === "object" && value !== null) {
-        const numericKeys: any = { time: timestamp };
+        const numericKeys = { time: timestamp };
         let hasNumbers = false;
         Object.keys(value).forEach((k) => {
           if (typeof value[k] === "number") {

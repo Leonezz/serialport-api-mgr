@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { NetworkPort } from "@/lib/connection";
 
 describe("NetworkPort", () => {
-  let mockWebSocket: any;
+  let mockWebSocket;
   let originalWebSocket: typeof WebSocket;
 
   beforeEach(() => {
@@ -26,13 +26,13 @@ describe("NetworkPort", () => {
     };
 
     // Mock WebSocket constructor using a proper function
-    (globalThis as any).WebSocket = function (url: string) {
+    globalThis.WebSocket = function (_url: string) {
       return mockWebSocket;
-    } as any;
-    (globalThis as any).WebSocket.CONNECTING = 0;
-    (globalThis as any).WebSocket.OPEN = 1;
-    (globalThis as any).WebSocket.CLOSING = 2;
-    (globalThis as any).WebSocket.CLOSED = 3;
+    } as unknown as typeof WebSocket;
+    (globalThis.WebSocket as any).CONNECTING = 0;
+    (globalThis.WebSocket as any).OPEN = 1;
+    (globalThis.WebSocket as any).CLOSING = 2;
+    (globalThis.WebSocket as any).CLOSED = 3;
   });
 
   afterEach(() => {
@@ -147,7 +147,7 @@ describe("NetworkPort", () => {
       // Trigger onerror
       const error = new Error("WebSocket error");
       if (mockWebSocket.onerror) {
-        mockWebSocket.onerror(error as any);
+        mockWebSocket.onerror(error);
       }
 
       await expect(reader.read()).rejects.toThrow();
@@ -241,7 +241,7 @@ describe("NetworkPort", () => {
       setTimeout(() => {
         const error = new Error("Connection failed");
         if (mockWebSocket.onerror) {
-          mockWebSocket.onerror(error as any);
+          mockWebSocket.onerror(error);
         }
       }, 10);
 

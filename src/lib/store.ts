@@ -12,6 +12,13 @@ import {
   DEFAULT_PERSISTED_STATE,
 } from "./storeSchemas";
 import { DeviceSchema } from "./schemas";
+import {
+  SerialPreset,
+  SavedCommand,
+  SerialSequence,
+  ProjectContext,
+  ThemeColor,
+} from "../types";
 
 const store = new LazyStore("settings.json");
 
@@ -123,36 +130,35 @@ function recoverPartialState(
   }
 
   // Cast to any for recovery purposes - we're validating each field manually
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dataObj = data as any;
+  // Cast to specific record type for recovery
+  const dataObj = data as Record<string, unknown>;
 
   // Try to recover UI preferences
   if (
-    dataObj.themeMode &&
+    typeof dataObj.themeMode === "string" &&
     ["light", "dark", "system"].includes(dataObj.themeMode)
   ) {
-    recovered.themeMode = dataObj.themeMode;
+    recovered.themeMode = dataObj.themeMode as "light" | "dark" | "system";
   }
   if (
-    dataObj.themeColor &&
+    typeof dataObj.themeColor === "string" &&
     ["zinc", "blue", "green", "orange", "rose", "yellow"].includes(
       dataObj.themeColor,
     )
   ) {
-    recovered.themeColor = dataObj.themeColor;
+    recovered.themeColor = dataObj.themeColor as ThemeColor;
   }
 
   // Try to recover project data with best-effort validation
   try {
     if (Array.isArray(dataObj.presets)) {
       recovered.presets = dataObj.presets.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (p: any) =>
+        (p: unknown) =>
           p &&
           typeof p === "object" &&
-          typeof p.id === "string" &&
-          typeof p.name === "string",
-      );
+          typeof (p as Record<string, unknown>).id === "string" &&
+          typeof (p as Record<string, unknown>).name === "string",
+      ) as SerialPreset[];
     }
   } catch (e) {
     console.warn("Failed to recover presets:", e);
@@ -161,13 +167,12 @@ function recoverPartialState(
   try {
     if (Array.isArray(dataObj.commands)) {
       recovered.commands = dataObj.commands.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (c: any) =>
+        (c: unknown) =>
           c &&
           typeof c === "object" &&
-          typeof c.id === "string" &&
-          typeof c.name === "string",
-      );
+          typeof (c as Record<string, unknown>).id === "string" &&
+          typeof (c as Record<string, unknown>).name === "string",
+      ) as SavedCommand[];
     }
   } catch (e) {
     console.warn("Failed to recover commands:", e);
@@ -176,13 +181,12 @@ function recoverPartialState(
   try {
     if (Array.isArray(dataObj.sequences)) {
       recovered.sequences = dataObj.sequences.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (s: any) =>
+        (s: unknown) =>
           s &&
           typeof s === "object" &&
-          typeof s.id === "string" &&
-          typeof s.name === "string",
-      );
+          typeof (s as Record<string, unknown>).id === "string" &&
+          typeof (s as Record<string, unknown>).name === "string",
+      ) as SerialSequence[];
     }
   } catch (e) {
     console.warn("Failed to recover sequences:", e);
@@ -191,13 +195,12 @@ function recoverPartialState(
   try {
     if (Array.isArray(dataObj.contexts)) {
       recovered.contexts = dataObj.contexts.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (ctx: any) =>
+        (ctx: unknown) =>
           ctx &&
           typeof ctx === "object" &&
-          typeof ctx.id === "string" &&
-          typeof ctx.title === "string",
-      );
+          typeof (ctx as Record<string, unknown>).id === "string" &&
+          typeof (ctx as Record<string, unknown>).title === "string",
+      ) as ProjectContext[];
     }
   } catch (e) {
     console.warn("Failed to recover contexts:", e);
@@ -207,13 +210,12 @@ function recoverPartialState(
   try {
     if (Array.isArray(dataObj.devices)) {
       recovered.devices = dataObj.devices.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (d: any) =>
+        (d: unknown) =>
           d &&
           typeof d === "object" &&
-          typeof d.id === "string" &&
-          typeof d.name === "string",
-      );
+          typeof (d as Record<string, unknown>).id === "string" &&
+          typeof (d as Record<string, unknown>).name === "string",
+      ) as Device[];
     }
   } catch (e) {
     console.warn("Failed to recover devices:", e);
@@ -222,7 +224,10 @@ function recoverPartialState(
   // Try to recover session data
   try {
     if (dataObj.sessions && typeof dataObj.sessions === "object") {
-      recovered.sessions = dataObj.sessions;
+      // We can't easily validate the entire session record here, so we cast it
+      // This is a recovery mechanism, so partial validity is better than nothing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recovered.sessions = dataObj.sessions as any;
     }
     if (typeof dataObj.activeSessionId === "string") {
       recovered.activeSessionId = dataObj.activeSessionId;
@@ -236,7 +241,7 @@ function recoverPartialState(
     typeof dataObj.loadedPresetId === "string" ||
     dataObj.loadedPresetId === null
   ) {
-    recovered.loadedPresetId = dataObj.loadedPresetId;
+    recovered.loadedPresetId = dataObj.loadedPresetId as string | null;
   }
 
   return recovered;
@@ -308,8 +313,8 @@ export const useStore = create<AppState>()(
               merged.loadedPresetId = data.loadedPresetId;
 
             // Devices (Manually handled since not in main schema yet)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const anyData = data as any;
+
+            const anyData = data as Record<string, unknown>;
             if (anyData.devices && Array.isArray(anyData.devices)) {
               merged.devices = anyData.devices as AppState["devices"];
             }

@@ -17,7 +17,7 @@ Object.defineProperty(globalThis, "__TAURI_ENV_DEBUG__", {
 describe("serialService", () => {
   describe("WebSerialProvider", () => {
     let originalNavigator: typeof navigator;
-    let mockSerial: any;
+    let mockSerial;
 
     beforeEach(() => {
       // Save original navigator

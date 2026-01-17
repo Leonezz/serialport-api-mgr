@@ -42,10 +42,15 @@ export const downloadBase64File = (
   downloadLink.click();
 };
 
+import { AttachmentCategory } from "../types";
+
 /**
  * Suggest a category based on file name or mime type
  */
-export const suggestCategory = (fileName: string, mimeType: string): any => {
+export const suggestCategory = (
+  fileName: string,
+  mimeType: string,
+): AttachmentCategory => {
   const lowerName = fileName.toLowerCase();
   if (mimeType.startsWith("image/")) return "IMAGE";
   if (lowerName.includes("datasheet")) return "DATASHEET";

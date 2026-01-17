@@ -1,17 +1,17 @@
 /**
  * Zod schemas for runtime validation of Tauri command responses
+ *
+ * These schemas match Rust enum serialization formats.
+ * For application-level types, use the unified schemas from lib/schemas.ts
  */
 
 import { z } from "zod";
-
-// ============================================================================
-// Rust Enum Schemas
-// ============================================================================
-
-export const RustDataBitsSchema = z.enum(["Five", "Six", "Seven", "Eight"]);
-export const RustFlowControlSchema = z.enum(["None", "Hardware", "Software"]);
-export const RustParitySchema = z.enum(["None", "Even", "Odd"]);
-export const RustStopBitsSchema = z.enum(["One", "Two"]);
+import {
+  DataBitsSchema,
+  FlowControlSchema,
+  ParitySchema,
+  StopBitsSchema,
+} from "../schemas";
 
 // ============================================================================
 // Port Information Schemas
@@ -44,10 +44,10 @@ export const PortTypeSchema = z.union([
  */
 export const OpenedPortProfileSchema = z.object({
   baud_rate: z.number(),
-  flow_control: RustFlowControlSchema,
-  data_bits: RustDataBitsSchema,
-  parity: RustParitySchema,
-  stop_bits: RustStopBitsSchema,
+  flow_control: FlowControlSchema,
+  data_bits: DataBitsSchema,
+  parity: ParitySchema,
+  stop_bits: StopBitsSchema,
   carrier_detect: z.boolean(),
   clear_to_send: z.boolean(),
   data_set_ready: z.boolean(),
@@ -66,7 +66,7 @@ export const PortStatusSchema = z.union([
 /**
  * Port info schema
  */
-export const RustPortInfoSchema = z.object({
+export const SerialPortInfoSchema = z.object({
   port_name: z.string(),
   port_type: PortTypeSchema,
   port_status: PortStatusSchema,
@@ -74,18 +74,26 @@ export const RustPortInfoSchema = z.object({
   bytes_write: z.number(), // u128 from Rust
 });
 
-export const RustPortInfoArraySchema = z.array(RustPortInfoSchema);
+export const SerialPortInfoArraySchema = z.array(SerialPortInfoSchema);
 
-/**
- * Log entry schema
- */
-export const LogEntrySchema = z.object({
-  id: z.number(),
-  portName: z.string(),
-  direction: z.enum(["TX", "RX"]),
-  timestamp: z.number(), // u128 in Rust (as millis) -> number in JS (safe for dates)
-  data: z.array(z.number()),
-  contextIds: z.array(z.string()).optional(),
+export const SerialOutputSignalsSchema = z.object({
+  dataTerminalReady: z.boolean().optional(),
+  requestToSend: z.boolean().optional(),
+  breakSignal: z.boolean().optional(),
 });
 
-export const LogEntryArraySchema = z.array(LogEntrySchema);
+export const SerialInputSignalsSchema = z.object({
+  dataCarrierDetect: z.boolean(),
+  clearToSend: z.boolean(),
+  ringIndicator: z.boolean(),
+  dataSetReady: z.boolean(),
+});
+
+export const SerialPortFilterSchema = z.object({
+  usbVendorId: z.number().optional(),
+  usbProductId: z.number().optional(),
+});
+
+export const SerialPortRequestOptionsSchema = z.object({
+  filters: z.array(SerialPortFilterSchema),
+});

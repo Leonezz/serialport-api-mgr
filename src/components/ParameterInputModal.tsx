@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { CommandParameter, SavedCommand } from "../types";
 import { Play, RotateCcw } from "lucide-react";
 import { Button } from "./ui/Button";

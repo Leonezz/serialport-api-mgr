@@ -43,7 +43,7 @@ const ConsoleViewer: React.FC = () => {
   // Input buffer changes trigger 'sessions' object updates, but 'logs' array reference remains consistent if only input changed.
   const activeSessionId = useStore((state) => state.activeSessionId);
   const activeSession = useStore((state) => state.sessions[activeSessionId]);
-  const logs = activeSession.logs || [];
+  const logs = useMemo(() => activeSession.logs || [], [activeSession.logs]);
   const portName = activeSession.portName;
   const contexts = useStore((state) => state.contexts);
   const { themeMode, addToast } = useStore();

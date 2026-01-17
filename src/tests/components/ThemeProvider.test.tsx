@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, renderHook, act } from "@testing-library/react";
-import { ThemeProvider, useTheme } from "@/components/ThemeProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { useTheme } from "@/hooks/useTheme";
 import { useStore } from "@/lib/store";
+import { ThemeColor } from "@/types";
 
 describe("ThemeProvider", () => {
   beforeEach(() => {
@@ -332,7 +334,10 @@ describe("ThemeProvider", () => {
         );
 
         act(() => {
-          useStore.setState({ themeMode: "dark", themeColor: color as any });
+          useStore.setState({
+            themeMode: "dark",
+            themeColor: color as ThemeColor,
+          });
         });
 
         renderHook(() => useTheme(), { wrapper });

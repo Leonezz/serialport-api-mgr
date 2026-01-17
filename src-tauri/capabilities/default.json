@@ -18,6 +18,7 @@
     "fs:allow-applocaldata-write",
     "fs:allow-applocaldata-write-recursive",
     "core:path:allow-resolve",
-    "core:path:allow-resolve-directory"
+    "core:path:allow-resolve-directory",
+    "store:default"
   ]
 }

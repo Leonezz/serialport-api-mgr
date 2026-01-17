@@ -81,7 +81,7 @@ export const parsePlotterData = (
     }
 
     return null;
-  } catch (e) {
+  } catch {
     return null;
   }
 };

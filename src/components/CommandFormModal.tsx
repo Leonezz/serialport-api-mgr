@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   SavedCommand,
   DataMode,
   TextEncoding,
   MatchType,
-  ValidationMode,
   SerialSequence,
   ProjectContext,
   CommandParameter,
@@ -15,20 +14,10 @@ import {
 import {
   X,
   Save,
-  Code,
-  Settings2,
-  ArrowRightLeft,
   AlertTriangle,
   Calculator,
-  Wand2,
-  BookOpen,
-  FileText,
   Plus,
   Trash2,
-  Sliders,
-  Scissors,
-  Zap,
-  CheckCircle2,
   FileCode,
   Search,
   Terminal,
@@ -58,7 +47,6 @@ import CodeEditor from "./ui/CodeEditor";
 
 interface Props {
   initialData?: Partial<SavedCommand>;
-  existingGroups: string[];
   sequences: SerialSequence[];
   contexts: ProjectContext[];
   onSave: (command: Omit<SavedCommand, "id">) => void;
@@ -69,7 +57,6 @@ interface Props {
 
 const CommandFormModal: React.FC<Props> = ({
   initialData,
-  existingGroups,
   contexts,
   onSave,
   onUpdateContext,
@@ -352,7 +339,9 @@ const CommandFormModal: React.FC<Props> = ({
                     <Label>{t("cmd.format")}</Label>
                     <Select
                       value={mode}
-                      onChange={(e) => setMode(e.target.value as any)}
+                      onChange={(e) =>
+                        setMode(e.target.value as unknown as DataMode)
+                      }
                     >
                       <option value="TEXT">TEXT</option>
                       <option value="HEX">HEX</option>
@@ -363,7 +352,9 @@ const CommandFormModal: React.FC<Props> = ({
                       <Label>Encoding</Label>
                       <Select
                         value={encoding}
-                        onChange={(e) => setEncoding(e.target.value as any)}
+                        onChange={(e) =>
+                          setEncoding(e.target.value as unknown as TextEncoding)
+                        }
                       >
                         <option value="UTF-8">UTF-8</option>
                         <option value="ASCII">ASCII</option>
@@ -595,7 +586,9 @@ const CommandFormModal: React.FC<Props> = ({
                               className="h-8 text-xs"
                               value={matchType}
                               onChange={(e) =>
-                                setMatchType(e.target.value as any)
+                                setMatchType(
+                                  e.target.value as unknown as MatchType,
+                                )
                               }
                             >
                               <option value="CONTAINS">Contains</option>
@@ -647,7 +640,7 @@ const CommandFormModal: React.FC<Props> = ({
             {activeTab === "framing" && (
               <CardContent className="pt-6 space-y-6">
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-md flex gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
                   <div className="text-xs text-amber-800 dark:text-amber-300">
                     <strong>Note:</strong> Framing overrides allow this specific
                     command to parse incoming data differently (e.g., waiting
@@ -672,9 +665,12 @@ const CommandFormModal: React.FC<Props> = ({
                     <Select
                       value={framingPersistence}
                       onChange={(e) =>
-                        setFramingPersistence(e.target.value as any)
+                        setFramingPersistence(
+                          e.target
+                            .value as unknown as SavedCommand["framingPersistence"],
+                        )
                       }
-                      className="h-8 text-xs w-[180px]"
+                      className="h-8 text-xs w-45"
                     >
                       <option value="TRANSIENT">Transient (One-Shot)</option>
                       <option value="PERSISTENT">
@@ -798,7 +794,8 @@ return { frames: [], remaining: chunks };`;
                             onChange={(e) =>
                               setFramingConfig({
                                 ...framingConfig,
-                                byteOrder: e.target.value as any,
+                                byteOrder: e.target
+                                  .value as unknown as SavedCommand["responseFraming"]["byteOrder"],
                               })
                             }
                             className="h-9 text-sm"
@@ -1040,7 +1037,7 @@ return { frames: [], remaining: chunks };`;
                   <div className="space-y-4 p-4 border rounded-lg bg-muted/10 animate-in fade-in">
                     <div className="space-y-2">
                       <Label>Common AT Commands</Label>
-                      <div className="h-[200px] overflow-y-auto border rounded bg-background p-2 space-y-1">
+                      <div className="h-50 overflow-y-auto border rounded bg-background p-2 space-y-1">
                         {Object.entries(AT_COMMAND_LIBRARY).map(
                           ([cat, cmds]) => (
                             <div key={cat} className="mb-2">

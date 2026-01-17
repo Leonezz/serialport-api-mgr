@@ -1,8 +1,10 @@
+import { SerialOutputSignals } from "../types";
+
 export interface GenericPort {
   readable: ReadableStream<Uint8Array> | null;
   writable: WritableStream<Uint8Array> | null;
   close: () => Promise<void>;
-  setSignals?: (signals: any) => Promise<void>;
+  setSignals?: (signals: SerialOutputSignals) => Promise<void>;
 }
 
 export class NetworkPort implements GenericPort {

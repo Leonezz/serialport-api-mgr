@@ -29,6 +29,7 @@ impl std::fmt::Display for PortCloseReason {
 
 /// Payload for port closed events.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PortClosedEvent {
     /// Name of the port that was closed
     pub port_name: String,

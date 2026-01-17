@@ -4,14 +4,8 @@
  */
 
 import { invokeCommand } from "./invoke";
-import { EnumConverter } from "./enums";
-import type {
-  TsDataBits,
-  TsFlowControl,
-  TsParity,
-  TsStopBits,
-  RustPortInfo,
-} from "./types";
+import type { SerialPortInfo } from "./types";
+import { OpenPortCommand } from "./commands";
 
 /**
  * High-level API for Tauri serial port operations
@@ -26,7 +20,7 @@ export class TauriSerialAPI {
    * Get information about all available serial ports
    * @returns Array of port information objects
    */
-  static async getAllPortInfo(): Promise<RustPortInfo[]> {
+  static async getAllPortInfo(): Promise<SerialPortInfo[]> {
     return await invokeCommand("get_all_port_info", {});
   }
 
@@ -44,26 +38,8 @@ export class TauriSerialAPI {
    * @param config.dataTerminalReady - Initial DTR state (default: true)
    * @param config.timeoutMs - Read timeout in milliseconds (default: 1000)
    */
-  static async openPort(config: {
-    portName: string;
-    baudRate: number;
-    dataBits: TsDataBits;
-    flowControl: TsFlowControl;
-    parity: TsParity;
-    stopBits: TsStopBits;
-    dataTerminalReady?: boolean;
-    timeoutMs?: number;
-  }): Promise<void> {
-    return await invokeCommand("open_port", {
-      portName: config.portName,
-      baudRate: config.baudRate,
-      dataBits: EnumConverter.dataBitsToRust(config.dataBits),
-      flowControl: EnumConverter.flowControlToRust(config.flowControl),
-      parity: EnumConverter.parityToRust(config.parity),
-      stopBits: EnumConverter.stopBitsToRust(config.stopBits),
-      dataTerminalReady: config.dataTerminalReady ?? true,
-      timeoutMs: config.timeoutMs ?? 1000,
-    });
+  static async openPort(config: OpenPortCommand["args"]): Promise<void> {
+    return await invokeCommand("open_port", config);
   }
 
   /**
@@ -71,6 +47,7 @@ export class TauriSerialAPI {
    * @param portName - Name of the port to close
    */
   static async closePort(portName: string): Promise<void> {
+    console.log(`Closing port: ${portName}`);
     return await invokeCommand("close_port", { portName });
   }
 

@@ -1,15 +1,7 @@
-import { createContext, useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { useStore } from "../lib/store";
-import type { ThemeMode, ThemeColor } from "../types";
 
-interface ThemeContextValue {
-  themeMode: ThemeMode;
-  themeColor: ThemeColor;
-  setThemeMode: (mode: ThemeMode) => void;
-  setThemeColor: (color: ThemeColor) => void;
-}
-
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+import { ThemeContext, ThemeContextValue } from "../lib/themeContext";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const themeMode = useStore((state) => state.themeMode);
@@ -59,12 +51,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
-}
-
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within ThemeProvider");
-  }
-  return context;
 }

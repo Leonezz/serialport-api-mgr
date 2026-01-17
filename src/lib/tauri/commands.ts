@@ -3,13 +3,8 @@
  * Uses discriminated union pattern for type-safe command invocation
  */
 
-import type {
-  RustDataBits,
-  RustFlowControl,
-  RustParity,
-  RustStopBits,
-  RustPortInfo,
-} from "./types";
+import { DataBits, FlowControl, Parity, StopBits } from "@/types";
+import type { SerialPortInfo } from "./types";
 
 // ============================================================================
 // Individual Command Definitions
@@ -18,7 +13,7 @@ import type {
 export interface GetAllPortInfoCommand {
   name: "get_all_port_info";
   args: Record<string, never>; // No arguments
-  returns: RustPortInfo[];
+  returns: SerialPortInfo[];
 }
 
 export interface OpenPortCommand {
@@ -26,10 +21,10 @@ export interface OpenPortCommand {
   args: {
     portName: string;
     baudRate: number;
-    dataBits: RustDataBits;
-    flowControl: RustFlowControl;
-    parity: RustParity;
-    stopBits: RustStopBits;
+    dataBits: DataBits;
+    flowControl: FlowControl;
+    parity: Parity;
+    stopBits: StopBits;
     dataTerminalReady: boolean;
     timeoutMs: number;
   };

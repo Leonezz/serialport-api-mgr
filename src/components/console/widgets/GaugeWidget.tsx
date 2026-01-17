@@ -46,9 +46,7 @@ const GaugeWidget: React.FC<Props> = ({
       <div
         className={cn(
           "w-full h-full relative flex items-end justify-center pb-2",
-          isMaximized
-            ? "max-h-[80vh] max-w-[80vw]"
-            : "max-h-[160px] max-w-[240px]",
+          isMaximized ? "max-h-[80vh] max-w-[80vw]" : "max-h-40 max-w-60",
         )}
       >
         <svg viewBox="0 0 200 110" className="w-full h-full overflow-visible">

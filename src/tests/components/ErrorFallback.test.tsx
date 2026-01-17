@@ -59,9 +59,7 @@ describe("ErrorFallback", () => {
   });
 
   it("should display RefreshCw icon in button", () => {
-    const { container } = render(
-      <ErrorFallback error={mockError} resetErrorBoundary={mockReset} />,
-    );
+    render(<ErrorFallback error={mockError} resetErrorBoundary={mockReset} />);
 
     const button = screen.getByRole("button", { name: /try again/i });
     const svg = button.querySelector("svg");

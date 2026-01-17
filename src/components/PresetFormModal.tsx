@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   SerialPreset,
   SerialConfig,
@@ -46,11 +46,17 @@ const PresetFormModal: React.FC<Props> = ({
     initialData.network || { host: "localhost", port: 8080 },
   );
 
-  const handleSerialChange = (key: keyof SerialConfig, value: any) => {
+  const handleSerialChange = (
+    key: keyof SerialConfig,
+    value: SerialConfig[keyof SerialConfig],
+  ) => {
     setLocalConfig((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleNetworkChange = (key: keyof NetworkConfig, value: any) => {
+  const handleNetworkChange = (
+    key: keyof NetworkConfig,
+    value: NetworkConfig[keyof NetworkConfig],
+  ) => {
     setLocalNetwork((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -181,7 +187,10 @@ const PresetFormModal: React.FC<Props> = ({
                   <Select
                     value={localConfig.parity}
                     onChange={(e) =>
-                      handleSerialChange("parity", e.target.value)
+                      handleSerialChange(
+                        "parity",
+                        e.target.value as unknown as SerialConfig["parity"],
+                      )
                     }
                     className="h-8 text-xs bg-background"
                   >
@@ -210,7 +219,10 @@ const PresetFormModal: React.FC<Props> = ({
                   <Select
                     value={localConfig.lineEnding}
                     onChange={(e) =>
-                      handleSerialChange("lineEnding", e.target.value)
+                      handleSerialChange(
+                        "lineEnding",
+                        e.target.value as unknown as SerialConfig["lineEnding"],
+                      )
                     }
                     className="h-8 text-xs bg-background"
                   >
@@ -226,7 +238,11 @@ const PresetFormModal: React.FC<Props> = ({
                   <Select
                     value={localConfig.flowControl}
                     onChange={(e) =>
-                      handleSerialChange("flowControl", e.target.value)
+                      handleSerialChange(
+                        "flowControl",
+                        e.target
+                          .value as unknown as SerialConfig["flowControl"],
+                      )
                     }
                     className="h-8 text-xs bg-background"
                   >

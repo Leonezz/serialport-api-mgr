@@ -1,11 +1,8 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
-import { LogEntry } from "../../types";
 import {
   Activity,
-  Search,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
   MoveHorizontal,
   ArrowRightToLine,
 } from "lucide-react";
@@ -22,6 +19,7 @@ import {
 } from "recharts";
 import { getBytes, cn } from "../../lib/utils";
 import { Button } from "../ui/Button";
+import { LogEntry } from "@/types";
 
 // Logic Level Definitions
 const RX_LOW = 0;
@@ -58,14 +56,15 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     sortedLogs.forEach((log) => {
       const bytes = getBytes(log.data);
       const isRx = log.direction === "RX";
+
       const timeStr = new Date(log.timestamp).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
         fractionalSecondDigits: 3,
-      } as any);
+      } as Intl.DateTimeFormatOptions);
 
-      bytes.forEach((byte, byteIdx) => {
+      bytes.forEach((byte, _byteIdx) => {
         // Start Bit (Logic 0)
         // If RX is active, RX=0, TX=IDLE. If TX is active, TX=0 (mapped to 2), RX=IDLE.
         data.push({
@@ -146,6 +145,11 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     chartDataLengthRef.current = chartData.length;
   }, [chartData.length]);
 
+  const isAutoScrollRef = useRef(isAutoScroll);
+  useEffect(() => {
+    isAutoScrollRef.current = isAutoScroll;
+  }, [isAutoScroll]);
+
   // Initialize domain or handle data updates (Windowing)
   useEffect(() => {
     if (chartData.length === 0) {
@@ -154,7 +158,7 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     }
 
     // If initializing, default to the end (Live View)
-    if (!domain) {
+    if (!domainRef.current) {
       const INITIAL_WINDOW = 100; // Even smaller initial window for better detail
       const newMax = chartData.length - 1;
       const newMin = Math.max(0, newMax - INITIAL_WINDOW);
@@ -164,7 +168,7 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     }
 
     // If we are in auto-scroll mode, maintain the window size but shift to the new end
-    if (isAutoScroll) {
+    if (isAutoScrollRef.current) {
       setDomain((prev) => {
         if (!prev) return null;
         const windowSize = prev.max - prev.min;
@@ -173,7 +177,7 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
         return { min: newMin, max: newMax };
       });
     }
-  }, [chartData.length]);
+  }, [chartData.length]); // Intentionally only react to new data
 
   // Internal helper to set domain safely
   const setSafeDomain = (newMin: number, newMax: number) => {
@@ -348,21 +352,39 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     updateDomain(min + delta / 2, max - delta / 2);
   };
 
+  interface BrushEvent {
+    startIndex?: number;
+    endIndex?: number;
+  }
+
   // Brush handler
-  const handleBrushChange = (e: any) => {
+  const handleBrushChange = (e: BrushEvent) => {
     if (e && e.startIndex !== undefined && e.endIndex !== undefined) {
       // Using updateDomain ensures autoScroll state is managed correctly
       updateDomain(e.startIndex, e.endIndex);
     }
   };
 
+  interface TooltipProps {
+    active?: boolean;
+    payload?: Array<{
+      dataKey: string;
+      value: number;
+      payload: {
+        byteInfo?: string;
+        timestamp?: string;
+      };
+    }>;
+    label?: number;
+  }
+
   // Custom Tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
-      const rxVal = payload.find((p: any) => p.dataKey === "rx");
-      const txVal = payload.find((p: any) => p.dataKey === "tx");
-      const info = payload[0]?.payload?.byteInfo;
-      const time = payload[0]?.payload?.timestamp;
+      const rxVal = payload.find((p) => p.dataKey === "rx");
+      const txVal = payload.find((p) => p.dataKey === "tx");
+      const info = payload[0]?.payload.byteInfo;
+      const time = payload[0]?.payload.timestamp;
 
       const formatValue = (val: number, type: "RX" | "TX") => {
         if (type === "RX") {

@@ -1,20 +1,19 @@
-import { SerialOptions, SerialPortInfo } from "../types";
-import { GenericPort } from "./connection";
 import {
-  TauriSerialAPI,
-  type RustPortInfo,
-  TauriEventNames,
-  listenToTauriEvent,
-  LogCommand,
-} from "./tauri";
+  SerialOptions,
+  SerialPortInfo,
+  SerialInputSignals,
+  SerialOutputSignals,
+} from "../types";
+import { GenericPort } from "./connection";
+import { TauriSerialAPI, TauriEventNames, listenToTauriEvent } from "./tauri";
 import { UnlistenFn } from "@tauri-apps/api/event";
 import "../../vite-env.d.ts";
 
 export interface ISerialPort extends GenericPort {
   open(options: SerialOptions): Promise<void>;
   getInfo(): Partial<SerialPortInfo>;
-  getSignals(): Promise<any>;
-  getRustPortInfo?(): RustPortInfo | null; // Optional: only for Tauri ports
+  getSignals(): Promise<SerialInputSignals>;
+  getRustPortInfo?(): SerialPortInfo | null; // Optional: only for Tauri ports
 }
 
 export interface ISerialProvider {
@@ -74,30 +73,32 @@ class TauriPort implements ISerialPort {
   private readController: ReadableStreamDefaultController<Uint8Array> | null =
     null;
   private unlistenRead: UnlistenFn | null = null;
-  private signals: any = { cts: false, dsr: false, ri: false, cd: false };
-  private rustPortInfo: RustPortInfo | null = null;
+  private signals: SerialInputSignals = {
+    dataCarrierDetect: false,
+    clearToSend: false,
+    ringIndicator: false,
+    dataSetReady: false,
+  };
+  private rustPortInfo: SerialPortInfo | null = null;
 
-  constructor(portName: string, rustPortInfo?: RustPortInfo) {
+  constructor(portName: string, rustPortInfo?: SerialPortInfo) {
     this.portName = portName;
     this.rustPortInfo = rustPortInfo || null;
   }
 
-  getRustPortInfo(): RustPortInfo | null {
+  getRustPortInfo(): SerialPortInfo | null {
     return this.rustPortInfo;
   }
 
-  async open(options: SerialOptions): Promise<void> {
+  async open(options: Required<SerialOptions>): Promise<void> {
     // Open port via Tauri command with automatic type conversion
     await TauriSerialAPI.openPort({
       portName: this.portName,
       baudRate: options.baudRate,
-      dataBits: (options.dataBits ?? 8) as 5 | 6 | 7 | 8,
-      flowControl: (options.flowControl ?? "none") as
-        | "none"
-        | "hardware"
-        | "software",
-      parity: options.parity ?? "none",
-      stopBits: (options.stopBits ?? 1) as 1 | 2,
+      dataBits: options.dataBits,
+      flowControl: options.flowControl,
+      parity: options.parity,
+      stopBits: options.stopBits,
       dataTerminalReady: true,
       timeoutMs: 1000,
     });
@@ -115,7 +116,7 @@ class TauriPort implements ISerialPort {
               `TauriPort[${this.portName}] received ${TauriEventNames.PORT_READ} event:`,
               event,
             );
-            if (event.payload.port_name === this.portName) {
+            if (event.payload.portName === this.portName) {
               const data = new Uint8Array(event.payload.data);
               controller.enqueue(data);
             }
@@ -139,6 +140,8 @@ class TauriPort implements ISerialPort {
   }
 
   async close(): Promise<void> {
+    // Close port via Tauri command
+    await TauriSerialAPI.closePort(this.portName);
     // Clean up event listeners
     if (this.unlistenRead) {
       this.unlistenRead();
@@ -151,9 +154,6 @@ class TauriPort implements ISerialPort {
       this.readController = null;
     }
 
-    // Close port via Tauri command
-    await TauriSerialAPI.closePort(this.portName);
-
     this.readable = null;
     this.writable = null;
   }
@@ -165,12 +165,12 @@ class TauriPort implements ISerialPort {
     };
   }
 
-  async getSignals(): Promise<any> {
+  async getSignals(): Promise<SerialInputSignals> {
     // Return cached signals (would need Tauri event listener for live updates)
     return this.signals;
   }
 
-  async setSignals(signals: any): Promise<void> {
+  async setSignals(signals: SerialOutputSignals): Promise<void> {
     await TauriSerialAPI.setSignals(this.portName, {
       rts: signals.requestToSend,
       dtr: signals.dataTerminalReady,

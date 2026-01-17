@@ -1,17 +1,37 @@
 import { z } from "zod";
 
+// ============================================================================
+// SERIAL PORT CONFIGURATION SCHEMAS
+// These are the unified schemas for serial port configuration
+// Use EnumConverter when sending values to Rust/Tauri
+// ============================================================================
+
+export const DataBitsSchema = z.enum(["Five", "Six", "Seven", "Eight"]);
+
+export const StopBitsSchema = z.enum(["One", "Two"]);
+
+export const ParitySchema = z.enum(["None", "Even", "Odd"]);
+
+export const FlowControlSchema = z.enum(["None", "Hardware", "Software"]);
+
 // --- Basic Types ---
 export const LineEndingSchema = z.enum(["NONE", "LF", "CR", "CRLF"]);
+
 export const DataModeSchema = z.enum(["TEXT", "HEX", "BINARY"]);
+
 export const TextEncodingSchema = z.enum(["UTF-8", "ASCII", "ISO-8859-1"]);
+
 export const ChecksumAlgorithmSchema = z.enum([
   "NONE",
   "MOD256",
   "XOR",
   "CRC16",
 ]);
+
 export const MatchTypeSchema = z.enum(["CONTAINS", "REGEX"]);
+
 export const ValidationModeSchema = z.enum(["PATTERN"]);
+
 export const ThemeColorSchema = z.enum([
   "zinc",
   "blue",
@@ -20,8 +40,11 @@ export const ThemeColorSchema = z.enum([
   "rose",
   "yellow",
 ]);
+
 export const ThemeModeSchema = z.enum(["light", "dark", "system"]);
+
 export const ConnectionTypeSchema = z.enum(["SERIAL", "NETWORK"]);
+
 export const ParameterTypeSchema = z.enum([
   "STRING",
   "INTEGER",
@@ -29,6 +52,7 @@ export const ParameterTypeSchema = z.enum([
   "ENUM",
   "BOOLEAN",
 ]);
+
 export const FramingStrategySchema = z.enum([
   "NONE",
   "DELIMITER",
@@ -47,12 +71,15 @@ export const FramingConfigSchema = z.object({
   script: z.string().optional(),
 });
 
-export const SerialConfigSchema = z.object({
+export const SerialOptionsSchema = z.object({
   baudRate: z.number().int().positive(),
-  dataBits: z.union([z.literal(7), z.literal(8)]),
-  stopBits: z.union([z.literal(1), z.literal(2)]),
-  parity: z.enum(["none", "even", "odd"]),
-  flowControl: z.enum(["none", "hardware", "software"]),
+  dataBits: DataBitsSchema,
+  stopBits: StopBitsSchema,
+  parity: ParitySchema,
+  flowControl: FlowControlSchema,
+});
+
+export const SerialConfigSchema = SerialOptionsSchema.extend({
   bufferSize: z.number().int().positive(),
   lineEnding: LineEndingSchema,
   framing: FramingConfigSchema,
@@ -63,9 +90,10 @@ export const NetworkConfigSchema = z.object({
   port: z.number().int().positive().max(65535),
 });
 
+export const WidgetTypeSchema = z.enum(["CARD", "LINE", "GAUGE"]);
 // --- Widget Config ---
 export const WidgetConfigSchema = z.object({
-  type: z.enum(["CARD", "LINE", "GAUGE"]),
+  type: WidgetTypeSchema,
   width: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   min: z.number().optional(),
   max: z.number().optional(),
@@ -130,13 +158,16 @@ export const CommandScriptingSchema = z.object({
   postResponseScript: z.string().optional(),
 });
 
-export const SavedCommandSchema = z.object({
-  id: z.string(),
+export const BaseEntitySchema = z.object({
+  id: z.string().min(1),
   name: z.string().min(1),
   description: z.string().optional(),
   creator: z.string().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
+});
+
+export const SavedCommandSchema = BaseEntitySchema.extend({
   group: z.string().optional(),
   payload: z.string().default(""), // Default to empty string if missing
   mode: DataModeSchema,
@@ -162,13 +193,7 @@ export const SequenceStepSchema = z.object({
   stopOnError: z.boolean(),
 });
 
-export const SerialSequenceSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  description: z.string().optional(),
-  creator: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
+export const SerialSequenceSchema = BaseEntitySchema.extend({
   steps: z.array(SequenceStepSchema),
   contextIds: z.array(z.string()).optional(),
   deviceId: z.string().optional(),
@@ -191,27 +216,18 @@ export const AttachmentCategorySchema = z.enum([
   "OTHER",
 ]);
 
-export const DeviceAttachmentSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+export const DeviceAttachmentSchema = BaseEntitySchema.extend({
   filename: z.string(),
   mimeType: z.string(),
   size: z.number(),
   data: z.string(), // Base64 encoded content
-  description: z.string().optional(),
   category: AttachmentCategorySchema,
-  createdAt: z.number(),
 });
 
-export const DeviceSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
+export const DeviceSchema = BaseEntitySchema.extend({
   icon: z.string().optional(),
   manufacturer: z.string().optional(),
   model: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
   presetIds: z.array(z.string()).default([]),
   commandIds: z.array(z.string()).default([]),
   sequenceIds: z.array(z.string()).default([]),

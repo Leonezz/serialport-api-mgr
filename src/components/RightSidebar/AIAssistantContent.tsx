@@ -1,33 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  Loader2,
-  Bot,
-  Send,
-  FileText,
-  ChevronRight,
-  Plus,
-  AlertCircle,
-  Play,
-  Coins,
-  Paperclip,
-  X,
-} from "lucide-react";
+import { Loader2, Bot, Send, Coins, Paperclip, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn, generateId } from "../../lib/utils";
-import {
-  ChatMessage,
-  SavedCommand,
-  SerialSequence,
-  ProjectContext,
-} from "../../types";
-import {
-  createChatSession,
-  AIProjectResult,
-} from "../../services/geminiService";
+import { createChatSession } from "../../services/geminiService";
 import { Button } from "../ui/Button";
 import { Textarea } from "../ui/Textarea";
 import { Chat, Part } from "@google/genai";
 import { useStore } from "../../lib/store";
+import { ChatMessage } from "@/types";
 
 const AIAssistantContent: React.FC = () => {
   const {
@@ -37,16 +17,12 @@ const AIAssistantContent: React.FC = () => {
     activeSessionId,
     sessions,
     setAiMessages,
-    addTokenUsage,
-    setConfig,
-    setLoadedPresetId,
   } = useStore();
 
   const activeSession = sessions[activeSessionId];
   const messages = activeSession.aiMessages;
   const tokenUsage = activeSession.aiTokenUsage;
   const widgets = activeSession.widgets || [];
-  const isConnected = activeSession.isConnected;
 
   const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -81,6 +57,7 @@ const AIAssistantContent: React.FC = () => {
     } catch (e) {
       console.error("AI Init Error", e);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -129,13 +106,13 @@ const AIAssistantContent: React.FC = () => {
           },
         ]);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setAiMessages([
         ...currentMsgs,
         {
           id: generateId(),
           role: "model",
-          text: `Error: ${e.message}`,
+          text: `Error: ${e instanceof Error ? e.message : String(e)}`,
           timestamp: Date.now(),
         },
       ]);
@@ -197,7 +174,7 @@ const AIAssistantContent: React.FC = () => {
               )}
             >
               {/* Fix: Moved styling classes to a wrapper div to satisfy ReactMarkdown component constraints */}
-              <div className="prose prose-xs dark:prose-invert max-w-none leading-relaxed break-words prose-pre:bg-muted/50 prose-code:text-primary">
+              <div className="prose prose-xs dark:prose-invert max-w-none leading-relaxed wrap-break-word prose-pre:bg-muted/50 prose-code:text-primary">
                 <ReactMarkdown>{msg.text || ""}</ReactMarkdown>
               </div>
             </div>
@@ -242,7 +219,7 @@ const AIAssistantContent: React.FC = () => {
               }
             }}
             placeholder="Message SerialMan..."
-            className="min-h-[40px] max-h-[150px] resize-none py-2 px-3 text-xs bg-transparent border-none shadow-none focus-visible:ring-0"
+            className="min-h-10 max-h-37.5 resize-none py-2 px-3 text-xs bg-transparent border-none shadow-none focus-visible:ring-0"
           />
           <div className="flex justify-between items-center p-1.5">
             <Button

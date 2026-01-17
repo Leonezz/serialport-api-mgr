@@ -5,13 +5,11 @@ interface ZoomPanOptions {
   onUserInteraction?: () => void;
 }
 
-export function useChartZoomPan(options: ZoomPanOptions) {
-  const { totalPoints, minPoints = 10, onUserInteraction } = options;
-
+export function useChartZoomPan(_options: ZoomPanOptions) {
+  // const { totalPoints, minPoints = 10, onUserInteraction } = options;
   // We keep track of the logical range even if it exceeds data bounds,
   // but we clamp it when returning the actual viewWindow.
   // However, for simplicity, let's keep start/end valid indices.
-
   // Internal state for the hook to manage if not controlled externally?
   // Actually, PlotterPanel controls viewRange.
   // Let's make this hook return the handler and take the setter.

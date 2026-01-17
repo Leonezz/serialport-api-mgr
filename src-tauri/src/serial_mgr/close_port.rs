@@ -22,6 +22,7 @@ pub async fn close_port(
 
     send_command_with_ack(&sender, WriteCmd::Close, "close port", &port_name).await?;
 
+    tracing::info!("port closed successfully");
     app.emit(
         event_names::PORT_CLOSED,
         PortClosedEvent::user_requested(port_name.clone()),

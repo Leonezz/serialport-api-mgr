@@ -2,7 +2,7 @@
  * Utilities for generating semantic port names from port information
  */
 
-import type { RustPortInfo } from "./tauri/types";
+import type { RustPortInfo } from "../types";
 
 /**
  * Generate a human-readable, semantic name for a serial port

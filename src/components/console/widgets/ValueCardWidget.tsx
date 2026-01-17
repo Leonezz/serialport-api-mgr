@@ -1,13 +1,14 @@
 import React from "react";
-import { TelemetryVariable, WidgetConfig } from "../../../types";
 import { Zap, AlertCircle } from "lucide-react";
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "../../../lib/utils";
+import { TelemetryVariable } from "@/types";
+import { WidgetConfig } from "@/types";
 
 interface Props {
   variable: TelemetryVariable;
   config: WidgetConfig;
-  processedData: any[];
+  processedData: Record<string, unknown>[];
   isMaximized: boolean;
   syncId: string;
 }
@@ -53,7 +54,7 @@ const ValueCardWidget: React.FC<Props> = ({
             title={String(variable.value)}
           >
             {isObj ? (
-              <pre className="text-[10px] bg-muted/50 p-1 rounded overflow-hidden max-h-[60px] pointer-events-auto">
+              <pre className="text-[10px] bg-muted/50 p-1 rounded overflow-hidden max-h-15 pointer-events-auto">
                 {JSON.stringify(variable.value, null, 1).replace(/\s+/g, " ")}
               </pre>
             ) : (

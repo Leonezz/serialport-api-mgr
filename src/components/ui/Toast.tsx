@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { CheckCircle, XCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -37,7 +37,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: () => void }> = ({
       onRemove();
     }, 4000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [onRemove]);
 
   return (
     <div

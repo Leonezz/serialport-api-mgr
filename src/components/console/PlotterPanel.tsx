@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useDeferredValue } from "react";
+import React, { useMemo, useState, useDeferredValue } from "react";
 import {
   LineChart,
   Line,
@@ -28,8 +28,8 @@ import { Card } from "../ui/Card";
 import { Label } from "../ui/Label";
 import { Select } from "../ui/Select";
 import { Input } from "../ui/Input";
-import { PlotterParserType } from "../../types";
 import { handleChartWheel } from "../../hooks/useChartZoomPan";
+import { PlotterParserType } from "@/types";
 
 const CHART_COLORS = [
   "#ef4444", // Red
@@ -75,7 +75,7 @@ const PlotterPanel: React.FC = () => {
   const aliases = plotter?.aliases || {};
 
   // Data to display (handle pause)
-  const [frozenData, setFrozenData] = useState<any[]>([]);
+  const [frozenData, setFrozenData] = useState<unknown[]>([]);
   const displayData = isPaused ? frozenData : data;
 
   // Defer displayData to keep UI responsive during high-frequency updates
@@ -115,8 +115,9 @@ const PlotterPanel: React.FC = () => {
     }
   };
 
-  const handleLegendClick = (e: any) => {
-    const dataKey = e.dataKey;
+  const handleLegendClick = (e: unknown) => {
+    if (!e || typeof e !== "object" || !("dataKey" in e)) return;
+    const dataKey = String(e.dataKey);
     setHiddenSeries((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(dataKey)) {
@@ -383,7 +384,7 @@ const PlotterPanel: React.FC = () => {
                       backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
                     }}
                   />
-                  <span className="text-xs font-medium truncate max-w-[100px]">
+                  <span className="text-xs font-medium truncate max-w-25">
                     {getSeriesName(s)}:
                   </span>
                   <span className="text-xs font-mono font-bold text-primary">
@@ -404,7 +405,7 @@ const PlotterPanel: React.FC = () => {
       {/* Settings Modal */}
       {showSettings && (
         <div className="absolute inset-0 z-50 bg-background/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-[450px] shadow-2xl border-border animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+          <Card className="w-112.5 shadow-2xl border-border animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20 shrink-0">
               <span className="font-bold text-sm flex items-center gap-2">
                 <Settings className="w-4 h-4" /> Plotter Configuration

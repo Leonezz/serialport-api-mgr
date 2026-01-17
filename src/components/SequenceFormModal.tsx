@@ -1,15 +1,6 @@
 import React, { useState } from "react";
 import { SerialSequence, SequenceStep, SavedCommand } from "../types";
-import {
-  X,
-  Save,
-  Plus,
-  Trash2,
-  ArrowUp,
-  ArrowDown,
-  Clock,
-  AlertTriangle,
-} from "lucide-react";
+import { X, Save, Plus, Trash2, ArrowUp, ArrowDown, Clock } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";

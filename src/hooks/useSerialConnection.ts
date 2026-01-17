@@ -1,8 +1,8 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { GenericPort, NetworkPort } from "../lib/connection";
 import { serialService, ISerialPort } from "../lib/serialService";
 import { MockPort } from "../lib/mockPort";
-import { SerialConfig, NetworkConfig } from "../../types";
+import { SerialConfig, NetworkConfig, SerialOutputSignals } from "../types";
 
 export const useSerialConnection = (
   onDataReceived: (data: Uint8Array, sessionId: string) => void,
@@ -16,6 +16,8 @@ export const useSerialConnection = (
   >(new Map());
   // Map SessionID -> KeepReading Flag
   const keepReadingRef = useRef<Map<string, boolean>>(new Map());
+  // Map SessionID -> Output Signal State
+  const signalStateRef = useRef<Map<string, SerialOutputSignals>>(new Map());
 
   const [isSerialSupported, setIsSerialSupported] = useState(
     serialService.isSupported(),
@@ -25,31 +27,35 @@ export const useSerialConnection = (
     setIsSerialSupported(serialService.isSupported());
   }, []);
 
-  const disconnect = async (sessionId: string) => {
-    keepReadingRef.current.set(sessionId, false);
+  const disconnect = useCallback(
+    async (sessionId: string) => {
+      keepReadingRef.current.set(sessionId, false);
 
-    const reader = readersRef.current.get(sessionId);
-    if (reader) {
-      try {
-        await reader.cancel();
-      } catch (e) {
-        console.warn("Reader cancel error", e);
+      const reader = readersRef.current.get(sessionId);
+      if (reader) {
+        try {
+          await reader.cancel();
+        } catch (e) {
+          console.warn("Reader cancel error", e);
+        }
+        readersRef.current.delete(sessionId);
       }
-      readersRef.current.delete(sessionId);
-    }
 
-    const port = portsRef.current.get(sessionId);
-    if (port) {
-      try {
-        await port.close();
-      } catch (e) {
-        console.warn("Port close error", e);
+      const port = portsRef.current.get(sessionId);
+      if (port) {
+        try {
+          await port.close();
+        } catch (e) {
+          console.warn("Port close error", e);
+        }
+        portsRef.current.delete(sessionId);
       }
-      portsRef.current.delete(sessionId);
-    }
 
-    onDisconnectCallback(sessionId);
-  };
+      onDisconnectCallback(sessionId);
+      signalStateRef.current.delete(sessionId);
+    },
+    [onDisconnectCallback],
+  );
 
   const readLoop = async (sessionId: string, port: GenericPort) => {
     if (!port.readable) return;
@@ -130,23 +136,28 @@ export const useSerialConnection = (
       }
 
       portsRef.current.set(sessionId, newPort);
+      // Initialize signal state
+      signalStateRef.current.set(sessionId, {
+        requestToSend: false,
+        dataTerminalReady: false,
+      });
 
       // Start Reading
       readLoop(sessionId, newPort);
 
       // Return the port name for state tracking
       if (newPort instanceof MockPort) {
-        return (newPort as any).type || "mock";
+        return newPort.type || "mock";
       } else if (newPort instanceof NetworkPort) {
         return `ws://${networkConfig.host}:${networkConfig.port}`;
       } else {
         // It's a real serial port (WebSerial or Tauri)
         // Try to get info if available
         if ("getInfo" in newPort) {
-          const info = (newPort as ISerialPort).getInfo();
+          (newPort as ISerialPort).getInfo();
           // If it's a TauriPort, it has a portName property directly (we saw this in serialService.ts)
           if ("portName" in newPort) {
-            return (newPort as any).portName;
+            return (newPort as { portName: string }).portName;
           }
         }
         return "serial_port";
@@ -178,16 +189,30 @@ export const useSerialConnection = (
     // We check for 'getSignals' presence which ISerialPort has
     if (
       "getSignals" in port &&
-      typeof (port as any).getSignals === "function"
+      typeof (port as ISerialPort).getSignals === "function"
     ) {
+      const current = signalStateRef.current.get(sessionId) || {
+        requestToSend: false,
+        dataTerminalReady: false,
+      };
+
       try {
-        const signals = await (port as ISerialPort).getSignals();
-        if (signal === "rts")
-          await port.setSignals?.({ requestToSend: !signals.requestToSend });
-        if (signal === "dtr")
-          await port.setSignals?.({
-            dataTerminalReady: !signals.dataTerminalReady,
+        if (signal === "rts") {
+          const newState = !current.requestToSend;
+          await port.setSignals?.({ requestToSend: newState });
+          signalStateRef.current.set(sessionId, {
+            ...current,
+            requestToSend: newState,
           });
+        }
+        if (signal === "dtr") {
+          const newState = !current.dataTerminalReady;
+          await port.setSignals?.({ dataTerminalReady: newState });
+          signalStateRef.current.set(sessionId, {
+            ...current,
+            dataTerminalReady: newState,
+          });
+        }
       } catch (e) {
         console.error("Failed to toggle signal", e);
       }
@@ -197,7 +222,8 @@ export const useSerialConnection = (
   // Auto-disconnect listener
   useEffect(() => {
     const onSerialDisconnect = (event: Event) => {
-      const serialEvent = event as any;
+      // Web Serial "disconnect" event has "port" property
+      const serialEvent = event as Event & { port?: ISerialPort };
 
       portsRef.current.forEach((port, sessionId) => {
         if (serialEvent.port && port === serialEvent.port) {
@@ -211,7 +237,7 @@ export const useSerialConnection = (
       return () =>
         serialService.removeEventListener("disconnect", onSerialDisconnect);
     }
-  }, []);
+  }, [disconnect]);
 
   return {
     connect,

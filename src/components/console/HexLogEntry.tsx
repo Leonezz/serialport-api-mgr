@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { LogEntry } from "../../types";
 import { Clock, X } from "lucide-react";
 import { cn, getBytes } from "../../lib/utils";
 import HexDataView from "./HexDataView";
+import { LogEntry } from "@/types";
 
 const HexLogEntry: React.FC<{ log: LogEntry }> = ({ log }) => {
   const bytes = getBytes(log.data);
@@ -18,7 +18,7 @@ const HexLogEntry: React.FC<{ log: LogEntry }> = ({ log }) => {
     minute: "2-digit",
     second: "2-digit",
     fractionalSecondDigits: 3,
-  } as any);
+  } as Intl.DateTimeFormatOptions);
 
   return (
     <div

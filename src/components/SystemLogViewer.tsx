@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react";
 import {
   X,
   Search,
-  Filter,
   Trash2,
   Download,
   AlertTriangle,
@@ -11,7 +10,7 @@ import {
   FileClock,
 } from "lucide-react";
 import { useStore } from "../lib/store";
-import { LogLevel, LogCategory, SystemLogEntry } from "../types";
+import { LogLevel, LogCategory } from "../types";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
@@ -110,7 +109,7 @@ const SystemLogViewer: React.FC = () => {
         </CardHeader>
 
         <div className="p-4 border-b border-border flex flex-wrap items-center gap-3 bg-card shrink-0">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-50">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search logs..."
@@ -121,8 +120,10 @@ const SystemLogViewer: React.FC = () => {
           </div>
           <Select
             value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value as any)}
-            className="w-[120px] h-9"
+            onChange={(e) =>
+              setLevelFilter(e.target.value as unknown as LogLevel | "ALL")
+            }
+            className="w-30 h-9"
           >
             <option value="ALL">All Levels</option>
             <option value="INFO">Info</option>
@@ -132,8 +133,12 @@ const SystemLogViewer: React.FC = () => {
           </Select>
           <Select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value as any)}
-            className="w-[140px] h-9"
+            onChange={(e) =>
+              setCategoryFilter(
+                e.target.value as unknown as LogCategory | "ALL",
+              )
+            }
+            className="w-35 h-9"
           >
             <option value="ALL">All Categories</option>
             <option value="CONNECTION">Connection</option>
@@ -161,11 +166,11 @@ const SystemLogViewer: React.FC = () => {
         </div>
 
         <CardContent className="flex-1 overflow-auto p-0 bg-muted/5">
-          <div className="min-w-[800px]">
+          <div className="min-w-200">
             <div className="flex items-center px-4 py-2 border-b border-border bg-muted/30 text-xs font-bold text-muted-foreground sticky top-0 backdrop-blur-sm z-10">
-              <div className="w-[160px]">TIMESTAMP</div>
-              <div className="w-[100px]">LEVEL</div>
-              <div className="w-[120px]">CATEGORY</div>
+              <div className="w-40">TIMESTAMP</div>
+              <div className="w-25">LEVEL</div>
+              <div className="w-30">CATEGORY</div>
               <div className="flex-1">MESSAGE</div>
             </div>
             {filteredLogs.length === 0 ? (
@@ -183,10 +188,10 @@ const SystemLogViewer: React.FC = () => {
                     className="flex items-center px-4 py-2 cursor-pointer text-sm"
                     onClick={() => toggleRow(log.id)}
                   >
-                    <div className="w-[160px] font-mono text-xs opacity-70 shrink-0">
+                    <div className="w-40 font-mono text-xs opacity-70 shrink-0">
                       {new Date(log.timestamp).toLocaleString()}
                     </div>
-                    <div className="w-[100px] shrink-0">
+                    <div className="w-25 shrink-0">
                       <Badge
                         variant="outline"
                         className={cn(
@@ -198,7 +203,7 @@ const SystemLogViewer: React.FC = () => {
                         {log.level}
                       </Badge>
                     </div>
-                    <div className="w-[120px] font-bold text-xs opacity-60 shrink-0">
+                    <div className="w-30 font-bold text-xs opacity-60 shrink-0">
                       {log.category}
                     </div>
                     <div className="flex-1 font-medium truncate pr-4">
@@ -214,7 +219,7 @@ const SystemLogViewer: React.FC = () => {
                     )}
                   </div>
                   {expandedRows.has(log.id) && log.details && (
-                    <div className="px-4 pb-3 pl-[160px] animate-in slide-in-from-top-2">
+                    <div className="px-4 pb-3 pl-40 animate-in slide-in-from-top-2">
                       <div className="bg-background border border-border rounded-md p-3 overflow-x-auto">
                         <pre className="text-xs font-mono text-muted-foreground">
                           {JSON.stringify(log.details, null, 2)}

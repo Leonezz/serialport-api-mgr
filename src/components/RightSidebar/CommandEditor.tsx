@@ -1,30 +1,6 @@
-import React, { useState, useEffect } from "react";
-import {
-  SavedCommand,
-  DataMode,
-  TextEncoding,
-  MatchType,
-  CommandParameter,
-  ParameterType,
-  FramingStrategy,
-  FramingConfig,
-  ValidationMode,
-} from "../../types";
-import {
-  Plus,
-  Trash2,
-  Search,
-  FileCode,
-  Calculator,
-  Terminal,
-  AlertTriangle,
-  BookOpen,
-  Copy,
-  RotateCcw,
-  Hash,
-  Settings,
-  Check,
-} from "lucide-react";
+import React, { useState } from "react";
+
+import { Plus, Trash2, Check } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Textarea } from "../ui/Textarea";
@@ -37,9 +13,17 @@ import {
   AT_COMMAND_LIBRARY,
   ModbusParams,
 } from "../../services/protocolUtils";
-import { calculateChecksum, encodeText } from "../../lib/dataUtils";
 import { useStore } from "../../lib/store";
-import { RightSidebarTab } from "../../lib/slices/uiSlice";
+import type {
+  RightSidebarTab,
+  SavedCommand,
+  CommandParameter,
+  DataMode,
+  TextEncoding,
+  ParameterType,
+  MatchType,
+  FramingStrategy,
+} from "../../types";
 import CodeEditor from "../ui/CodeEditor";
 import { useTranslation } from "react-i18next";
 
@@ -185,7 +169,7 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
           <Label className="text-xs">{t("cmd.format")}</Label>
           <ToggleGroup
             value={editingCommand.mode || "TEXT"}
-            onChange={(m) => updateCmd({ mode: m as DataMode })}
+            onChange={(m) => updateCmd({ mode: m as unknown as DataMode })}
             options={[
               { value: "TEXT", label: "TEXT" },
               { value: "HEX", label: "HEX" },
@@ -200,7 +184,9 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
             <Select
               value={editingCommand.encoding || "UTF-8"}
               onChange={(e) =>
-                updateCmd({ encoding: e.target.value as TextEncoding })
+                updateCmd({
+                  encoding: e.target.value as unknown as TextEncoding,
+                })
               }
               className="h-8 text-xs"
             >
@@ -216,7 +202,7 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
           <Textarea
             value={editingCommand.payload || ""}
             onChange={(e) => updateCmd({ payload: e.target.value })}
-            className="font-mono text-xs flex-1 min-h-[100px] resize-none p-2 bg-muted/20"
+            className="font-mono text-xs flex-1 min-h-25 resize-none p-2 bg-muted/20"
             placeholder="Command content..."
           />
         </div>
@@ -430,7 +416,7 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
                       updateCmd({
                         validation: {
                           ...validation,
-                          matchType: e.target.value as MatchType,
+                          matchType: e.target.value as unknown as MatchType,
                         },
                       })
                     }
@@ -530,9 +516,12 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
             <Select
               value={persistence}
               onChange={(e) =>
-                updateCmd({ framingPersistence: e.target.value as any })
+                updateCmd({
+                  framingPersistence: e.target
+                    .value as unknown as SavedCommand["framingPersistence"],
+                })
               }
-              className="h-7 text-[10px] w-[120px]"
+              className="h-7 text-[10px] w-30"
             >
               <option value="TRANSIENT">Transient (One-Shot)</option>
               <option value="PERSISTENT">Persistent</option>
@@ -629,7 +618,8 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
                       updateCmd({
                         responseFraming: {
                           ...config,
-                          byteOrder: e.target.value as any,
+                          byteOrder: e.target
+                            .value as unknown as SavedCommand["responseFraming"]["byteOrder"],
                         },
                       })
                     }
@@ -670,7 +660,7 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
       <div className="p-4 space-y-4 h-full flex flex-col">
         <div className="space-y-1.5">
           <Label className="text-xs">Linked Contexts</Label>
-          <div className="space-y-2 max-h-[200px] overflow-y-auto border border-border rounded-md p-2 bg-muted/10">
+          <div className="space-y-2 max-h-50 overflow-y-auto border border-border rounded-md p-2 bg-muted/10">
             {contexts.length === 0 ? (
               <div className="text-xs text-muted-foreground italic py-2 text-center">
                 No contexts available
@@ -844,7 +834,7 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
 
         {protoType === "AT" && (
           <div className="space-y-4 animate-in fade-in">
-            <div className="h-[300px] overflow-y-auto border rounded bg-background p-2 space-y-1">
+            <div className="h-75 overflow-y-auto border rounded bg-background p-2 space-y-1">
               {Object.entries(AT_COMMAND_LIBRARY).map(([cat, cmds]) => (
                 <div key={cat} className="mb-2">
                   <div className="text-[9px] font-bold text-muted-foreground uppercase mb-1 sticky top-0 bg-background/95 backdrop-blur">

@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { LogEntry, DataMode, GlobalFormat, ProjectContext } from "../../types";
+import React, { useState, useMemo } from "react";
 import {
   Clock,
   Binary,
@@ -10,10 +9,11 @@ import {
   BookOpen,
   List,
   Sliders,
-  Palette,
 } from "lucide-react";
-import { cn, formatContent, getBytes } from "../../lib/utils";
+import { cn, formatContent } from "../../lib/utils";
 import Ansi from "ansi-to-react";
+import { LogEntry } from "@/types";
+import { DataMode, GlobalFormat, ProjectContext } from "@/types";
 
 interface Props {
   log: LogEntry;
@@ -28,7 +28,6 @@ const ChatBubble: React.FC<Props> = ({
   globalFormat,
   contexts,
   enableAnsi = true,
-  isDark = false,
 }) => {
   const [localViewMode, setLocalViewMode] = useState<DataMode | "PARAMS">(
     () => {
@@ -57,19 +56,21 @@ const ChatBubble: React.FC<Props> = ({
 
   // Extract payload if defined, otherwise use full data
   const content = useMemo(() => {
-    let dataToFormat = log.data;
     if (
       typeof log.data !== "string" &&
       log.payloadStart !== undefined &&
       log.payloadLength !== undefined
     ) {
       // If framed binary, extract the semantic payload for display
-      dataToFormat = (log.data as Uint8Array).subarray(
-        log.payloadStart,
-        log.payloadStart + log.payloadLength,
+      return formatContent(
+        log.data.subarray(
+          log.payloadStart,
+          log.payloadStart + log.payloadLength,
+        ),
+        viewMode as DataMode,
       );
     }
-    return formatContent(dataToFormat, viewMode as DataMode);
+    return formatContent(log.data, viewMode as DataMode);
   }, [log.data, log.payloadStart, log.payloadLength, viewMode]);
 
   const isTx = log.direction === "TX";
@@ -80,7 +81,7 @@ const ChatBubble: React.FC<Props> = ({
     minute: "2-digit",
     second: "2-digit",
     fractionalSecondDigits: 3,
-  } as any);
+  } as Intl.DateTimeFormatOptions);
 
   const handleCopy = () => {
     let textToCopy = content;
@@ -155,7 +156,7 @@ const ChatBubble: React.FC<Props> = ({
             {contexts && contexts.length > 0 && (
               <div className="ml-2 flex items-center gap-1 group/ctx relative">
                 <BookOpen className="w-3 h-3" />
-                <span className="text-[9px] font-bold border-b border-dotted cursor-help max-w-[100px] truncate">
+                <span className="text-[9px] font-bold border-b border-dotted cursor-help max-w-25 truncate">
                   {contexts.length === 1
                     ? contexts[0].title
                     : `Context (${contexts.length})`}

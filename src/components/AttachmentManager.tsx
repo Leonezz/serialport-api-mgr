@@ -1,16 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useStore } from "../lib/store";
-import {
-  FileText,
-  Upload,
-  Trash2,
-  Download,
-  Eye,
-  Plus,
-  X,
-  FileIcon,
-  Loader2,
-} from "lucide-react";
+import { FileText, Upload, Trash2, Download, Loader2 } from "lucide-react";
 import { cn, generateId } from "../lib/utils";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
@@ -20,7 +10,7 @@ import {
   downloadBase64File,
   suggestCategory,
 } from "../lib/attachmentUtils";
-import { AttachmentCategory, DeviceAttachment } from "../types";
+import { DeviceAttachment } from "../types";
 
 interface Props {
   deviceId: string;

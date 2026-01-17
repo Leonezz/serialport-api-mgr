@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { cn } from "../../lib/utils";
-import { Settings2, ScanLine } from "lucide-react";
+import { ScanLine } from "lucide-react";
 
 interface HexDataViewProps {
   data: Uint8Array;
@@ -14,6 +14,21 @@ interface HexDataViewProps {
   showInspector?: boolean;
   stickyHeader?: boolean;
   disableXScroll?: boolean;
+}
+
+interface InspectorResult {
+  binary: string;
+  size: number;
+  int8?: number;
+  uint8?: number;
+  int16?: number;
+  uint16?: number;
+  int32?: number;
+  uint32?: number;
+  float32?: number;
+  int64?: bigint;
+  uint64?: bigint;
+  float64?: number;
 }
 
 const HexDataView: React.FC<HexDataViewProps> = React.memo(
@@ -88,7 +103,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
         selectedBytes.byteOffset,
         selectedBytes.byteLength,
       );
-      const res: any = {
+      const res: InspectorResult = {
         binary: Array.from(selectedBytes)
           .map((b) => (b as number).toString(2).padStart(8, "0"))
           .join(" "),
@@ -328,8 +343,8 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
               </tr>
             </thead>
             <tbody>
-              {(Array.from as any)({ length: rowCount }).map(
-                (_: any, i: number) => renderRow(i),
+              {Array.from({ length: rowCount }).map((_: unknown, i: number) =>
+                renderRow(i),
               )}
             </tbody>
           </table>
@@ -393,7 +408,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       <div className="text-muted-foreground text-[9px] uppercase tracking-wider">
                         Binary
                       </div>
-                      <div className="bg-background border border-border p-1.5 rounded break-all leading-tight max-h-[100px] overflow-y-auto">
+                      <div className="bg-background border border-border p-1.5 rounded break-all leading-tight max-h-25 overflow-y-auto">
                         {inspectorData.binary}
                       </div>
                     </div>

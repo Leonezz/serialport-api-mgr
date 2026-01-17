@@ -11,12 +11,17 @@ import {
   Brush,
 } from "recharts";
 
+interface BrushEvent {
+  startIndex?: number;
+  endIndex?: number;
+}
+
 interface Props {
-  data: any[];
+  data: Record<string, unknown>[];
   dataKeys: string[];
   syncId: string;
-  brushIndices: { startIndex?: number; endIndex?: number };
-  onBrushChange: (e: any) => void;
+  brushIndices: BrushEvent;
+  onBrushChange: (e: BrushEvent) => void;
   isMaximized: boolean;
 }
 

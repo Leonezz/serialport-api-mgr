@@ -50,7 +50,7 @@ export function useFraming() {
     try {
       const text = new TextDecoder().decode(data);
       preview = text.replace(/[^\x20-\x7E]/g, ".");
-    } catch (e) {
+    } catch {
       preview = "...";
     }
     const displayPreview =

@@ -5,8 +5,12 @@
 
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import type { CommandArgs, CommandReturn, TauriCommand } from "./commands";
-import { RustPortInfoArraySchema, LogEntryArraySchema } from "./schemas";
-import type { z } from "zod";
+import { SerialPortInfoArraySchema } from "./schemas";
+import { LogEntrySchema } from "../storeSchemas";
+import { z } from "zod";
+
+// Create array schema for log entries
+const LogEntryArraySchema = z.array(LogEntrySchema);
 
 // ============================================================================
 // Response Schema Registry
@@ -17,7 +21,7 @@ import type { z } from "zod";
  * Only commands that return data need validation schemas
  */
 const RESPONSE_SCHEMAS: Partial<Record<TauriCommand["name"], z.ZodSchema>> = {
-  get_all_port_info: RustPortInfoArraySchema,
+  get_all_port_info: SerialPortInfoArraySchema,
   get_logs: LogEntryArraySchema,
   // Commands that return void don't need schemas
   // (open_port, close_port, write_port, etc. all return void)

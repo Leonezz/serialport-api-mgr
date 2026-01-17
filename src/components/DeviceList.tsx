@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { useStore } from "../lib/store";
 import {
   Plus,
   Cpu,
-  MoreVertical,
   Edit2,
   Trash2,
   Thermometer,

@@ -1,13 +1,14 @@
 export const executeUserScript = (
   code: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ) => {
   try {
     const keys = Object.keys(context);
     const values = Object.values(context);
     const func = new Function(...keys, code);
     return func(...values);
-  } catch (e: any) {
-    throw new Error(`Script Error: ${e.message}`);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    throw new Error(`Script Error: ${message}`);
   }
 };

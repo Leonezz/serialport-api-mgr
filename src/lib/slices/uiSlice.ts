@@ -1,35 +1,23 @@
 import { StateCreator } from "zustand";
-import { z } from "zod";
 import { generateId } from "../utils";
 import { ToastMessage } from "../../components/ui/Toast";
-import { RightSidebarTabSchema } from "../storeSchemas";
-import { DeviceSchema } from "../schemas";
 import type {
-  ThemeMode,
-  ThemeColor,
-  SystemLogEntry,
-  LogLevel,
+  Device,
   LogCategory,
+  LogLevel,
+  RightSidebarTab,
   SavedCommand,
   SerialPreset,
+  SystemLogEntry,
+  ThemeColor,
+  ThemeMode,
 } from "../../types";
 
 // Re-export types for convenience
-export type { ThemeMode, ThemeColor, SystemLogEntry, LogLevel, LogCategory };
 
 // Infer slice-specific types from schemas
-export type RightSidebarTab =
-  | "ai"
-  | "basic"
-  | "params"
-  | "processing"
-  | "framing"
-  | "context"
-  | "wizard"
-  | "device";
-export type Device = z.infer<typeof DeviceSchema>;
 
-// State interface (all data fields)
+// State interface (all data fields),
 export interface UISliceState {
   // Appearance
   themeMode: ThemeMode;
@@ -70,7 +58,7 @@ export interface UISliceActions {
     level: LogLevel,
     category: LogCategory,
     message: string,
-    details?: any,
+    details?: unknown,
   ) => void;
   clearSystemLogs: () => void;
 

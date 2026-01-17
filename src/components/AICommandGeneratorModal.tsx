@@ -18,7 +18,6 @@ import {
   Box,
   Trash2,
   Edit2,
-  Save,
   AlertTriangle,
   Sliders,
   Coins,
@@ -35,8 +34,8 @@ import {
   CardFooter,
 } from "./ui/Card";
 import { Badge } from "./ui/Badge";
-import { cn, generateId } from "../lib/utils";
-import { SavedCommand, ProjectContext } from "../types";
+import { cn } from "../lib/utils";
+import { SavedCommand } from "../types";
 import CommandFormModal from "./CommandFormModal";
 import { useStore } from "../lib/store";
 
@@ -147,8 +146,9 @@ const AICommandGeneratorModal: React.FC<Props> = ({
           "AI couldn't find any relevant configuration in the provided content.",
         );
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to generate configuration.");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || "Failed to generate configuration.");
     } finally {
       setIsGenerating(false);
     }
@@ -246,7 +246,7 @@ const AICommandGeneratorModal: React.FC<Props> = ({
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Example: I have a SIM800L module. Baud rate is 9600. It needs AT+CPIN? to check SIM, then AT+CREG? to check network. Create a startup sequence."
-                    className="min-h-[200px] font-mono text-xs pb-12"
+                    className="min-h-50 font-mono text-xs pb-12"
                     autoFocus
                   />
 
@@ -273,7 +273,7 @@ const AICommandGeneratorModal: React.FC<Props> = ({
                         <div className="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 px-2 py-1 rounded-md border border-purple-200 dark:border-purple-800 animate-in fade-in slide-in-from-left-2">
                           <FileText className="w-3.5 h-3.5" />
                           <span
-                            className="text-xs font-medium max-w-[200px] truncate"
+                            className="text-xs font-medium max-w-50 truncate"
                             title={attachment.name}
                           >
                             {attachment.name}
@@ -600,11 +600,6 @@ const AICommandGeneratorModal: React.FC<Props> = ({
         {editingCommandData && (
           <CommandFormModal
             initialData={editingCommandData}
-            existingGroups={
-              [...existingCommands, ...(generatedResult?.commands || [])]
-                .map((c) => c.group)
-                .filter(Boolean) as string[]
-            }
             sequences={sequences}
             contexts={contexts}
             onSave={(data) => {

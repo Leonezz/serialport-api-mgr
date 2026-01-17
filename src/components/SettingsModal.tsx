@@ -29,7 +29,10 @@ const SettingsModal: React.FC<Props> = ({
   onDeletePreset,
   onClose,
 }) => {
-  const handleChange = (key: keyof SerialConfig, value: any) => {
+  const handleChange = (
+    key: keyof SerialConfig,
+    value: SerialConfig[keyof SerialConfig],
+  ) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -161,7 +164,12 @@ const SettingsModal: React.FC<Props> = ({
               <Label>Parity</Label>
               <Select
                 value={config.parity}
-                onChange={(e) => handleChange("parity", e.target.value)}
+                onChange={(e) =>
+                  handleChange(
+                    "parity",
+                    e.target.value as unknown as SerialConfig["parity"],
+                  )
+                }
               >
                 <option value="none">None</option>
                 <option value="even">Even</option>
@@ -173,7 +181,12 @@ const SettingsModal: React.FC<Props> = ({
               <Label>Flow Control</Label>
               <Select
                 value={config.flowControl}
-                onChange={(e) => handleChange("flowControl", e.target.value)}
+                onChange={(e) =>
+                  handleChange(
+                    "flowControl",
+                    e.target.value as unknown as SerialConfig["flowControl"],
+                  )
+                }
               >
                 <option value="none">None</option>
                 <option value="hardware">Hardware (RTS/CTS)</option>

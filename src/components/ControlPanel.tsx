@@ -8,6 +8,7 @@ import {
   FramingConfig,
   SerialSequence,
   ProjectContext,
+  Device,
 } from "../types";
 import { Button } from "./ui/Button";
 import { Select } from "./ui/Select";
@@ -141,9 +142,12 @@ const ControlPanel: React.FC<Props> = ({
     if (loadedPresetId) {
       applyPresetLayout(activeSessionId, loadedPresetId);
     }
-  }, [loadedPresetId, activeSessionId]);
+  }, [loadedPresetId, activeSessionId, applyPresetLayout]);
 
-  const handleChange = (key: keyof SerialConfig, value: any) => {
+  const handleChange = (
+    key: keyof SerialConfig,
+    value: SerialConfig[keyof SerialConfig],
+  ) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -163,7 +167,10 @@ const ControlPanel: React.FC<Props> = ({
     }));
   };
 
-  const handleNetworkChange = (key: keyof NetworkConfig, value: any) => {
+  const handleNetworkChange = (
+    key: keyof NetworkConfig,
+    value: NetworkConfig[keyof NetworkConfig],
+  ) => {
     setNetworkConfig((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -289,7 +296,9 @@ const ControlPanel: React.FC<Props> = ({
         const result = ExportProfileSchema.safeParse(rawData);
 
         if (!result.success) {
-          const errorResult = result as any;
+          const errorResult = result as {
+            error: { issues: { message: string }[] };
+          };
           console.error("Validation Errors:", errorResult.error);
           throw new Error(
             `Invalid file format: ${errorResult.error.issues[0].message}`,
@@ -311,18 +320,18 @@ const ControlPanel: React.FC<Props> = ({
           setNetworkConfig(data.networkConfig as NetworkConfig);
 
         if (data.presets) {
-          const validPresets: SerialPreset[] = data.presets.map((p: any) => ({
+          const validPresets: SerialPreset[] = data.presets.map((p) => ({
             ...p,
-            config: p.config as SerialConfig,
+            config: p.config,
           }));
           setPresets(validPresets);
         }
 
         // Hydrate commands ensuring parameters have IDs
         const validCommands: SavedCommand[] = (data.commands || []).map(
-          (c: any) => ({
+          (c) => ({
             ...c,
-            parameters: c.parameters?.map((p: any) => ({
+            parameters: c.parameters?.map((p) => ({
               ...p,
               id: p.id || generateId(),
             })),
@@ -333,16 +342,18 @@ const ControlPanel: React.FC<Props> = ({
           commands: validCommands,
           sequences: (data.sequences || []) as SerialSequence[],
           contexts: (data.contexts || []) as ProjectContext[],
-          devices: (data.devices || []) as any[],
+
+          devices: (data.devices || []) as Device[], // Use existing schema if available
         });
 
         addToast("success", t("toast.success"), "Configuration loaded safely.");
-      } catch (err: any) {
-        console.error(err);
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error(error);
         addToast(
           "error",
           t("toast.error"),
-          err.message || "Invalid JSON file.",
+          error.message || "Invalid JSON file.",
         );
       }
     };
@@ -550,13 +561,16 @@ const ControlPanel: React.FC<Props> = ({
                     <Select
                       value={config.dataBits}
                       onChange={(e) =>
-                        handleChange("dataBits", parseInt(e.target.value))
+                        handleChange(
+                          "dataBits",
+                          e.target.value as SerialConfig["dataBits"],
+                        )
                       }
                       className="h-9 text-xs font-mono bg-muted/30 border-border"
                       disabled={isConnected}
                     >
-                      <option value={8}>8-bit</option>
-                      <option value={7}>7-bit</option>
+                      <option value={"Eight"}>8-bit</option>
+                      <option value={"Seven"}>7-bit</option>
                     </Select>
                   </div>
                 </div>
@@ -567,13 +581,18 @@ const ControlPanel: React.FC<Props> = ({
                   <div className="w-20">
                     <Select
                       value={config.parity}
-                      onChange={(e) => handleChange("parity", e.target.value)}
+                      onChange={(e) =>
+                        handleChange(
+                          "parity",
+                          e.target.value as unknown as SerialConfig["parity"],
+                        )
+                      }
                       className="h-9 text-xs font-mono bg-muted/30 border-border"
                       disabled={isConnected}
                     >
-                      <option value="none">None</option>
-                      <option value="even">Even</option>
-                      <option value="odd">Odd</option>
+                      <option value="None">None</option>
+                      <option value="Even">Even</option>
+                      <option value="Odd">Odd</option>
                     </Select>
                   </div>
                 </div>
@@ -585,13 +604,16 @@ const ControlPanel: React.FC<Props> = ({
                     <Select
                       value={config.stopBits}
                       onChange={(e) =>
-                        handleChange("stopBits", parseInt(e.target.value))
+                        handleChange(
+                          "stopBits",
+                          e.target.value as SerialConfig["stopBits"],
+                        )
                       }
                       className="h-9 text-xs font-mono bg-muted/30 border-border"
                       disabled={isConnected}
                     >
-                      <option value={1}>1-bit</option>
-                      <option value={2}>2-bit</option>
+                      <option value={"One"}>1-bit</option>
+                      <option value={"Two"}>2-bit</option>
                     </Select>
                   </div>
                 </div>

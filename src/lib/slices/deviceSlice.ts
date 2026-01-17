@@ -1,5 +1,18 @@
 import { StateCreator } from "zustand";
-import { Device, DeviceAttachment, ProjectStore } from "../../types";
+import { BaseEntity, Device, DeviceAttachment } from "../../types";
+import { UISliceActions, UISliceState } from "./uiSlice";
+import { SessionSliceActions, SessionSliceState } from "./sessionSlice";
+import { ProjectSliceActions, ProjectSliceState } from "./projectSlice";
+
+export interface ProjectStore
+  extends
+    ProjectSliceState,
+    ProjectSliceActions,
+    SessionSliceState,
+    SessionSliceActions,
+    UISliceState,
+    UISliceActions,
+    DeviceSlice {}
 
 export interface DeviceSlice {
   devices: Device[];
@@ -136,7 +149,7 @@ export const createDeviceSlice: StateCreator<
       }
 
       // 3. Update the entity itself
-      const updateEntity = (items: any[]) =>
+      const updateEntity = (items: BaseEntity[]) =>
         items.map((item) =>
           item.id === entityId
             ? { ...item, deviceId: deviceId, updatedAt: Date.now() }

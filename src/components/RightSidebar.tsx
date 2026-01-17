@@ -1,30 +1,25 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Bot,
   Sliders,
-  FileText,
   ChevronsRight,
   ChevronsLeft,
   MessageSquare,
   BookOpen,
   Terminal,
-  MousePointer2,
   Play,
   Settings,
   Save,
-  Zap,
-  Settings2,
   FileCode,
   Scissors,
-  Database,
   Wand2,
   Cpu,
+  LucideIcon,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useStore } from "../lib/store";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/Button";
-import { RightSidebarTab } from "../lib/slices/uiSlice";
+import type { RightSidebarTab } from "../types";
 import AIAssistantContent from "./RightSidebar/AIAssistantContent";
 import CommandEditor from "./RightSidebar/CommandEditor";
 import { DevicePanel } from "./RightSidebar/DevicePanel";
@@ -63,7 +58,7 @@ const RightSidebar: React.FC = () => {
     } else {
       setEditingCommand(null);
     }
-  }, [selectedCommandId, commands]);
+  }, [selectedCommandId, commands, setEditingCommand]);
 
   // Sync: When selectedDeviceId changes, switch to device tab if not collapsed
   useEffect(() => {
@@ -71,6 +66,7 @@ const RightSidebar: React.FC = () => {
       setRightSidebarTab("device");
       if (rightSidebarCollapsed) setRightSidebarCollapsed(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDeviceId]);
 
   useEffect(() => {
@@ -110,12 +106,12 @@ const RightSidebar: React.FC = () => {
     if (selectedCommandId && editingCommand) {
       // If the command has parameters, open the input modal
       // We use the draft command (editingCommand) so user can test changes without saving
-      const cmdToRun = { ...editingCommand } as any;
+      const cmdToRun = { ...editingCommand };
       setPendingParamCommand(cmdToRun);
     }
   };
 
-  const tabs: { id: RightSidebarTab; icon: any; label: string }[] = [
+  const tabs: { id: RightSidebarTab; icon: LucideIcon; label: string }[] = [
     { id: "ai", icon: MessageSquare, label: "AI Assistant" },
     { id: "device", icon: Cpu, label: "Device Info" },
     { id: "basic", icon: Settings, label: t("cmd.tab.basic") },
