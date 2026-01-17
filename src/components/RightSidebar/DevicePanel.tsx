@@ -1,0 +1,243 @@
+import React, { useState } from "react";
+import { useStore } from "../../lib/store";
+import {
+  Settings,
+  Link2,
+  FileText,
+  BookOpen,
+  Edit2,
+  Trash2,
+  Plus,
+  ArrowRight,
+  ExternalLink,
+  Cpu,
+  Info,
+} from "lucide-react";
+import { cn } from "../../lib/utils";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
+import { AttachmentManager } from "../AttachmentManager";
+
+type DeviceTab = "info" | "connections" | "attachments" | "contexts";
+
+export const DevicePanel: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<DeviceTab>("info");
+  const selectedDeviceId = useStore((state) => state.selectedDeviceId);
+  const devices = useStore((state) => state.devices);
+  const presets = useStore((state) => state.presets);
+  const contexts = useStore((state) => state.contexts);
+  const setLoadedPresetId = useStore((state) => state.setLoadedPresetId);
+  const addToast = useStore((state) => state.addToast);
+
+  const device = devices.find((d) => d.id === selectedDeviceId);
+
+  if (!device) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground opacity-50 p-8 text-center">
+        <div className="space-y-2">
+          <Cpu className="w-12 h-12 mx-auto opacity-10" />
+          <p>Select a device to view its details.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const tabs: { id: DeviceTab; icon: any; label: string }[] = [
+    { id: "info", icon: Info, label: "Info" },
+    { id: "connections", icon: Link2, label: "Connections" },
+    { id: "attachments", icon: FileText, label: "Attachments" },
+    { id: "contexts", icon: BookOpen, label: "Contexts" },
+  ];
+
+  return (
+    <div className="flex flex-col h-full bg-background">
+      {/* Device Header */}
+      <div className="p-4 border-b border-border bg-muted/20">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg text-primary">
+            <Cpu className="w-5 h-5" />
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <h2 className="font-bold text-lg truncate">{device.name}</h2>
+            {device.manufacturer && (
+              <p className="text-xs text-muted-foreground truncate">
+                {device.manufacturer} {device.model}
+              </p>
+            )}
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Edit2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Internal Tabs */}
+      <div className="flex border-b border-border bg-muted/10">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium border-b-2 transition-colors",
+              activeTab === tab.id
+                ? "border-primary text-primary bg-primary/5"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
+            )}
+          >
+            <tab.icon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        {activeTab === "info" && (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                Description
+              </label>
+              <p className="text-sm text-foreground/80 leading-relaxed italic bg-muted/30 p-3 rounded-md border border-border/50">
+                {device.description || "No description provided."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Manufacturer
+                </label>
+                <div className="text-sm font-medium">
+                  {device.manufacturer || "N/A"}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Model
+                </label>
+                <div className="text-sm font-medium">
+                  {device.model || "N/A"}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>
+                  Created: {new Date(device.createdAt).toLocaleDateString()}
+                </span>
+                <span>
+                  Updated: {new Date(device.updatedAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "connections" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                Associated Presets
+              </label>
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Plus className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            {device.presetIds.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-xs italic border border-dashed rounded-lg">
+                No presets linked to this device
+              </div>
+            ) : (
+              device.presetIds.map((pid) => {
+                const preset = presets.find((p) => p.id === pid);
+                if (!preset) return null;
+                return (
+                  <div
+                    key={pid}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors group"
+                  >
+                    <div className="flex-1 overflow-hidden">
+                      <div className="font-medium text-sm truncate">
+                        {preset.name}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground uppercase">
+                        {preset.type}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-8 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                        setLoadedPresetId(preset.id);
+                        addToast(
+                          "info",
+                          "Preset Loaded",
+                          `Loaded connection settings for ${device.name}`,
+                        );
+                      }}
+                    >
+                      Connect <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {activeTab === "attachments" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                Reference Material
+              </label>
+            </div>
+            <AttachmentManager deviceId={device.id} />
+          </div>
+        )}
+
+        {activeTab === "contexts" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                Linked Documentation
+              </label>
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Plus className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            {device.contextIds.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-xs italic border border-dashed rounded-lg">
+                No documentation linked
+              </div>
+            ) : (
+              device.contextIds.map((cid) => {
+                const ctx = contexts.find((c) => c.id === cid);
+                if (!ctx) return null;
+                return (
+                  <div
+                    key={cid}
+                    className="p-3 rounded-lg border border-border bg-muted/20 hover:border-primary/30 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <BookOpen className="w-3.5 h-3.5 text-primary" />
+                      <span className="font-medium text-sm">{ctx.title}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                      {ctx.content}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

@@ -98,7 +98,7 @@ const ToggleGroup = <T extends string>({
 
 const CommandEditor: React.FC<Props> = ({ activeTab }) => {
   const { t } = useTranslation();
-  const { editingCommand, setEditingCommand, contexts } = useStore();
+  const { editingCommand, setEditingCommand, contexts, devices } = useStore();
 
   // Local state for Protocol Wizard
   const [protoType, setProtoType] = useState<"MODBUS" | "AT">("MODBUS");
@@ -153,14 +153,32 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
             className="h-8 text-sm"
           />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">{t("cmd.group")}</Label>
-          <Input
-            value={editingCommand.group || ""}
-            onChange={(e) => updateCmd({ group: e.target.value })}
-            className="h-8 text-sm"
-            placeholder="e.g. Motors"
-          />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t("cmd.group")}</Label>
+            <Input
+              value={editingCommand.group || ""}
+              onChange={(e) => updateCmd({ group: e.target.value })}
+              className="h-8 text-sm"
+              placeholder="e.g. Motors"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Device</Label>
+            <Select
+              value={editingCommand.deviceId || ""}
+              onChange={(e) => updateCmd({ deviceId: e.target.value || null })}
+              className="h-8 text-xs"
+            >
+              <option value="">-- Unassigned --</option>
+              {devices.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
 
         <div className="space-y-1.5">

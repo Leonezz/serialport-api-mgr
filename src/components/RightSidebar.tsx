@@ -18,6 +18,7 @@ import {
   Scissors,
   Database,
   Wand2,
+  Cpu,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useStore } from "../lib/store";
@@ -26,11 +27,13 @@ import { Button } from "./ui/Button";
 import { RightSidebarTab } from "../lib/slices/uiSlice";
 import AIAssistantContent from "./RightSidebar/AIAssistantContent";
 import CommandEditor from "./RightSidebar/CommandEditor";
+import { DevicePanel } from "./RightSidebar/DevicePanel";
 
 const RightSidebar: React.FC = () => {
   const { t } = useTranslation();
   const {
     selectedCommandId,
+    selectedDeviceId,
     commands,
     updateCommand,
     rightSidebarTab,
@@ -61,6 +64,14 @@ const RightSidebar: React.FC = () => {
       setEditingCommand(null);
     }
   }, [selectedCommandId, commands]);
+
+  // Sync: When selectedDeviceId changes, switch to device tab if not collapsed
+  useEffect(() => {
+    if (selectedDeviceId) {
+      setRightSidebarTab("device");
+      if (rightSidebarCollapsed) setRightSidebarCollapsed(false);
+    }
+  }, [selectedDeviceId]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -106,6 +117,7 @@ const RightSidebar: React.FC = () => {
 
   const tabs: { id: RightSidebarTab; icon: any; label: string }[] = [
     { id: "ai", icon: MessageSquare, label: "AI Assistant" },
+    { id: "device", icon: Cpu, label: "Device Info" },
     { id: "basic", icon: Settings, label: t("cmd.tab.basic") },
     { id: "params", icon: Sliders, label: t("cmd.tab.params") },
     { id: "processing", icon: FileCode, label: t("cmd.tab.processing") },
@@ -114,7 +126,7 @@ const RightSidebar: React.FC = () => {
     { id: "wizard", icon: Wand2, label: t("cmd.tab.wizard") },
   ];
 
-  const isEditorTab = rightSidebarTab !== "ai";
+  const isEditorTab = rightSidebarTab !== "ai" && rightSidebarTab !== "device";
 
   return (
     <div
@@ -205,6 +217,8 @@ const RightSidebar: React.FC = () => {
         <div className="flex-1 overflow-hidden relative flex flex-col">
           {rightSidebarTab === "ai" ? (
             <AIAssistantContent />
+          ) : rightSidebarTab === "device" ? (
+            <DevicePanel />
           ) : // Render shared Editor but tell it which tab is active
           // If no command selected, show placeholder
           selectedCommand ? (

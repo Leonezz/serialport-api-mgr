@@ -28,8 +28,10 @@ import { cn, generateId } from "../lib/utils";
 import SequenceFormModal from "./SequenceFormModal";
 import SimpleInputModal from "./SimpleInputModal";
 import ConfirmationModal from "./ConfirmationModal";
+import DeviceFormModal from "./DeviceFormModal";
 import { useStore } from "../lib/store";
 import { useTranslation } from "react-i18next";
+import { DeviceList } from "./DeviceList";
 
 interface Props {
   onSendCommand: (cmd: SavedCommand) => void;
@@ -68,14 +70,13 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
     setShowAI,
     leftSidebarCollapsed,
     setLeftSidebarCollapsed,
+    selectedDeviceId, // Use selectedDeviceId for filtering
   } = useStore();
 
   const activeSession = sessions[activeSessionId];
   const { aiTokenUsage } = activeSession;
 
-  const [activeTab, setActiveTab] = useState<
-    "commands" | "sequences" | "presets"
-  >("commands");
+  const [activeTab, setActiveTab] = useState<"library" | "presets">("library");
 
   // Track collapsed groups (folders) - inverse logic: if in set, it is collapsed (closed)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
@@ -159,9 +160,21 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
     };
   }, [isResizing]);
 
+  // Filter commands based on selected device
+  const filteredCommands = useMemo(() => {
+    if (!selectedDeviceId) return commands;
+    return commands.filter((cmd) => cmd.deviceId === selectedDeviceId);
+  }, [commands, selectedDeviceId]);
+
+  // Filter sequences based on selected device
+  const filteredSequences = useMemo(() => {
+    if (!selectedDeviceId) return sequences;
+    return sequences.filter((seq) => seq.deviceId === selectedDeviceId);
+  }, [sequences, selectedDeviceId]);
+
   const groupedCommands = useMemo(() => {
     const groups: Record<string, SavedCommand[]> = { Ungrouped: [] };
-    commands.forEach((cmd) => {
+    filteredCommands.forEach((cmd) => {
       const key = cmd.group || "Ungrouped";
       if (!groups[key]) groups[key] = [];
       groups[key].push(cmd);
@@ -171,7 +184,7 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
       .sort();
     if (groups["Ungrouped"].length > 0) keys.push("Ungrouped");
     return keys.map((key) => ({ name: key, items: groups[key] }));
-  }, [commands]);
+  }, [filteredCommands]);
 
   const toggleGroup = (groupName: string) => {
     const next = new Set(collapsedGroups);
@@ -204,6 +217,7 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
       payload: "",
       createdAt: timestamp,
       updatedAt: timestamp,
+      deviceId: selectedDeviceId || undefined, // Assign to current device if selected
     });
     setSelectedCommandId(newId);
     setEditingCommand({
@@ -214,18 +228,14 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
       payload: "",
       createdAt: timestamp,
       updatedAt: timestamp,
+      deviceId: selectedDeviceId || undefined,
     });
     setRightSidebarTab("basic");
     setShowAI(true);
   };
 
   const tabs = [
-    { id: "commands" as const, icon: Terminal, label: t("sidebar.commands") },
-    {
-      id: "sequences" as const,
-      icon: ListVideo,
-      label: t("sidebar.sequences"),
-    },
+    { id: "library" as const, icon: Terminal, label: t("sidebar.library") },
     { id: "presets" as const, icon: Sliders, label: t("sidebar.presets") },
   ];
 
@@ -325,228 +335,242 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
             : "opacity-100",
         )}
       >
-        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-          {activeTab === "commands" && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between pb-2 sticky top-0 bg-card z-10 border-b border-border/40 mb-2">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-2">
-                  <Terminal className="w-3 h-3" /> {t("sidebar.library")}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => handleCreateNewCommand()}
-                  title={t("sidebar.new_command")}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar">
+          {activeTab === "library" && (
+            <div className="flex flex-col gap-4">
+              {/* Devices Section (using reusable component) */}
+              <DeviceList />
 
-              {commands.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground text-xs italic whitespace-pre-wrap">
-                  {t("sidebar.no_commands")}
+              <div className="h-px bg-border/50 w-full" />
+
+              {/* Commands Section */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between pb-1 sticky top-0 bg-card z-10">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-2">
+                    <Terminal className="w-3 h-3" /> {t("sidebar.commands")}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleCreateNewCommand()}
+                    title={t("sidebar.new_command")}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
-              )}
 
-              <Accordion className="w-full space-y-1">
-                {groupedCommands.map((group) => {
-                  if (group.items.length === 0) return null;
-                  const isUngrouped = group.name === "Ungrouped";
-                  const isExpanded = !collapsedGroups.has(group.name);
+                {filteredCommands.length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-xs italic whitespace-pre-wrap border border-dashed rounded-md bg-muted/20">
+                    {selectedDeviceId
+                      ? "No commands for this device"
+                      : t("sidebar.no_commands")}
+                  </div>
+                )}
 
-                  // If ungrouped, we render items directly or in a simpler container?
-                  // Existing logic rendered them differently. Let's wrap Ungrouped in a pseudo-accordion or just render.
-                  // For consistency, let's treat Ungrouped as a group but maybe always open or different styling?
-                  // The previous implementation treated Ungrouped as a group that IS collapsible.
+                <Accordion className="w-full space-y-1">
+                  {groupedCommands.map((group) => {
+                    if (group.items.length === 0) return null;
+                    const isUngrouped = group.name === "Ungrouped";
+                    const isExpanded = !collapsedGroups.has(group.name);
 
-                  return (
-                    <AccordionItem key={group.name} className="border-none">
-                      {/* Only show trigger if not ungrouped or if we want to allow collapsing ungrouped */}
-                      {!isUngrouped && (
-                        <div className="flex items-center justify-between group/header pr-1 hover:bg-muted/30 rounded-md">
-                          <AccordionTrigger
-                            isOpen={isExpanded}
-                            onClick={() => toggleGroup(group.name)}
-                            className="py-1.5 px-2 hover:no-underline hover:text-primary"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Folder className="w-3.5 h-3.5 fill-current opacity-50" />
-                              <span className="text-xs font-semibold">
-                                {group.name}
-                              </span>
-                            </div>
-                          </AccordionTrigger>
-                          <div className="flex gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity mr-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCreateNewCommand(group.name);
-                              }}
-                              className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-primary transition-all"
-                              title="Add command to group"
+                    return (
+                      <AccordionItem key={group.name} className="border-none">
+                        {!isUngrouped && (
+                          <div className="flex items-center justify-between group/header pr-1 hover:bg-muted/30 rounded-md">
+                            <AccordionTrigger
+                              isOpen={isExpanded}
+                              onClick={() => toggleGroup(group.name)}
+                              className="py-1.5 px-2 hover:no-underline hover:text-primary"
                             >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setConfirmation({
-                                  title: t("modal.delete"),
-                                  message: `Delete "${group.name}" and all its commands?`,
-                                  action: () =>
-                                    deleteCommands(
-                                      group.items.map((i) => i.id),
-                                    ),
-                                });
-                              }}
-                              className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-all"
-                              title="Delete group"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Content: If Ungrouped, always show. If Grouped, show based on expansion */}
-                      <AccordionContent
-                        isOpen={isUngrouped ? true : isExpanded}
-                        className={cn(
-                          !isUngrouped && "pl-2 ml-2 border-l border-border/40",
-                        )}
-                      >
-                        <div className="flex flex-col gap-1.5 pt-1">
-                          {group.items.map((cmd) => {
-                            const isSelected = selectedCommandId === cmd.id;
-                            return (
-                              <div
-                                key={cmd.id}
-                                onClick={() => handleCommandClick(cmd)}
-                                className={cn(
-                                  "group flex flex-col gap-1 p-2 rounded-md border transition-all relative cursor-pointer",
-                                  isSelected
-                                    ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20 shadow-sm"
-                                    : "border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border",
-                                )}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5 overflow-hidden">
-                                    <span
-                                      className={cn(
-                                        "font-medium text-sm truncate",
-                                        isSelected && "text-primary",
-                                      )}
-                                    >
-                                      {cmd.name}
-                                    </span>
-                                    {cmd.usedBy?.length ? (
-                                      <span className="text-[9px] opacity-50">
-                                        <Link2 className="w-2.5 h-2.5" />
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onSendCommand(cmd);
-                                      }}
-                                      className="p-1 text-primary hover:text-primary/80"
-                                      title="Send"
-                                    >
-                                      <Play className="w-3 h-3 fill-current" />
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setConfirmation({
-                                          title: t("modal.delete"),
-                                          message: `Delete command "${cmd.name}"?`,
-                                          action: () => deleteCommand(cmd.id),
-                                        });
-                                      }}
-                                      className="p-1 text-muted-foreground hover:text-destructive"
-                                      title="Delete"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[8px] h-3.5 px-1 py-0 border-border/60 text-muted-foreground uppercase"
-                                  >
-                                    {cmd.mode}
-                                  </Badge>
-                                  <code className="text-[10px] text-muted-foreground truncate font-mono flex-1 opacity-70">
-                                    {(cmd.payload || "")
-                                      .replace(/\r/g, "CR")
-                                      .replace(/\n/g, "LF")}
-                                  </code>
-                                </div>
-                                {isSelected && (
-                                  <div className="absolute -left-px top-2 bottom-2 w-1 bg-primary rounded-full" />
-                                )}
+                              <div className="flex items-center gap-2">
+                                <Folder className="w-3.5 h-3.5 fill-current opacity-50" />
+                                <span className="text-xs font-semibold">
+                                  {group.name}
+                                </span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </div>
-          )}
+                            </AccordionTrigger>
+                            <div className="flex gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity mr-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCreateNewCommand(group.name);
+                                }}
+                                className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-primary transition-all"
+                                title="Add command to group"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmation({
+                                    title: t("modal.delete"),
+                                    message: `Delete "${group.name}" and all its commands?`,
+                                    action: () =>
+                                      deleteCommands(
+                                        group.items.map((i) => i.id),
+                                      ),
+                                  });
+                                }}
+                                className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-all"
+                                title="Delete group"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
-          {activeTab === "sequences" && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between pb-2 sticky top-0 bg-card z-10 border-b border-border/40 mb-2">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-2">
-                  <ListVideo className="w-3 h-3" /> {t("sidebar.sequences")}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => handleOpenSeqModal()}
-                  title="Create Sequence"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+                        <AccordionContent
+                          isOpen={isUngrouped ? true : isExpanded}
+                          className={cn(
+                            !isUngrouped &&
+                              "pl-2 ml-2 border-l border-border/40",
+                          )}
+                        >
+                          <div className="flex flex-col gap-1.5 pt-1">
+                            {group.items.map((cmd) => {
+                              const isSelected = selectedCommandId === cmd.id;
+                              return (
+                                <div
+                                  key={cmd.id}
+                                  onClick={() => handleCommandClick(cmd)}
+                                  className={cn(
+                                    "group flex flex-col gap-1 p-2 rounded-md border transition-all relative cursor-pointer",
+                                    isSelected
+                                      ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20 shadow-sm"
+                                      : "border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border",
+                                  )}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5 overflow-hidden">
+                                      <span
+                                        className={cn(
+                                          "font-medium text-sm truncate",
+                                          isSelected && "text-primary",
+                                        )}
+                                      >
+                                        {cmd.name}
+                                      </span>
+                                      {cmd.usedBy?.length ? (
+                                        <span className="text-[9px] opacity-50">
+                                          <Link2 className="w-2.5 h-2.5" />
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onSendCommand(cmd);
+                                        }}
+                                        className="p-1 text-primary hover:text-primary/80"
+                                        title="Send"
+                                      >
+                                        <Play className="w-3 h-3 fill-current" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setConfirmation({
+                                            title: t("modal.delete"),
+                                            message: `Delete command "${cmd.name}"?`,
+                                            action: () => deleteCommand(cmd.id),
+                                          });
+                                        }}
+                                        className="p-1 text-muted-foreground hover:text-destructive"
+                                        title="Delete"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[8px] h-3.5 px-1 py-0 border-border/60 text-muted-foreground uppercase"
+                                    >
+                                      {cmd.mode}
+                                    </Badge>
+                                    <code className="text-[10px] text-muted-foreground truncate font-mono flex-1 opacity-70">
+                                      {(cmd.payload || "")
+                                        .replace(/\r/g, "CR")
+                                        .replace(/\n/g, "LF")}
+                                    </code>
+                                  </div>
+                                  {isSelected && (
+                                    <div className="absolute -left-px top-2 bottom-2 w-1 bg-primary rounded-full" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
               </div>
-              {sequences.map((seq) => (
-                <div
-                  key={seq.id}
-                  className={cn(
-                    "group flex flex-col gap-1 p-2 rounded-md border border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border transition-all relative",
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm truncate">
-                      {seq.name}
-                    </span>
-                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => onRunSequence(seq)}
-                        className="p-1 text-primary"
-                        title="Run Sequence"
-                      >
-                        <Play className="w-3 h-3 fill-current" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenSeqModal(seq)}
-                        className="p-1 text-muted-foreground"
-                        title="Edit Sequence"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
+
+              <div className="h-px bg-border/50 w-full" />
+
+              {/* Sequences Section */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between pb-1 sticky top-0 bg-card z-10">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-2">
+                    <ListVideo className="w-3 h-3" /> {t("sidebar.sequences")}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleOpenSeqModal()}
+                    title="Create Sequence"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {filteredSequences.length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground text-xs italic whitespace-pre-wrap border border-dashed rounded-md bg-muted/20">
+                    {selectedDeviceId
+                      ? "No sequences for this device"
+                      : "No sequences available"}
+                  </div>
+                )}
+
+                {filteredSequences.map((seq) => (
+                  <div
+                    key={seq.id}
+                    className={cn(
+                      "group flex flex-col gap-1 p-2 rounded-md border border-border/50 bg-muted/20 hover:bg-muted/50 hover:border-border transition-all relative",
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm truncate">
+                        {seq.name}
+                      </span>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => onRunSequence(seq)}
+                          className="p-1 text-primary"
+                          title="Run Sequence"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenSeqModal(seq)}
+                          className="p-1 text-muted-foreground"
+                          title="Edit Sequence"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
@@ -625,6 +649,7 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
           onClose={() => setIsSavePresetModalOpen(false)}
         />
       )}
+      <DeviceFormModal />
       {confirmation && (
         <ConfirmationModal
           title={confirmation.title}

@@ -68,6 +68,7 @@ const ControlPanel: React.FC<Props> = ({
     commands,
     sequences,
     contexts,
+    devices,
     applyPresetLayout,
   } = useStore();
 
@@ -255,6 +256,7 @@ const ControlPanel: React.FC<Props> = ({
       commands,
       sequences,
       contexts,
+      devices,
       logs: activeSession.logs.map((l) => ({
         ...l,
         data: typeof l.data === "string" ? l.data : Array.from(l.data),
@@ -331,6 +333,7 @@ const ControlPanel: React.FC<Props> = ({
           commands: validCommands,
           sequences: (data.sequences || []) as SerialSequence[],
           contexts: (data.contexts || []) as ProjectContext[],
+          devices: (data.devices || []) as any[],
         });
 
         addToast("success", t("toast.success"), "Configuration loaded safely.");
