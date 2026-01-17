@@ -18,6 +18,17 @@ import {
 
 import { LogLevelSchema, LogCategorySchema } from "./lib/storeSchemas";
 
+import {
+  ProjectSliceActions,
+  ProjectSliceState,
+} from "./lib/slices/projectSlice";
+import {
+  SessionSliceActions,
+  SessionSliceState,
+} from "./lib/slices/sessionSlice";
+import { UISliceActions, UISliceState } from "./lib/slices/uiSlice";
+import { DeviceSlice } from "./lib/slices/deviceSlice";
+
 // Infer simple enum types from schemas (these work well with z.infer)
 export type LineEnding = z.infer<typeof LineEndingSchema>;
 export type DataMode = z.infer<typeof DataModeSchema>;
@@ -141,6 +152,7 @@ export interface SerialPreset {
   config: SerialConfig;
   network?: NetworkConfig;
   widgets?: DashboardWidget[]; // Saved dashboard layout
+  deviceId?: string;
 }
 
 export interface ProjectContext {
@@ -193,7 +205,8 @@ export interface SavedCommand extends BaseEntity {
   responseFraming?: FramingConfig; // Override framing for the response of this command
   framingPersistence?: "TRANSIENT" | "PERSISTENT"; // How to apply the framing
   usedBy?: string[]; // IDs of sequences using this command
-  contextIds?: string[]; // Links to ProjectContexts (multiple supported)
+  contextIds?: string[]; // Links to protocol/manual contexts (multiple supported)
+  deviceId?: string;
 }
 
 export interface SequenceStep {
@@ -205,7 +218,55 @@ export interface SequenceStep {
 
 export interface SerialSequence extends BaseEntity {
   steps: SequenceStep[];
+  contextIds?: string[];
+  deviceId?: string | null;
 }
+
+export type AttachmentCategory =
+  | "DATASHEET"
+  | "MANUAL"
+  | "SCHEMATIC"
+  | "PROTOCOL"
+  | "IMAGE"
+  | "OTHER";
+
+export interface DeviceAttachment {
+  id: string;
+  name: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  data: string; // Base64 encoded content
+  description?: string;
+  category: AttachmentCategory;
+  createdAt: number;
+}
+
+export interface Device {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  manufacturer?: string;
+  model?: string;
+  createdAt: number;
+  updatedAt: number;
+  presetIds: string[];
+  commandIds: string[];
+  sequenceIds: string[];
+  contextIds: string[];
+  attachments: DeviceAttachment[];
+}
+
+export interface ProjectStore
+  extends
+    ProjectSliceState,
+    ProjectSliceActions,
+    SessionSliceState,
+    SessionSliceActions,
+    UISliceState,
+    UISliceActions,
+    DeviceSlice {}
 
 // --- Plotter ---
 

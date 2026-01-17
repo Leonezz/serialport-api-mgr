@@ -3,6 +3,7 @@ import { z } from "zod";
 import { generateId } from "../utils";
 import { ToastMessage } from "../../components/ui/Toast";
 import { RightSidebarTabSchema } from "../storeSchemas";
+import { DeviceSchema } from "../schemas";
 import type {
   ThemeMode,
   ThemeColor,
@@ -17,7 +18,16 @@ import type {
 export type { ThemeMode, ThemeColor, SystemLogEntry, LogLevel, LogCategory };
 
 // Infer slice-specific types from schemas
-export type RightSidebarTab = z.infer<typeof RightSidebarTabSchema>;
+export type RightSidebarTab =
+  | "ai"
+  | "basic"
+  | "params"
+  | "processing"
+  | "framing"
+  | "context"
+  | "wizard"
+  | "device";
+export type Device = z.infer<typeof DeviceSchema>;
 
 // State interface (all data fields)
 export interface UISliceState {
@@ -33,6 +43,9 @@ export interface UISliceState {
   editingCommand: Partial<SavedCommand> | null;
   isCommandModalOpen: boolean;
   editingPreset: SerialPreset | null;
+  editingDevice: Partial<Device> | null;
+  showDeviceModal: boolean;
+  selectedDeviceId: string | null;
   pendingParamCommand: SavedCommand | null;
   showGeneratorModal: boolean;
   showSystemLogs: boolean;
@@ -73,6 +86,9 @@ export interface UISliceActions {
   setEditingCommand: (cmd: Partial<SavedCommand> | null) => void;
   setIsCommandModalOpen: (open: boolean) => void;
   setEditingPreset: (preset: SerialPreset | null) => void;
+  setEditingDevice: (device: Partial<Device> | null) => void;
+  setShowDeviceModal: (show: boolean) => void;
+  setSelectedDeviceId: (id: string | null) => void;
   setPendingParamCommand: (cmd: SavedCommand | null) => void;
   setShowGeneratorModal: (show: boolean) => void;
   setShowSystemLogs: (show: boolean) => void;
@@ -125,6 +141,9 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
   editingCommand: null,
   isCommandModalOpen: false,
   editingPreset: null,
+  editingDevice: null,
+  showDeviceModal: false,
+  selectedDeviceId: null,
   pendingParamCommand: null,
   showGeneratorModal: false,
   showSystemLogs: false,
@@ -140,6 +159,9 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
   setEditingCommand: (cmd) => set({ editingCommand: cmd }),
   setIsCommandModalOpen: (open) => set({ isCommandModalOpen: open }),
   setEditingPreset: (preset) => set({ editingPreset: preset }),
+  setEditingDevice: (device) => set({ editingDevice: device }),
+  setShowDeviceModal: (show) => set({ showDeviceModal: show }),
+  setSelectedDeviceId: (id) => set({ selectedDeviceId: id }),
   setPendingParamCommand: (cmd) => set({ pendingParamCommand: cmd }),
   setShowGeneratorModal: (show) => set({ showGeneratorModal: show }),
   setShowSystemLogs: (show) => set({ showSystemLogs: show }),

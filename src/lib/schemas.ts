@@ -88,6 +88,7 @@ export const SerialPresetSchema = z.object({
   config: SerialConfigSchema,
   network: NetworkConfigSchema.optional(),
   widgets: z.array(DashboardWidgetSchema).optional(),
+  deviceId: z.string().optional(),
 });
 
 // --- Command Structure ---
@@ -150,6 +151,7 @@ export const SavedCommandSchema = z.object({
     .default("TRANSIENT"),
   usedBy: z.array(z.string()).optional(),
   contextIds: z.array(z.string()).optional(),
+  deviceId: z.string().optional(),
 });
 
 // --- Sequences ---
@@ -169,6 +171,7 @@ export const SerialSequenceSchema = z.object({
   updatedAt: z.number(),
   steps: z.array(SequenceStepSchema),
   contextIds: z.array(z.string()).optional(),
+  deviceId: z.string().optional(),
 });
 
 export const ProjectContextSchema = z.object({
@@ -177,6 +180,43 @@ export const ProjectContextSchema = z.object({
   content: z.string(),
   source: z.enum(["USER", "AI_GENERATED"]),
   createdAt: z.number(),
+});
+
+export const AttachmentCategorySchema = z.enum([
+  "DATASHEET",
+  "MANUAL",
+  "SCHEMATIC",
+  "PROTOCOL",
+  "IMAGE",
+  "OTHER",
+]);
+
+export const DeviceAttachmentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  filename: z.string(),
+  mimeType: z.string(),
+  size: z.number(),
+  data: z.string(), // Base64 encoded content
+  description: z.string().optional(),
+  category: AttachmentCategorySchema,
+  createdAt: z.number(),
+});
+
+export const DeviceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  manufacturer: z.string().optional(),
+  model: z.string().optional(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  presetIds: z.array(z.string()).default([]),
+  commandIds: z.array(z.string()).default([]),
+  sequenceIds: z.array(z.string()).default([]),
+  contextIds: z.array(z.string()).default([]),
+  attachments: z.array(DeviceAttachmentSchema).default([]),
 });
 
 // --- Full Profile Export/Import Schema ---
@@ -195,6 +235,7 @@ export const ExportProfileSchema = z.object({
   commands: z.array(SavedCommandSchema).optional(),
   sequences: z.array(SerialSequenceSchema).optional(),
   contexts: z.array(ProjectContextSchema).optional(),
+  devices: z.array(DeviceSchema).optional(),
   logs: z.array(z.any()).optional(), // Logs are loose for now
 });
 
@@ -202,6 +243,7 @@ export const ExportProfileSchema = z.object({
 // This validates the structure returned by the Gemini function call for "configure_device"
 export const AIProjectResultSchema = z.object({
   deviceName: z.string().optional(),
+  devices: z.array(DeviceSchema).optional(),
   config: SerialConfigSchema.partial().optional(), // Allow partial config updates
   commands: z.array(
     SavedCommandSchema.omit({

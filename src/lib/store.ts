@@ -1,17 +1,21 @@
 import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
+import { z, ZodError } from "zod";
 import { createUISlice, UISlice } from "./slices/uiSlice";
 import { createProjectSlice, ProjectSlice } from "./slices/projectSlice";
 import { createSessionSlice, SessionSlice } from "./slices/sessionSlice";
+import { createDeviceSlice, DeviceSlice } from "./slices/deviceSlice";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import {
   PersistedStoreStateSchema,
   STORE_VERSION,
   DEFAULT_PERSISTED_STATE,
 } from "./storeSchemas";
-import { ZodError } from "zod";
+import { DeviceSchema } from "./schemas";
 
 const store = new LazyStore("settings.json");
+
+type Device = z.infer<typeof DeviceSchema>;
 
 /**
  * Schema-aware Tauri storage with validation and error recovery
@@ -111,8 +115,8 @@ const createSchemaAwareTauriStorage = () => {
 function recoverPartialState(
   data: unknown,
   _error: ZodError,
-): typeof DEFAULT_PERSISTED_STATE {
-  const recovered = { ...DEFAULT_PERSISTED_STATE };
+): typeof DEFAULT_PERSISTED_STATE & { devices: Device[] } {
+  const recovered = { ...DEFAULT_PERSISTED_STATE, devices: [] as Device[] };
 
   if (!data || typeof data !== "object") {
     return recovered;
@@ -199,6 +203,22 @@ function recoverPartialState(
     console.warn("Failed to recover contexts:", e);
   }
 
+  // Try to recover devices
+  try {
+    if (Array.isArray(dataObj.devices)) {
+      recovered.devices = dataObj.devices.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (d: any) =>
+          d &&
+          typeof d === "object" &&
+          typeof d.id === "string" &&
+          typeof d.name === "string",
+      );
+    }
+  } catch (e) {
+    console.warn("Failed to recover devices:", e);
+  }
+
   // Try to recover session data
   try {
     if (dataObj.sessions && typeof dataObj.sessions === "object") {
@@ -224,7 +244,7 @@ function recoverPartialState(
 
 const tauriStorage = createSchemaAwareTauriStorage();
 
-type AppState = UISlice & ProjectSlice & SessionSlice;
+type AppState = UISlice & ProjectSlice & SessionSlice & DeviceSlice;
 
 export const useStore = create<AppState>()(
   devtools(
@@ -233,6 +253,7 @@ export const useStore = create<AppState>()(
         ...createUISlice(...a),
         ...createProjectSlice(...a),
         ...createSessionSlice(...a),
+        ...createDeviceSlice(...a),
       }),
       {
         name: "serialport-store",
@@ -286,6 +307,13 @@ export const useStore = create<AppState>()(
             if (data.loadedPresetId !== undefined)
               merged.loadedPresetId = data.loadedPresetId;
 
+            // Devices (Manually handled since not in main schema yet)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const anyData = data as any;
+            if (anyData.devices && Array.isArray(anyData.devices)) {
+              merged.devices = anyData.devices as AppState["devices"];
+            }
+
             // Session data - cast to proper types since validation passed
             if (data.sessions)
               merged.sessions = data.sessions as AppState["sessions"];
@@ -310,6 +338,7 @@ export const useStore = create<AppState>()(
           sequences: state.sequences,
           contexts: state.contexts,
           loadedPresetId: state.loadedPresetId,
+          devices: state.devices,
 
           // Session configs only (not runtime state like isConnected, logs)
           sessions: Object.fromEntries(

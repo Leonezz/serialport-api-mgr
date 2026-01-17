@@ -14,6 +14,7 @@ import {
   ConnectionTypeSchema,
   DashboardWidgetSchema,
   FramingConfigSchema,
+  DeviceSchema,
 } from "./schemas";
 
 // ============================================================================
@@ -174,6 +175,7 @@ export const PersistedUIStateSchema = z.object({
  * Project Slice - Persist all project data
  */
 export const PersistedProjectStateSchema = z.object({
+  devices: z.array(DeviceSchema),
   presets: z.array(SerialPresetSchema),
   commands: z.array(SavedCommandSchema),
   sequences: z.array(SerialSequenceSchema),
@@ -201,6 +203,7 @@ export const PersistedStoreStateSchema = z
     themeColor: ThemeColorSchema.optional(),
 
     // Project data
+    devices: z.array(DeviceSchema).optional(),
     presets: z.array(SerialPresetSchema).optional(),
     commands: z.array(SavedCommandSchema).optional(),
     sequences: z.array(SerialSequenceSchema).optional(),
@@ -224,12 +227,86 @@ export const STORE_VERSION = "1.0.0";
 /**
  * Default values for persisted state
  */
-export const DEFAULT_PERSISTED_STATE = {
+export const DEFAULT_PERSISTED_STATE: z.infer<
+  typeof PersistedStoreStateSchema
+> = {
   themeMode: "system" as const,
   themeColor: "zinc" as const,
+  devices: [
+    {
+      id: "dev-arduino-uno",
+      name: "Arduino Uno",
+      description: "Main development Arduino for sensor projects",
+      icon: "cpu",
+      manufacturer: "Arduino",
+      model: "Uno Rev3",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      presetIds: ["preset-arduino-default"],
+      commandIds: ["cmd-hello-world", "cmd-sensor-read", "cmd-set-led"],
+      sequenceIds: ["seq-led-test"],
+      contextIds: ["ctx-api-docs", "ctx-led-api"],
+      attachments: [
+        {
+          id: "att-arduino-pinout",
+          name: "Arduino Uno Pinout",
+          filename: "arduino-uno-pinout.png",
+          mimeType: "image/png",
+          size: 45000,
+          data: "",
+          description: "Pin configuration diagram",
+          category: "SCHEMATIC" as const,
+          createdAt: Date.now(),
+        },
+      ],
+    },
+    {
+      id: "dev-modbus-sensor",
+      name: "Modbus Temperature Sensor",
+      description: "Industrial temperature sensor with Modbus RTU",
+      icon: "thermometer",
+      manufacturer: "Schneider",
+      model: "TM3TI4",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      presetIds: ["preset-modbus-rtu"],
+      commandIds: ["cmd-modbus-read"],
+      sequenceIds: [],
+      contextIds: ["ctx-modbus-spec"],
+      attachments: [
+        {
+          id: "att-modbus-manual",
+          name: "Modbus Register Map",
+          filename: "register-map.pdf",
+          mimeType: "application/pdf",
+          size: 125000,
+          data: "",
+          description: "Register addresses and data types",
+          category: "DATASHEET" as const,
+          createdAt: Date.now(),
+        },
+      ],
+    },
+    {
+      id: "dev-esp32",
+      name: "ESP32 DevKit",
+      description: "WiFi-enabled microcontroller for IoT projects",
+      icon: "wifi",
+      manufacturer: "Espressif",
+      model: "ESP32-WROOM-32",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      presetIds: ["preset-high-speed"],
+      commandIds: ["cmd-config-device"],
+      sequenceIds: ["seq-device-setup"],
+      contextIds: ["ctx-protocol-spec", "ctx-error-handling"],
+      attachments: [],
+    },
+  ],
   presets: [
     {
       id: "preset-arduino-default",
+      deviceId: "dev-arduino-uno",
       name: "Arduino Default",
       type: "SERIAL" as const,
       config: {
@@ -252,6 +329,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "preset-modbus-rtu",
+      deviceId: "dev-modbus-sensor",
       name: "Modbus RTU",
       type: "SERIAL" as const,
       config: {
@@ -273,6 +351,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "preset-high-speed",
+      deviceId: "dev-esp32",
       name: "High Speed Debug",
       type: "SERIAL" as const,
       config: {
@@ -296,6 +375,7 @@ export const DEFAULT_PERSISTED_STATE = {
   commands: [
     {
       id: "cmd-hello-world",
+      deviceId: "dev-arduino-uno",
       name: "Hello World",
       description: "Send a basic hello message with context",
       creator: "system",
@@ -313,6 +393,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "cmd-sensor-read",
+      deviceId: "dev-arduino-uno",
       name: "Read Sensor Data",
       description: "Read temperature and humidity sensor data",
       creator: "system",
@@ -336,6 +417,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "cmd-status-check",
+      deviceId: null,
       name: "Device Status Check",
       description: "Check device operational status",
       creator: "system",
@@ -359,6 +441,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "cmd-set-led",
+      deviceId: "dev-arduino-uno",
       name: "Set LED State",
       description: "Control LED brightness and color with parameters",
       creator: "system",
@@ -420,6 +503,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "cmd-modbus-read",
+      deviceId: "dev-modbus-sensor",
       name: "Modbus Read Registers",
       description: "Read holding registers via Modbus RTU (HEX mode)",
       creator: "system",
@@ -448,6 +532,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "cmd-binary-frame",
+      deviceId: null,
       name: "Binary Frame Test",
       description: "Send binary frame with length prefix",
       creator: "system",
@@ -470,6 +555,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "cmd-config-device",
+      deviceId: "dev-esp32",
       name: "Configure Device",
       description: "Configure device settings with multiple parameter types",
       creator: "system",
@@ -547,6 +633,7 @@ export const DEFAULT_PERSISTED_STATE = {
   sequences: [
     {
       id: "seq-monitor-environment",
+      deviceId: null,
       name: "Monitor Environment",
       description: "Monitor temperature, humidity, and device status",
       creator: "system",
@@ -570,6 +657,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "seq-led-test",
+      deviceId: "dev-arduino-uno",
       name: "LED Test Sequence",
       description: "Test all LED colors in sequence",
       creator: "system",
@@ -599,6 +687,7 @@ export const DEFAULT_PERSISTED_STATE = {
     },
     {
       id: "seq-device-setup",
+      deviceId: "dev-esp32",
       name: "Device Setup",
       description: "Initialize and configure device on startup",
       creator: "system",
