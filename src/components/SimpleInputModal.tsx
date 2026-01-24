@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Save } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Modal } from "./ui/Modal";
@@ -35,7 +35,7 @@ const SimpleInputModal: React.FC<Props> = ({
         Cancel
       </Button>
       <Button type="submit" form="simple-input-form">
-        <Save className="w-4 h-4 mr-2" /> Save
+        <Check className="w-4 h-4 mr-2" /> Save
       </Button>
     </>
   );

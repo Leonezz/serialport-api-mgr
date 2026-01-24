@@ -1,22 +1,71 @@
 import React, { useEffect } from "react";
-import { CheckCircle, XCircle, AlertCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Info, AlertTriangle, X } from "lucide-react";
 import { cn } from "../../lib/utils";
+
+/**
+ * Toast Component
+ *
+ * Design System Specifications (FIGMA-DESIGN.md 6.5):
+ * - Position: Bottom right, 24px margin
+ * - Max Width: 400px
+ * - Padding: 16px
+ * - Border Radius: radius.md
+ * - Shadow: shadow.lg
+ * - Variants: success (green), warning (amber), error (red), info (blue)
+ * - Left border: 4px in variant color
+ * - Animation: Slide in from right, 300ms
+ */
 
 export interface ToastMessage {
   id: string;
   type: "success" | "error" | "info" | "warning";
   title: string;
   message: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+  duration?: number;
 }
 
-interface Props {
+interface ToastContainerProps {
   toasts: ToastMessage[];
   removeToast: (id: string) => void;
 }
 
-const ToastContainer: React.FC<Props> = ({ toasts, removeToast }) => {
+const variantStyles = {
+  success: {
+    bg: "bg-green-50 dark:bg-green-900/30",
+    border: "border-l-status-success",
+    icon: CheckCircle,
+    iconColor: "text-status-success",
+  },
+  error: {
+    bg: "bg-red-50 dark:bg-red-900/30",
+    border: "border-l-status-error",
+    icon: XCircle,
+    iconColor: "text-status-error",
+  },
+  warning: {
+    bg: "bg-amber-50 dark:bg-amber-900/30",
+    border: "border-l-status-warning",
+    icon: AlertTriangle,
+    iconColor: "text-status-warning",
+  },
+  info: {
+    bg: "bg-blue-50 dark:bg-blue-900/30",
+    border: "border-l-status-info",
+    icon: Info,
+    iconColor: "text-status-info",
+  },
+};
+
+const ToastContainer: React.FC<ToastContainerProps> = ({
+  toasts,
+  removeToast,
+}) => {
   return (
-    <div className="fixed bottom-20 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
       {toasts.map((toast) => (
         <ToastItem
           key={toast.id}
@@ -28,42 +77,64 @@ const ToastContainer: React.FC<Props> = ({ toasts, removeToast }) => {
   );
 };
 
-const ToastItem: React.FC<{ toast: ToastMessage; onRemove: () => void }> = ({
-  toast,
-  onRemove,
-}) => {
+interface ToastItemProps {
+  toast: ToastMessage;
+  onRemove: () => void;
+}
+
+const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
+  const { type, title, message, action, duration = 4000 } = toast;
+  const styles = variantStyles[type];
+  const Icon = styles.icon;
+
   useEffect(() => {
     const timer = setTimeout(() => {
       onRemove();
-    }, 4000);
+    }, duration);
     return () => clearTimeout(timer);
-  }, [onRemove]);
+  }, [onRemove, duration]);
 
   return (
     <div
       className={cn(
-        "pointer-events-auto flex items-start gap-3 p-3 rounded-lg shadow-lg border w-80 animate-in slide-in-from-right-10 fade-in duration-300",
-        toast.type === "success"
-          ? "bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-900/90 dark:border-emerald-800 dark:text-emerald-100"
-          : toast.type === "error"
-            ? "bg-red-50 border-red-200 text-red-900 dark:bg-red-900/90 dark:border-red-800 dark:text-red-100"
-            : toast.type === "warning"
-              ? "bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-900/90 dark:border-amber-800 dark:text-amber-100"
-              : "bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-900/90 dark:border-blue-800 dark:text-blue-100",
+        "pointer-events-auto w-full max-w-[400px] p-4 rounded-radius-md shadow-lg",
+        "border-l-4 border border-border-default",
+        styles.bg,
+        styles.border,
+        "animate-in slide-in-from-right-full duration-300",
       )}
     >
-      <div className="mt-0.5">
-        {toast.type === "success" && <CheckCircle className="w-5 h-5" />}
-        {toast.type === "error" && <XCircle className="w-5 h-5" />}
-        {toast.type === "info" && <AlertCircle className="w-5 h-5" />}
-        {toast.type === "warning" && <AlertTriangle className="w-5 h-5" />}
-      </div>
-      <div className="flex-1">
-        <h4 className="font-semibold text-sm">{toast.title}</h4>
-        <p className="text-xs opacity-90">{toast.message}</p>
+      <div className="flex items-start gap-3">
+        {/* Icon */}
+        <Icon
+          className={cn("w-5 h-5 flex-shrink-0 mt-0.5", styles.iconColor)}
+        />
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-semibold text-text-primary">{title}</h4>
+          <p className="text-xs text-text-secondary mt-1">{message}</p>
+          {action && (
+            <button
+              onClick={action.onClick}
+              className="text-xs font-medium text-accent-primary hover:underline mt-2"
+            >
+              {action.label}
+            </button>
+          )}
+        </div>
+
+        {/* Close button */}
+        <button
+          onClick={onRemove}
+          className="flex-shrink-0 p-1 rounded-radius-sm text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
 };
 
 export default ToastContainer;
+export { ToastContainer, ToastItem };

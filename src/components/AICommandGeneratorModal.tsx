@@ -17,7 +17,7 @@ import {
   ListVideo,
   Box,
   Trash2,
-  Edit2,
+  Pencil,
   AlertTriangle,
   Sliders,
   Coins,
@@ -26,6 +26,7 @@ import { Button } from "./ui/Button";
 import { Textarea } from "./ui/Textarea";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
+import { FileInput, FileInputRef } from "./ui/FileInput";
 import {
   Card,
   CardHeader,
@@ -78,7 +79,7 @@ const AICommandGeneratorModal: React.FC<Props> = ({
   const [editingCommandData, setEditingCommandData] =
     useState<Partial<SavedCommand> | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<FileInputRef>(null);
 
   // Initialize with passed data if available (e.g. from AI Assistant)
   useEffect(() => {
@@ -113,7 +114,7 @@ const AICommandGeneratorModal: React.FC<Props> = ({
       reader.onerror = () => setError("Failed to read file.");
       reader.readAsDataURL(file);
     }
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    fileInputRef.current?.reset();
   };
 
   const handleGenerate = async () => {
@@ -218,6 +219,7 @@ const AICommandGeneratorModal: React.FC<Props> = ({
               size="icon"
               onClick={onClose}
               className="h-8 w-8 -mr-2"
+              aria-label="Close dialog"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -252,10 +254,8 @@ const AICommandGeneratorModal: React.FC<Props> = ({
 
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                     <div>
-                      <input
-                        type="file"
+                      <FileInput
                         ref={fileInputRef}
-                        className="hidden"
                         accept="image/*,application/pdf,text/plain"
                         onChange={handleFileChange}
                       />
@@ -264,7 +264,7 @@ const AICommandGeneratorModal: React.FC<Props> = ({
                           variant="secondary"
                           size="sm"
                           className="h-7 text-xs gap-1.5 bg-background border border-border hover:bg-muted"
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={() => fileInputRef.current?.open()}
                         >
                           <Paperclip className="w-3.5 h-3.5" /> Attach Manual
                           (PDF/Img)
@@ -281,6 +281,7 @@ const AICommandGeneratorModal: React.FC<Props> = ({
                           <button
                             onClick={() => setAttachment(null)}
                             className="ml-1 p-0.5 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full transition-colors"
+                            aria-label="Remove attachment"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -321,8 +322,15 @@ const AICommandGeneratorModal: React.FC<Props> = ({
                 </div>
 
                 <div className="flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2 bg-muted p-1 rounded-md">
+                  <div
+                    className="flex items-center gap-2 bg-muted p-1 rounded-md"
+                    role="tablist"
+                    aria-label="Preview sections"
+                  >
                     <button
+                      role="tab"
+                      aria-selected={previewTab === "commands"}
+                      aria-controls="commands-panel"
                       onClick={() => setPreviewTab("commands")}
                       className={cn(
                         "px-3 py-1.5 rounded-sm text-xs font-medium transition-all flex items-center gap-2",
@@ -341,6 +349,9 @@ const AICommandGeneratorModal: React.FC<Props> = ({
                       </Badge>
                     </button>
                     <button
+                      role="tab"
+                      aria-selected={previewTab === "sequences"}
+                      aria-controls="sequences-panel"
                       onClick={() => setPreviewTab("sequences")}
                       className={cn(
                         "px-3 py-1.5 rounded-sm text-xs font-medium transition-all flex items-center gap-2",
@@ -359,6 +370,9 @@ const AICommandGeneratorModal: React.FC<Props> = ({
                       </Badge>
                     </button>
                     <button
+                      role="tab"
+                      aria-selected={previewTab === "config"}
+                      aria-controls="config-panel"
                       onClick={() => setPreviewTab("config")}
                       className={cn(
                         "px-3 py-1.5 rounded-sm text-xs font-medium transition-all flex items-center gap-2",
@@ -388,178 +402,196 @@ const AICommandGeneratorModal: React.FC<Props> = ({
                 <div className="flex-1 overflow-y-auto border rounded-md bg-muted/10 p-4 custom-scrollbar">
                   {/* COMMANDS VIEW */}
                   {previewTab === "commands" && (
-                    <div className="grid grid-cols-1 gap-3">
-                      {generatedResult.commands.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground opacity-50">
-                          No commands generated.
-                        </div>
-                      ) : (
-                        generatedResult.commands.map((cmd, idx) => {
-                          const isDuplicate = checkDuplicate(cmd.name);
+                    <div
+                      role="tabpanel"
+                      id="commands-panel"
+                      aria-labelledby="commands-tab"
+                    >
+                      <div className="grid grid-cols-1 gap-3">
+                        {generatedResult.commands.length === 0 ? (
+                          <div className="text-center py-10 text-muted-foreground opacity-50">
+                            No commands generated.
+                          </div>
+                        ) : (
+                          generatedResult.commands.map((cmd, idx) => {
+                            const isDuplicate = checkDuplicate(cmd.name);
 
-                          return (
-                            <div
-                              key={idx}
-                              className={cn(
-                                "p-3 rounded-md border border-border bg-card flex flex-col gap-2 shadow-sm relative group transition-all",
-                                isDuplicate &&
-                                  "border-amber-500/50 bg-amber-500/5",
-                              )}
-                            >
-                              {/* Actions */}
-                              <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <button
-                                  onClick={() => startEditCommand(idx)}
-                                  className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
-                                  title="Edit"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => deleteCommand(idx)}
-                                  className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-
-                              <div className="flex items-center gap-2 pr-12">
-                                <span className="font-bold text-sm truncate">
-                                  {cmd.name}
-                                </span>
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] h-5 opacity-50"
-                                >
-                                  {cmd.group || "General"}
-                                </Badge>
-                                {isDuplicate && (
-                                  <span className="text-[10px] text-amber-600 flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 px-1.5 rounded-sm">
-                                    <AlertTriangle className="w-3 h-3" />{" "}
-                                    Duplicate Name
-                                  </span>
+                            return (
+                              <div
+                                key={idx}
+                                className={cn(
+                                  "p-3 rounded-md border border-border bg-card flex flex-col gap-2 shadow-sm relative group transition-all",
+                                  isDuplicate &&
+                                    "border-amber-500/50 bg-amber-500/5",
                                 )}
-                              </div>
-                              <code className="text-xs bg-muted p-1.5 rounded font-mono break-all text-muted-foreground">
-                                {cmd.payload}
-                              </code>
-                              <div className="flex justify-between items-center mt-1">
-                                <div className="flex items-center gap-3">
-                                  {cmd.validation?.enabled && (
-                                    <span className="text-[9px] flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                                      <Check className="w-3 h-3" /> Validated
+                              >
+                                {/* Actions */}
+                                <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                  <button
+                                    onClick={() => startEditCommand(idx)}
+                                    className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                                    aria-label={`Edit command ${cmd.name}`}
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteCommand(idx)}
+                                    className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
+                                    aria-label={`Delete command ${cmd.name}`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+
+                                <div className="flex items-center gap-2 pr-12">
+                                  <span className="font-bold text-sm truncate">
+                                    {cmd.name}
+                                  </span>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] h-5 opacity-50"
+                                  >
+                                    {cmd.group || "General"}
+                                  </Badge>
+                                  {isDuplicate && (
+                                    <span className="text-[10px] text-amber-600 flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 px-1.5 rounded-sm">
+                                      <AlertTriangle className="w-3 h-3" />{" "}
+                                      Duplicate Name
                                     </span>
                                   )}
-                                  {cmd.parameters &&
-                                    cmd.parameters.length > 0 && (
-                                      <span className="text-[9px] flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold">
-                                        <Sliders className="w-3 h-3" />{" "}
-                                        {cmd.parameters.length} Params
+                                </div>
+                                <code className="text-xs bg-muted p-1.5 rounded font-mono break-all text-muted-foreground">
+                                  {cmd.payload}
+                                </code>
+                                <div className="flex justify-between items-center mt-1">
+                                  <div className="flex items-center gap-3">
+                                    {cmd.validation?.enabled && (
+                                      <span className="text-[9px] flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                                        <Check className="w-3 h-3" /> Validated
                                       </span>
                                     )}
+                                    {cmd.parameters &&
+                                      cmd.parameters.length > 0 && (
+                                        <span className="text-[9px] flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold">
+                                          <Sliders className="w-3 h-3" />{" "}
+                                          {cmd.parameters.length} Params
+                                        </span>
+                                      )}
+                                  </div>
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[9px] h-4 ml-auto"
+                                  >
+                                    {cmd.mode}
+                                  </Badge>
                                 </div>
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[9px] h-4 ml-auto"
-                                >
-                                  {cmd.mode}
-                                </Badge>
                               </div>
-                            </div>
-                          );
-                        })
-                      )}
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* SEQUENCES VIEW */}
                   {previewTab === "sequences" && (
-                    <div className="space-y-4">
-                      {generatedResult.sequences.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground opacity-50">
-                          No sequences generated.
-                        </div>
-                      ) : (
-                        generatedResult.sequences.map((seq, idx) => (
-                          <div
-                            key={idx}
-                            className="p-3 rounded-md border border-border bg-card flex flex-col gap-2 shadow-sm relative group"
-                          >
-                            <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => deleteSequence(idx)}
-                                className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                            <div className="flex items-center justify-between border-b pb-2 mb-1 pr-8">
-                              <div className="flex items-center gap-2">
-                                <ListVideo className="w-4 h-4 text-primary" />
-                                <span className="font-bold text-sm">
-                                  {seq.name}
-                                </span>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {seq.steps.length} Steps
-                              </span>
-                            </div>
-                            <div className="space-y-1">
-                              {(seq.steps || []).map((step, sIdx) => (
-                                <div
-                                  key={sIdx}
-                                  className="flex items-center gap-2 text-xs p-1.5 bg-muted/30 rounded"
+                    <div
+                      role="tabpanel"
+                      id="sequences-panel"
+                      aria-labelledby="sequences-tab"
+                    >
+                      <div className="space-y-4">
+                        {generatedResult.sequences.length === 0 ? (
+                          <div className="text-center py-10 text-muted-foreground opacity-50">
+                            No sequences generated.
+                          </div>
+                        ) : (
+                          generatedResult.sequences.map((seq, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 rounded-md border border-border bg-card flex flex-col gap-2 shadow-sm relative group"
+                            >
+                              <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => deleteSequence(idx)}
+                                  className="p-1 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive"
+                                  aria-label={`Delete sequence ${seq.name}`}
                                 >
-                                  <span className="font-mono text-muted-foreground w-4">
-                                    {sIdx + 1}.
-                                  </span>
-                                  <span className="font-medium flex-1">
-                                    {step.commandName}
-                                  </span>
-                                  <span className="text-muted-foreground text-[10px]">
-                                    Wait {step.delay}ms
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <div className="flex items-center justify-between border-b pb-2 mb-1 pr-8">
+                                <div className="flex items-center gap-2">
+                                  <ListVideo className="w-4 h-4 text-primary" />
+                                  <span className="font-bold text-sm">
+                                    {seq.name}
                                   </span>
                                 </div>
-                              ))}
+                                <span className="text-xs text-muted-foreground">
+                                  {seq.steps.length} Steps
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                {(seq.steps || []).map((step, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    className="flex items-center gap-2 text-xs p-1.5 bg-muted/30 rounded"
+                                  >
+                                    <span className="font-mono text-muted-foreground w-4">
+                                      {sIdx + 1}.
+                                    </span>
+                                    <span className="font-medium flex-1">
+                                      {step.commandName}
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]">
+                                      Wait {step.delay}ms
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        ))
-                      )}
+                          ))
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* CONFIG VIEW */}
                   {previewTab === "config" && (
-                    <div className="flex flex-col gap-4">
-                      {Object.keys(generatedResult.config || {}).length ===
-                      0 ? (
-                        <div className="text-center py-10 text-muted-foreground opacity-50">
-                          No configuration changes detected.
+                    <div
+                      role="tabpanel"
+                      id="config-panel"
+                      aria-labelledby="config-tab"
+                    >
+                      <div className="flex flex-col gap-4">
+                        {Object.keys(generatedResult.config || {}).length ===
+                        0 ? (
+                          <div className="text-center py-10 text-muted-foreground opacity-50">
+                            No configuration changes detected.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-4">
+                            {Object.entries(generatedResult.config || {}).map(
+                              ([key, value]) => (
+                                <div
+                                  key={key}
+                                  className="p-3 rounded-md border border-border bg-card flex flex-col gap-1"
+                                >
+                                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                                    {key.replace(/([A-Z])/g, " $1").trim()}
+                                  </span>
+                                  <span className="text-sm font-mono font-medium">
+                                    {String(value)}
+                                  </span>
+                                </div>
+                              ),
+                            )}
+                          </div>
+                        )}
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded text-xs border border-blue-100 dark:border-blue-900">
+                          Note: These settings will be applied to your current
+                          active configuration upon import.
                         </div>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-4">
-                          {Object.entries(generatedResult.config || {}).map(
-                            ([key, value]) => (
-                              <div
-                                key={key}
-                                className="p-3 rounded-md border border-border bg-card flex flex-col gap-1"
-                              >
-                                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                                  {key.replace(/([A-Z])/g, " $1").trim()}
-                                </span>
-                                <span className="text-sm font-mono font-medium">
-                                  {String(value)}
-                                </span>
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      )}
-                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded text-xs border border-blue-100 dark:border-blue-900">
-                        Note: These settings will be applied to your current
-                        active configuration upon import.
                       </div>
                     </div>
                   )}

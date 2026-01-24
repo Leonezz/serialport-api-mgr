@@ -13,7 +13,8 @@ import { useStore } from "../lib/store";
 import { LogLevel, LogCategory } from "../types";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
-import { Select } from "./ui/Select";
+import { SelectDropdown } from "./ui/Select";
+import { DropdownOption } from "./ui/Dropdown";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
 import { Badge } from "./ui/Badge";
 import { cn } from "../lib/utils";
@@ -91,8 +92,14 @@ const SystemLogViewer: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-5xl shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200 h-[85vh] flex flex-col">
+    <div
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={() => setShowSystemLogs(false)}
+    >
+      <Card
+        className="w-full max-w-5xl shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200 h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border bg-muted/20 shrink-0">
           <div className="flex items-center gap-2">
             <FileClock className="w-5 h-5 text-primary" />
@@ -118,34 +125,36 @@ const SystemLogViewer: React.FC = () => {
               className="pl-9 h-9"
             />
           </div>
-          <Select
-            value={levelFilter}
-            onChange={(e) =>
-              setLevelFilter(e.target.value as unknown as LogLevel | "ALL")
-            }
-            className="w-30 h-9"
-          >
-            <option value="ALL">All Levels</option>
-            <option value="INFO">Info</option>
-            <option value="SUCCESS">Success</option>
-            <option value="WARN">Warning</option>
-            <option value="ERROR">Error</option>
-          </Select>
-          <Select
-            value={categoryFilter}
-            onChange={(e) =>
-              setCategoryFilter(
-                e.target.value as unknown as LogCategory | "ALL",
-              )
-            }
-            className="w-35 h-9"
-          >
-            <option value="ALL">All Categories</option>
-            <option value="CONNECTION">Connection</option>
-            <option value="COMMAND">Command</option>
-            <option value="SYSTEM">System</option>
-            <option value="SCRIPT">Script</option>
-          </Select>
+          <div className="w-30">
+            <SelectDropdown
+              options={
+                [
+                  { value: "ALL", label: "All Levels" },
+                  { value: "INFO", label: "Info" },
+                  { value: "SUCCESS", label: "Success" },
+                  { value: "WARN", label: "Warning" },
+                  { value: "ERROR", label: "Error" },
+                ] as DropdownOption<LogLevel | "ALL">[]
+              }
+              value={levelFilter}
+              onChange={(value) => setLevelFilter(value)}
+            />
+          </div>
+          <div className="w-35">
+            <SelectDropdown
+              options={
+                [
+                  { value: "ALL", label: "All Categories" },
+                  { value: "CONNECTION", label: "Connection" },
+                  { value: "COMMAND", label: "Command" },
+                  { value: "SYSTEM", label: "System" },
+                  { value: "SCRIPT", label: "Script" },
+                ] as DropdownOption<LogCategory | "ALL">[]
+              }
+              value={categoryFilter}
+              onChange={(value) => setCategoryFilter(value)}
+            />
+          </div>
           <div className="w-px h-6 bg-border mx-1"></div>
           <Button
             variant="outline"

@@ -16,10 +16,32 @@ import {
   CartesianGrid,
   ReferenceLine,
   Brush,
+  Customized,
 } from "recharts";
 import { getBytes, cn } from "../../lib/utils";
 import { Button } from "../ui/Button";
 import { LogEntry } from "@/types";
+
+/**
+ * LogicAnalyzerPanel Component
+ *
+ * Design System Specifications (FIGMA-DESIGN.md 9.5):
+ * - Stacked channels: RX (Y: 0-1), TX (Y: 2-3) with IDLE at 0.5/2.5
+ * - TX waveform: Blue (#3b82f6)
+ * - RX waveform: Green (#10b981)
+ * - Byte annotations inline on waveform
+ * - Floating controls on hover
+ * - Brush navigator at bottom
+ *
+ * Design Tokens Used:
+ * - `bg-bg-surface`: Container background
+ * - `border-border-default-default`: Container border
+ * - `text-text-muted`: Labels, axis text
+ */
+
+// Waveform colors (consistent with app: TX=blue, RX=green)
+const TX_COLOR = "#3b82f6"; // blue-500
+const RX_COLOR = "#10b981"; // emerald-500
 
 // Logic Level Definitions
 const RX_LOW = 0;
@@ -29,6 +51,120 @@ const RX_HIGH = 1;
 const TX_LOW = 2;
 const TX_IDLE = 2.5;
 const TX_HIGH = 3;
+
+// Byte annotation data structure for rendering
+interface ByteAnnotationData {
+  index: number; // Midpoint index for label
+  startIndex: number; // Byte start (START bit)
+  endIndex: number; // Byte end (after STOP bit)
+  label: string; // e.g., "41 'A'"
+  channel: "TX" | "RX";
+}
+
+// Custom component for rendering byte annotations as a stable SVG layer
+interface ByteAnnotationsProps {
+  xAxisMap?: Record<string, { scale: (val: number) => number }>;
+  yAxisMap?: Record<string, { scale: (val: number) => number }>;
+  annotations: ByteAnnotationData[];
+  domain: { min: number; max: number } | null;
+}
+
+const ByteAnnotations: React.FC<ByteAnnotationsProps> = ({
+  xAxisMap,
+  yAxisMap,
+  annotations,
+  domain,
+}) => {
+  if (!xAxisMap || !yAxisMap || !domain) return null;
+
+  const xScale = xAxisMap["0"]?.scale;
+  const yScale = yAxisMap["0"]?.scale;
+  if (!xScale || !yScale) return null;
+
+  // Only show annotations when zoomed in enough (avoid clutter)
+  const visibleRange = domain.max - domain.min;
+  if (visibleRange > 300) return null; // Hide when too zoomed out
+
+  // Filter to annotations that overlap with visible domain
+  const visibleAnnotations = annotations.filter(
+    (a) => a.endIndex >= domain.min && a.startIndex <= domain.max,
+  );
+
+  // Calculate Y positions for each channel's annotation line
+  const rxLineY = yScale(RX_HIGH) - 20;
+  const txLineY = yScale(TX_HIGH) - 20;
+
+  return (
+    <g className="byte-annotations">
+      {visibleAnnotations.map((anno, idx) => {
+        const xStart = xScale(Math.max(anno.startIndex, domain.min));
+        const xEnd = xScale(Math.min(anno.endIndex, domain.max));
+        const xMid = xScale(anno.index);
+        const lineY = anno.channel === "RX" ? rxLineY : txLineY;
+        const color = anno.channel === "RX" ? RX_COLOR : TX_COLOR;
+        const colorFaded = anno.channel === "RX" ? "#10b98140" : "#3b82f640";
+
+        return (
+          <g key={`anno-${anno.channel}-${idx}`}>
+            {/* Vertical start boundary */}
+            <line
+              x1={xStart}
+              y1={lineY + 8}
+              x2={xStart}
+              y2={lineY + 16}
+              stroke={color}
+              strokeWidth={1}
+              opacity={0.6}
+            />
+            {/* Vertical end boundary */}
+            <line
+              x1={xEnd}
+              y1={lineY + 8}
+              x2={xEnd}
+              y2={lineY + 16}
+              stroke={color}
+              strokeWidth={1}
+              opacity={0.6}
+            />
+            {/* Horizontal line spanning the byte */}
+            <line
+              x1={xStart}
+              y1={lineY + 12}
+              x2={xEnd}
+              y2={lineY + 12}
+              stroke={color}
+              strokeWidth={1.5}
+              opacity={0.4}
+            />
+            {/* Background pill for text */}
+            <rect
+              x={xMid - 24}
+              y={lineY - 6}
+              width={48}
+              height={14}
+              rx={3}
+              fill={colorFaded}
+              className="dark:fill-opacity-30"
+            />
+            {/* Text label */}
+            <text
+              x={xMid}
+              y={lineY + 5}
+              textAnchor="middle"
+              fontSize={9}
+              fontFamily="monospace"
+              fontWeight={600}
+              fill={color}
+              className="select-none pointer-events-none"
+            >
+              {anno.label}
+            </text>
+          </g>
+        );
+      })}
+    </g>
+  );
+};
 
 const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
   // Transform logs into bit streams
@@ -42,6 +178,9 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
       tx?: number;
       byteInfo?: string;
       timestamp?: string;
+      // Byte annotation fields (only set at byte midpoint for labeling)
+      byteAnnotation?: string;
+      byteChannel?: "TX" | "RX";
     }[] = [];
     let globalIndex = 0;
 
@@ -65,6 +204,10 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
       } as Intl.DateTimeFormatOptions);
 
       bytes.forEach((byte, _byteIdx) => {
+        const char =
+          byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : ".";
+        const hex = byte.toString(16).toUpperCase().padStart(2, "0");
+
         // Start Bit (Logic 0)
         // If RX is active, RX=0, TX=IDLE. If TX is active, TX=0 (mapped to 2), RX=IDLE.
         data.push({
@@ -78,13 +221,13 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
         // Data Bits (LSB First)
         for (let b = 0; b < 8; b++) {
           const bitVal = (byte >> b) & 1;
-          const char =
-            byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : ".";
-          const hex = byte.toString(16).toUpperCase().padStart(2, "0");
 
           // RX: bit 0->0, 1->1. TX: bit 0->2, 1->3
           const rxVal = isRx ? (bitVal === 1 ? RX_HIGH : RX_LOW) : RX_IDLE;
           const txVal = !isRx ? (bitVal === 1 ? TX_HIGH : TX_LOW) : TX_IDLE;
+
+          // Add byte annotation at bit 4 (middle of byte) for cleaner display
+          const isMidpoint = b === 4;
 
           data.push({
             index: globalIndex++,
@@ -92,6 +235,11 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
             tx: txVal,
             byteInfo: `Bit ${b}: ${bitVal} (${hex} '${char}')`,
             timestamp: timeStr,
+            // Only add annotation at midpoint
+            ...(isMidpoint && {
+              byteAnnotation: `${hex} '${char}'`,
+              byteChannel: isRx ? "RX" : "TX",
+            }),
           });
         }
 
@@ -118,6 +266,44 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     });
 
     return data;
+  }, [logs]);
+
+  // Extract byte annotations with boundary information
+  const byteAnnotations = useMemo<ByteAnnotationData[]>(() => {
+    const annotations: ByteAnnotationData[] = [];
+    const sortedLogs = [...logs].sort((a, b) => a.timestamp - b.timestamp);
+
+    let globalIndex = 1; // Start after initial IDLE
+
+    sortedLogs.forEach((log) => {
+      const bytes = getBytes(log.data);
+      const isRx = log.direction === "RX";
+
+      bytes.forEach((byte) => {
+        const char =
+          byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : ".";
+        const hex = byte.toString(16).toUpperCase().padStart(2, "0");
+
+        // Each byte: START(1) + DATA(8) + STOP(1) = 10 indices
+        const startIndex = globalIndex;
+        const endIndex = globalIndex + 10;
+        const midIndex = globalIndex + 5; // bit 4 position
+
+        annotations.push({
+          index: midIndex,
+          startIndex,
+          endIndex,
+          label: `${hex} '${char}'`,
+          channel: isRx ? "RX" : "TX",
+        });
+
+        globalIndex += 10; // Move past this byte
+      });
+
+      globalIndex += 4; // IDLE gap between packets
+    });
+
+    return annotations;
   }, [logs]);
 
   // --- Zoom & Pan State ---
@@ -248,9 +434,12 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
         setSafeDomain(newMin, newMax);
       } else {
         // PAN (Wheel or Trackpad Swipe)
-        const pixelDelta = e.deltaX + e.deltaY;
+        // Use deltaX for horizontal scrolling (primary for trackpad horizontal swipe)
+        // Only use deltaY if there's no deltaX (for mouse wheel vertical scroll)
+        const pixelDelta =
+          Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
         const indicesPerPixel = range / chartWidth;
-        const shift = pixelDelta * indicesPerPixel;
+        const shift = pixelDelta * indicesPerPixel * 0.5; // Reduce sensitivity
 
         let newMin = min + shift;
         let newMax = max + shift;
@@ -397,10 +586,8 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
       };
 
       return (
-        <div className="bg-popover border border-border p-2 rounded shadow-lg text-xs font-mono z-50 text-popover-foreground">
-          {time && (
-            <p className="font-bold text-muted-foreground mb-1">{time}</p>
-          )}
+        <div className="bg-bg-elevated border border-border-default p-2 rounded shadow-lg text-xs font-mono z-50 text-text-primary">
+          {time && <p className="font-bold text-text-muted mb-1">{time}</p>}
           <p className="font-bold mb-1 opacity-70">
             Sequence: {Math.round(label)}
           </p>
@@ -409,7 +596,7 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
             <div
               className={
                 rxVal.value === RX_IDLE
-                  ? "text-muted-foreground opacity-50"
+                  ? "text-text-muted opacity-50"
                   : "text-emerald-500"
               }
             >
@@ -421,8 +608,8 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
             <div
               className={
                 txVal.value === TX_IDLE
-                  ? "text-muted-foreground opacity-50"
-                  : "text-violet-500"
+                  ? "text-text-muted opacity-50"
+                  : "text-blue-500"
               }
             >
               TX: {formatValue(txVal.value, "TX")}
@@ -436,7 +623,7 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
 
   if (logs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-card rounded-lg border border-border text-muted-foreground">
+      <div className="flex flex-col items-center justify-center h-full bg-bg-surface rounded-lg border border-border-default text-text-muted">
         <Activity className="w-12 h-12 mb-2 opacity-20" />
         <p className="text-xs">No Data to Analyze</p>
       </div>
@@ -444,12 +631,12 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-lg border border-border overflow-hidden relative group">
+    <div className="flex flex-col h-full bg-bg-surface rounded-lg border border-border-default overflow-hidden relative group">
       {/* Header / Legend / Controls */}
       <div className="absolute top-2 left-4 z-20 flex items-start justify-between w-[calc(100%-2rem)] pointer-events-none">
-        <div className="text-[10px] text-muted-foreground font-mono bg-background/80 backdrop-blur px-2 py-1 rounded border border-border/30">
+        <div className="text-[10px] text-text-muted font-mono bg-bg-surface/80 backdrop-blur px-2 py-1 rounded border border-border-default/30">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-violet-500 rounded-full inline-block"></span>{" "}
+            <span className="w-2 h-2 bg-blue-500 rounded-full inline-block"></span>{" "}
             TX (Upper)
           </div>
           <div className="flex items-center gap-2 mt-0.5">
@@ -458,7 +645,7 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 bg-background/80 backdrop-blur p-1 rounded border border-border/30 pointer-events-auto shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="flex items-center gap-1 bg-zinc-100/90 dark:bg-zinc-800/90 backdrop-blur p-1 rounded border border-zinc-300 dark:border-zinc-600 pointer-events-auto shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Button
             variant="ghost"
             size="icon"
@@ -490,7 +677,7 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
             <ArrowRightToLine className="w-3.5 h-3.5" />
           </Button>
           <div className="w-px h-3 bg-border mx-0.5"></div>
-          <div className="flex items-center gap-1 px-1 text-[9px] text-muted-foreground">
+          <div className="flex items-center gap-1 px-1 text-[9px] text-text-muted">
             <MoveHorizontal className="w-3 h-3" /> Pan/Brush
           </div>
         </div>
@@ -578,47 +765,59 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
             <Line
               type="stepAfter"
               dataKey="rx"
-              stroke="#10b981"
+              stroke={RX_COLOR}
               strokeWidth={2}
               dot={false}
               isAnimationActive={false}
             />
 
-            {/* TX Line (Violet) */}
+            {/* TX Line (Blue) */}
             <Line
               type="stepAfter"
               dataKey="tx"
-              stroke="#8b5cf6"
+              stroke={TX_COLOR}
               strokeWidth={2}
               dot={false}
               isAnimationActive={false}
+            />
+
+            {/* Byte Annotations Layer - rendered using Customized for stability */}
+            <Customized
+              component={(props: Record<string, unknown>) => (
+                <ByteAnnotations
+                  xAxisMap={props.xAxisMap as ByteAnnotationsProps["xAxisMap"]}
+                  yAxisMap={props.yAxisMap as ByteAnnotationsProps["yAxisMap"]}
+                  annotations={byteAnnotations}
+                  domain={domain}
+                />
+              )}
             />
 
             {/* The Windowing Brush */}
             <Brush
               dataKey="index"
               height={30}
-              stroke="hsl(var(--primary))"
-              fill="hsl(var(--background))"
+              stroke="#3b82f6"
+              fill="transparent"
               tickFormatter={() => ""}
               startIndex={domain?.min}
               endIndex={domain?.max}
               onChange={handleBrushChange}
               alwaysShowText={false}
-              className="text-[9px] opacity-80"
+              className="text-[9px] [&_.recharts-brush-slide]:fill-zinc-200/50 dark:[&_.recharts-brush-slide]:fill-zinc-700/50 [&_.recharts-brush-traveller]:fill-zinc-400 dark:[&_.recharts-brush-traveller]:fill-zinc-500"
             >
               <LineChart data={chartData}>
                 <Line
                   type="stepAfter"
                   dataKey="rx"
-                  stroke="#10b981"
+                  stroke={RX_COLOR}
                   dot={false}
                   strokeWidth={1}
                 />
                 <Line
                   type="stepAfter"
                   dataKey="tx"
-                  stroke="#8b5cf6"
+                  stroke={TX_COLOR}
                   dot={false}
                   strokeWidth={1}
                 />

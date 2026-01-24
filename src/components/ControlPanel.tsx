@@ -11,8 +11,10 @@ import {
   Device,
 } from "../types";
 import { Button } from "./ui/Button";
-import { Select } from "./ui/Select";
+import { Select, SelectDropdown } from "./ui/Select";
+import { DropdownOption } from "./ui/Dropdown";
 import { Input } from "./ui/Input";
+import { FileInput, FileInputRef } from "./ui/FileInput";
 import {
   Play,
   Square,
@@ -22,7 +24,7 @@ import {
   Cable,
   Download,
   Upload,
-  Save,
+  Check,
   X,
   RotateCcw,
   Plus,
@@ -79,7 +81,7 @@ const ControlPanel: React.FC<Props> = ({
 
   const [availablePorts, setAvailablePorts] = useState<ISerialPort[]>([]);
   const [selectedPortIndex, setSelectedPortIndex] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<FileInputRef>(null);
   const configScrollRef = useRef<HTMLDivElement>(null);
   const [isConfigScrollable, setIsConfigScrollable] = useState(false);
 
@@ -358,7 +360,7 @@ const ControlPanel: React.FC<Props> = ({
       }
     };
     reader.readAsText(file);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    fileInputRef.current?.reset();
   };
 
   const strategy = config.framing?.strategy || "NONE";
@@ -534,23 +536,21 @@ const ControlPanel: React.FC<Props> = ({
                     {t("cp.baud")}
                   </span>
                   <div className="w-25">
-                    <Select
-                      value={config.baudRate}
-                      onChange={(e) =>
-                        handleChange("baudRate", parseInt(e.target.value))
-                      }
-                      className="h-9 text-xs font-mono bg-muted/30 border-border"
-                      disabled={isConnected}
-                    >
-                      {[
+                    <SelectDropdown
+                      options={[
                         9600, 19200, 38400, 57600, 74880, 115200, 230400,
                         460800, 921600,
-                      ].map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </Select>
+                      ].map(
+                        (r): DropdownOption<number> => ({
+                          value: r,
+                          label: r.toString(),
+                        }),
+                      )}
+                      value={config.baudRate}
+                      onChange={(value) => handleChange("baudRate", value)}
+                      disabled={isConnected}
+                      size="sm"
+                    />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -558,20 +558,18 @@ const ControlPanel: React.FC<Props> = ({
                     Data Bits
                   </span>
                   <div className="w-17.5">
-                    <Select
-                      value={config.dataBits}
-                      onChange={(e) =>
-                        handleChange(
-                          "dataBits",
-                          e.target.value as SerialConfig["dataBits"],
-                        )
+                    <SelectDropdown
+                      options={
+                        [
+                          { value: "Eight", label: "8-bit" },
+                          { value: "Seven", label: "7-bit" },
+                        ] as DropdownOption<SerialConfig["dataBits"]>[]
                       }
-                      className="h-9 text-xs font-mono bg-muted/30 border-border"
+                      value={config.dataBits}
+                      onChange={(value) => handleChange("dataBits", value)}
                       disabled={isConnected}
-                    >
-                      <option value={"Eight"}>8-bit</option>
-                      <option value={"Seven"}>7-bit</option>
-                    </Select>
+                      size="sm"
+                    />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -579,21 +577,19 @@ const ControlPanel: React.FC<Props> = ({
                     Parity
                   </span>
                   <div className="w-20">
-                    <Select
-                      value={config.parity}
-                      onChange={(e) =>
-                        handleChange(
-                          "parity",
-                          e.target.value as unknown as SerialConfig["parity"],
-                        )
+                    <SelectDropdown
+                      options={
+                        [
+                          { value: "None", label: "None" },
+                          { value: "Even", label: "Even" },
+                          { value: "Odd", label: "Odd" },
+                        ] as DropdownOption<SerialConfig["parity"]>[]
                       }
-                      className="h-9 text-xs font-mono bg-muted/30 border-border"
+                      value={config.parity}
+                      onChange={(value) => handleChange("parity", value)}
                       disabled={isConnected}
-                    >
-                      <option value="None">None</option>
-                      <option value="Even">Even</option>
-                      <option value="Odd">Odd</option>
-                    </Select>
+                      size="sm"
+                    />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -601,20 +597,18 @@ const ControlPanel: React.FC<Props> = ({
                     Stop Bits
                   </span>
                   <div className="w-17.5">
-                    <Select
-                      value={config.stopBits}
-                      onChange={(e) =>
-                        handleChange(
-                          "stopBits",
-                          e.target.value as SerialConfig["stopBits"],
-                        )
+                    <SelectDropdown
+                      options={
+                        [
+                          { value: "One", label: "1-bit" },
+                          { value: "Two", label: "2-bit" },
+                        ] as DropdownOption<SerialConfig["stopBits"]>[]
                       }
-                      className="h-9 text-xs font-mono bg-muted/30 border-border"
+                      value={config.stopBits}
+                      onChange={(value) => handleChange("stopBits", value)}
                       disabled={isConnected}
-                    >
-                      <option value={"One"}>1-bit</option>
-                      <option value={"Two"}>2-bit</option>
-                    </Select>
+                      size="sm"
+                    />
                   </div>
                 </div>
 
@@ -713,7 +707,7 @@ const ControlPanel: React.FC<Props> = ({
                           onClick={onUpdateLoadedPreset}
                           title="Update Profile"
                         >
-                          <Save className="w-3.5 h-3.5" />
+                          <Check className="w-3.5 h-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -786,17 +780,15 @@ const ControlPanel: React.FC<Props> = ({
               Project
             </span>
             <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-md border border-border">
-              <input
-                type="file"
+              <FileInput
                 ref={fileInputRef}
-                className="hidden"
                 accept=".json"
                 onChange={handleImportProfile}
               />
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => fileInputRef.current?.open()}
                 className="h-7 w-7 rounded-sm hover:bg-background hover:shadow-sm"
                 title="Load Project Backup"
               >
@@ -835,7 +827,8 @@ const ControlPanel: React.FC<Props> = ({
             {!isConnected ? (
               <Button
                 onClick={handleConnectClick}
-                className="h-9 px-8 bg-primary hover:bg-primary/90 shadow-md font-semibold tracking-wide transition-all hover:scale-105 active:scale-95"
+                variant="primary"
+                className="h-9 px-8 shadow-md font-semibold tracking-wide transition-all hover:scale-105 active:scale-95"
               >
                 <Play className="w-4 h-4 mr-2 fill-current" />{" "}
                 {connectionType === "SERIAL" ? t("cp.open") : t("cp.connect")}

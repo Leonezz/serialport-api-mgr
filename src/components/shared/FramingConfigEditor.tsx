@@ -1,7 +1,8 @@
 import React from "react";
 import { FramingConfig, FramingStrategy } from "../../types";
 import { Input } from "../ui/Input";
-import { Select } from "../ui/Select";
+import { SelectDropdown } from "../ui/Select";
+import { DropdownOption } from "../ui/Dropdown";
 import CodeEditor from "../ui/CodeEditor";
 import { FRAMING } from "../../lib/constants";
 
@@ -83,19 +84,19 @@ export const FramingConfigEditor: React.FC<FramingConfigEditorProps> = ({
             </span>
           )}
         </div>
-        <Select
-          value={strategy}
-          onChange={(e) =>
-            handleStrategyChange(e.target.value as FramingStrategy)
+        <SelectDropdown
+          options={
+            [
+              { value: "NONE", label: "None (Raw Stream)" },
+              { value: "DELIMITER", label: "Delimiter (Char/Hex)" },
+              { value: "TIMEOUT", label: "Timeout (Silence)" },
+              { value: "PREFIX_LENGTH", label: "Prefix Length (Header)" },
+              { value: "SCRIPT", label: "Custom Script (JS)" },
+            ] as DropdownOption<FramingStrategy>[]
           }
-          className="h-9 text-sm w-full"
-        >
-          <option value="NONE">None (Raw Stream)</option>
-          <option value="DELIMITER">Delimiter (Char/Hex)</option>
-          <option value="TIMEOUT">Timeout (Silence)</option>
-          <option value="PREFIX_LENGTH">Prefix Length (Header)</option>
-          <option value="SCRIPT">Custom Script (JS)</option>
-        </Select>
+          value={strategy}
+          onChange={(value) => handleStrategyChange(value)}
+        />
         <p className="text-[10px] text-muted-foreground opacity-70 px-1 pt-1 h-8">
           {strategy === "NONE" &&
             "Data is displayed exactly as received from the buffer."}
@@ -172,17 +173,17 @@ export const FramingConfigEditor: React.FC<FramingConfigEditorProps> = ({
               <div className="text-xs font-bold text-muted-foreground">
                 Byte Order
               </div>
-              <Select
-                value={config.byteOrder || "LE"}
-                onChange={(e) =>
-                  onChange({ byteOrder: e.target.value as "LE" | "BE" })
+              <SelectDropdown
+                options={
+                  [
+                    { value: "LE", label: "Little Endian" },
+                    { value: "BE", label: "Big Endian" },
+                  ] as DropdownOption<"LE" | "BE">[]
                 }
-                className="h-9 text-sm"
+                value={config.byteOrder || "LE"}
+                onChange={(value) => onChange({ byteOrder: value })}
                 disabled={config.prefixLengthSize === 1}
-              >
-                <option value="LE">Little Endian</option>
-                <option value="BE">Big Endian</option>
-              </Select>
+              />
             </div>
           </div>
           <div className="text-[9px] text-muted-foreground opacity-70">

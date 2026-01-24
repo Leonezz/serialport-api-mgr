@@ -13,7 +13,7 @@ import {
 } from "../types";
 import {
   X,
-  Save,
+  Check,
   AlertTriangle,
   Calculator,
   Plus,
@@ -25,7 +25,8 @@ import {
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Textarea } from "./ui/Textarea";
-import { Select } from "./ui/Select";
+import { SelectDropdown } from "./ui/Select";
+import { DropdownOption } from "./ui/Dropdown";
 import { Label } from "./ui/Label";
 import {
   Card,
@@ -35,6 +36,7 @@ import {
   CardFooter,
 } from "./ui/Card";
 import { Badge } from "./ui/Badge";
+import { TabBar, type TabItem } from "./ui/TabBar";
 import { cn, generateId } from "../lib/utils";
 import {
   generateModbusFrame,
@@ -44,6 +46,7 @@ import {
 } from "../services/protocolUtils";
 import { useTranslation } from "react-i18next";
 import CodeEditor from "./ui/CodeEditor";
+import { Checkbox } from "./ui/Checkbox";
 
 interface Props {
   initialData?: Partial<SavedCommand>;
@@ -237,65 +240,29 @@ const CommandFormModal: React.FC<Props> = ({
         </CardHeader>
 
         <div className="flex items-center px-6 pt-4 gap-4 border-b border-border overflow-x-auto no-scrollbar bg-card/50">
-          <button
-            onClick={() => setActiveTab("basic")}
-            className={cn(
-              "pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap",
-              activeTab === "basic"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t("cmd.tab.basic")}
-          </button>
-          <button
-            onClick={() => setActiveTab("params")}
-            className={cn(
-              "pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap",
-              activeTab === "params"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t("cmd.tab.params")}{" "}
-            <Badge variant="secondary" className="px-1 h-4 text-[9px]">
-              {parameters.length}
-            </Badge>
-          </button>
-          <button
-            onClick={() => setActiveTab("processing")}
-            className={cn(
-              "pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap",
-              activeTab === "processing"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t("cmd.tab.processing")}
-          </button>
-          <button
-            onClick={() => setActiveTab("framing")}
-            className={cn(
-              "pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap",
-              activeTab === "framing"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t("cmd.tab.framing")}
-          </button>
-          <button
-            onClick={() => setActiveTab("context")}
-            className={cn(
-              "pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap",
-              activeTab === "context"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t("cmd.tab.context")}
-          </button>
-          <div className="flex-1"></div>
+          <TabBar
+            tabs={
+              [
+                { id: "basic", label: t("cmd.tab.basic") },
+                {
+                  id: "params",
+                  label: t("cmd.tab.params"),
+                  icon: (
+                    <Badge variant="secondary" className="px-1 h-4 text-[9px]">
+                      {parameters.length}
+                    </Badge>
+                  ),
+                },
+                { id: "processing", label: t("cmd.tab.processing") },
+                { id: "framing", label: t("cmd.tab.framing") },
+                { id: "context", label: t("cmd.tab.context") },
+              ] as TabItem[]
+            }
+            activeTab={activeTab}
+            onTabChange={(tabId) => setActiveTab(tabId as typeof activeTab)}
+            className="border-b-0"
+          />
+          <div className="flex-1" />
           <button
             onClick={() => setActiveTab("protocol")}
             className={cn(
@@ -337,28 +304,30 @@ const CommandFormModal: React.FC<Props> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>{t("cmd.format")}</Label>
-                    <Select
-                      value={mode}
-                      onChange={(e) =>
-                        setMode(e.target.value as unknown as DataMode)
+                    <SelectDropdown
+                      options={
+                        [
+                          { value: "TEXT", label: "TEXT" },
+                          { value: "HEX", label: "HEX" },
+                        ] as DropdownOption<DataMode>[]
                       }
-                    >
-                      <option value="TEXT">TEXT</option>
-                      <option value="HEX">HEX</option>
-                    </Select>
+                      value={mode}
+                      onChange={(value) => setMode(value)}
+                    />
                   </div>
                   {mode === "TEXT" && (
                     <div className="space-y-2">
                       <Label>Encoding</Label>
-                      <Select
-                        value={encoding}
-                        onChange={(e) =>
-                          setEncoding(e.target.value as unknown as TextEncoding)
+                      <SelectDropdown
+                        options={
+                          [
+                            { value: "UTF-8", label: "UTF-8" },
+                            { value: "ASCII", label: "ASCII" },
+                          ] as DropdownOption<TextEncoding>[]
                         }
-                      >
-                        <option value="UTF-8">UTF-8</option>
-                        <option value="ASCII">ASCII</option>
-                      </Select>
+                        value={encoding}
+                        onChange={(value) => setEncoding(value)}
+                      />
                     </div>
                   )}
                 </div>
@@ -425,20 +394,21 @@ const CommandFormModal: React.FC<Props> = ({
                       </div>
                       <div className="col-span-2 space-y-1">
                         <Label className="text-[10px]">Type</Label>
-                        <Select
-                          value={param.type}
-                          onChange={(e) =>
-                            updateParameter(idx, {
-                              type: e.target.value as ParameterType,
-                            })
+                        <SelectDropdown
+                          options={
+                            [
+                              { value: "STRING", label: "String" },
+                              { value: "INTEGER", label: "Integer" },
+                              { value: "FLOAT", label: "Float" },
+                              { value: "BOOLEAN", label: "Boolean" },
+                            ] as DropdownOption<ParameterType>[]
                           }
-                          className="h-8 text-xs"
-                        >
-                          <option value="STRING">String</option>
-                          <option value="INTEGER">Integer</option>
-                          <option value="FLOAT">Float</option>
-                          <option value="BOOLEAN">Boolean</option>
-                        </Select>
+                          value={param.type}
+                          onChange={(value) =>
+                            updateParameter(idx, { type: value })
+                          }
+                          size="sm"
+                        />
                       </div>
                       <div className="col-span-3 space-y-1">
                         <Label className="text-[10px]">Default</Label>
@@ -473,21 +443,12 @@ const CommandFormModal: React.FC<Props> = ({
             {activeTab === "processing" && (
               <CardContent className="pt-6 space-y-8 h-full flex flex-col">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="chk-pre"
-                      checked={preRequestEnabled}
-                      onChange={(e) => setPreRequestEnabled(e.target.checked)}
-                      className="h-4 w-4 rounded border-input"
-                    />
-                    <Label
-                      htmlFor="chk-pre"
-                      className="cursor-pointer font-bold text-sm"
-                    >
-                      Enable Pre-Request Handling
-                    </Label>
-                  </div>
+                  <Checkbox
+                    checked={preRequestEnabled}
+                    onChange={(e) => setPreRequestEnabled(e.target.checked)}
+                    label="Enable Pre-Request Handling"
+                    labelClassName="font-bold text-sm"
+                  />
                   {preRequestEnabled && (
                     <div className="pl-6 space-y-2 animate-in slide-in-from-top-1">
                       <CodeEditor
@@ -505,21 +466,12 @@ const CommandFormModal: React.FC<Props> = ({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="chk-post"
-                      checked={postResponseEnabled}
-                      onChange={(e) => setPostResponseEnabled(e.target.checked)}
-                      className="h-4 w-4 rounded border-input"
-                    />
-                    <Label
-                      htmlFor="chk-post"
-                      className="cursor-pointer font-bold text-sm"
-                    >
-                      Enable Post-Response Handling
-                    </Label>
-                  </div>
+                  <Checkbox
+                    checked={postResponseEnabled}
+                    onChange={(e) => setPostResponseEnabled(e.target.checked)}
+                    label="Enable Post-Response Handling"
+                    labelClassName="font-bold text-sm"
+                  />
 
                   {postResponseEnabled && (
                     <div className="pl-6 space-y-4 animate-in slide-in-from-top-1">
@@ -582,18 +534,17 @@ const CommandFormModal: React.FC<Props> = ({
                         <div className="p-4 bg-muted/20 border border-border rounded-lg grid grid-cols-3 gap-4 animate-in fade-in">
                           <div className="space-y-1">
                             <Label className="text-[10px]">Type</Label>
-                            <Select
-                              className="h-8 text-xs"
-                              value={matchType}
-                              onChange={(e) =>
-                                setMatchType(
-                                  e.target.value as unknown as MatchType,
-                                )
+                            <SelectDropdown
+                              options={
+                                [
+                                  { value: "CONTAINS", label: "Contains" },
+                                  { value: "REGEX", label: "Regex" },
+                                ] as DropdownOption<MatchType>[]
                               }
-                            >
-                              <option value="CONTAINS">Contains</option>
-                              <option value="REGEX">Regex</option>
-                            </Select>
+                              value={matchType}
+                              onChange={(value) => setMatchType(value)}
+                              size="sm"
+                            />
                           </div>
                           <div className="col-span-2 space-y-1">
                             <Label className="text-[10px]">Pattern</Label>
@@ -649,34 +600,28 @@ const CommandFormModal: React.FC<Props> = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="chk-frm"
-                      checked={framingEnabled}
-                      onChange={(e) => setFramingEnabled(e.target.checked)}
-                      className="h-4 w-4 rounded border-input"
-                    />
-                    <Label htmlFor="chk-frm" className="font-bold">
-                      Override Global Framing
-                    </Label>
-                  </div>
+                  <Checkbox
+                    checked={framingEnabled}
+                    onChange={(e) => setFramingEnabled(e.target.checked)}
+                    label="Override Global Framing"
+                    labelClassName="font-bold"
+                  />
                   {framingEnabled && (
-                    <Select
-                      value={framingPersistence}
-                      onChange={(e) =>
-                        setFramingPersistence(
-                          e.target
-                            .value as unknown as SavedCommand["framingPersistence"],
-                        )
+                    <SelectDropdown
+                      options={
+                        [
+                          { value: "TRANSIENT", label: "Transient (One-Shot)" },
+                          {
+                            value: "PERSISTENT",
+                            label: "Persistent (Change Global)",
+                          },
+                        ] as DropdownOption<"TRANSIENT" | "PERSISTENT">[]
                       }
-                      className="h-8 text-xs w-45"
-                    >
-                      <option value="TRANSIENT">Transient (One-Shot)</option>
-                      <option value="PERSISTENT">
-                        Persistent (Change Global)
-                      </option>
-                    </Select>
+                      value={framingPersistence}
+                      onChange={(value) => setFramingPersistence(value)}
+                      size="sm"
+                      className="w-45"
+                    />
                   )}
                 </div>
 
@@ -685,11 +630,21 @@ const CommandFormModal: React.FC<Props> = ({
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <Label className="text-xs">Strategy</Label>
-                        <Select
+                        <SelectDropdown
+                          options={
+                            [
+                              { value: "NONE", label: "None (Raw Stream)" },
+                              { value: "DELIMITER", label: "Delimiter" },
+                              { value: "TIMEOUT", label: "Timeout" },
+                              {
+                                value: "PREFIX_LENGTH",
+                                label: "Prefix Length",
+                              },
+                              { value: "SCRIPT", label: "Custom Script" },
+                            ] as DropdownOption<FramingStrategy>[]
+                          }
                           value={framingConfig.strategy}
-                          onChange={(e) => {
-                            const newStrategy = e.target
-                              .value as FramingStrategy;
+                          onChange={(newStrategy) => {
                             let newScript = framingConfig.script;
 
                             // Add default script example if switching to SCRIPT mode and it's empty
@@ -711,9 +666,9 @@ if (forceFlush) {
         offset += c.data.length;
     }
     // Return single combined frame
-    return { 
-        frames: [{ data: merged, timestamp: Date.now() }], 
-        remaining: [] 
+    return {
+        frames: [{ data: merged, timestamp: Date.now() }],
+        remaining: []
     };
 }
 
@@ -727,14 +682,7 @@ return { frames: [], remaining: chunks };`;
                               script: newScript,
                             });
                           }}
-                          className="h-9 text-sm"
-                        >
-                          <option value="NONE">None (Raw Stream)</option>
-                          <option value="DELIMITER">Delimiter</option>
-                          <option value="TIMEOUT">Timeout</option>
-                          <option value="PREFIX_LENGTH">Prefix Length</option>
-                          <option value="SCRIPT">Custom Script</option>
-                        </Select>
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Timeout (ms)</Label>
@@ -789,20 +737,21 @@ return { frames: [], remaining: chunks };`;
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Byte Order</Label>
-                          <Select
+                          <SelectDropdown
+                            options={
+                              [
+                                { value: "LE", label: "Little Endian" },
+                                { value: "BE", label: "Big Endian" },
+                              ] as DropdownOption<"LE" | "BE">[]
+                            }
                             value={framingConfig.byteOrder}
-                            onChange={(e) =>
+                            onChange={(value) =>
                               setFramingConfig({
                                 ...framingConfig,
-                                byteOrder: e.target
-                                  .value as unknown as SavedCommand["responseFraming"]["byteOrder"],
+                                byteOrder: value,
                               })
                             }
-                            className="h-9 text-sm"
-                          >
-                            <option value="LE">Little Endian</option>
-                            <option value="BE">Big Endian</option>
-                          </Select>
+                          />
                         </div>
                       </div>
                     )}
@@ -832,32 +781,20 @@ return { frames: [], remaining: chunks };`;
                     <Label>Context ID / Link</Label>
                     <div className="space-y-2">
                       {contexts.map((context) => (
-                        <div
+                        <Checkbox
                           key={context.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <input
-                            type="checkbox"
-                            id={`context-${context.id}`}
-                            checked={contextIds.includes(context.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setContextIds([...contextIds, context.id]);
-                              } else {
-                                setContextIds(
-                                  contextIds.filter((id) => id !== context.id),
-                                );
-                              }
-                            }}
-                            className="rounded"
-                          />
-                          <label
-                            htmlFor={`context-${context.id}`}
-                            className="text-sm"
-                          >
-                            {context.title}
-                          </label>
-                        </div>
+                          checked={contextIds.includes(context.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setContextIds([...contextIds, context.id]);
+                            } else {
+                              setContextIds(
+                                contextIds.filter((id) => id !== context.id),
+                              );
+                            }
+                          }}
+                          label={context.title}
+                        />
                       ))}
                     </div>
                   </div>
@@ -967,22 +904,22 @@ return { frames: [], remaining: chunks };`;
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Function</Label>
-                        <Select
+                        <SelectDropdown
+                          options={MODBUS_FUNCTIONS.map(
+                            (f): DropdownOption<number> => ({
+                              value: f.code,
+                              label: f.name,
+                            }),
+                          )}
                           value={mbParams.functionCode}
-                          onChange={(e) =>
+                          onChange={(value) =>
                             setMbParams({
                               ...mbParams,
-                              functionCode: parseInt(e.target.value),
+                              functionCode: value,
                             })
                           }
-                          className="h-8 text-xs"
-                        >
-                          {MODBUS_FUNCTIONS.map((f) => (
-                            <option key={f.code} value={f.code}>
-                              {f.name}
-                            </option>
-                          ))}
-                        </Select>
+                          size="sm"
+                        />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Start Address</Label>
@@ -1078,7 +1015,7 @@ return { frames: [], remaining: chunks };`;
               {t("modal.cancel")}
             </Button>
             <Button type="submit">
-              <Save className="w-4 h-4 mr-2" /> {t("modal.save")}
+              <Check className="w-4 h-4 mr-2" /> {t("modal.save")}
             </Button>
           </CardFooter>
         </form>

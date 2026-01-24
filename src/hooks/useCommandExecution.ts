@@ -9,6 +9,11 @@ import {
 import { executeUserScript } from "../lib/scripting";
 import { useStore } from "../lib/store";
 import { calculateChecksum, encodeText } from "../lib/dataUtils";
+import {
+  applyParameters,
+  collectPositionParameters,
+  applyPositionParameters,
+} from "../lib/parameterUtils";
 import { generateId, getErrorMessage } from "../lib/utils";
 import { TIMING } from "../lib/constants";
 
@@ -82,8 +87,21 @@ export function useCommandExecution(
       throw new Error("Port not connected");
     }
 
+    // Apply parameters to payload using the new parameter system
+    let processedData = data;
+    if (cmdInfo && Object.keys(params).length > 0) {
+      processedData = applyParameters(data, params, cmdInfo);
+      if (processedData !== data) {
+        addSystemLog("INFO", "COMMAND", `Applied parameters to payload`, {
+          original: data,
+          processed: processedData,
+          params,
+        });
+      }
+    }
+
     // Scripting: Pre-Request
-    let payloadToProcess: string | Uint8Array = data;
+    let payloadToProcess: string | Uint8Array = processedData;
     let isRawBytes = false;
 
     if (cmdInfo?.scripting?.enabled && cmdInfo.scripting.preRequestScript) {
@@ -96,7 +114,7 @@ export function useCommandExecution(
             `[${cmdInfo.name} Pre-Req] Log: ${msg}`,
           );
         };
-        const scriptArgs = { payload: data, params, log };
+        const scriptArgs = { payload: processedData, params, log };
         const result = executeUserScript(
           cmdInfo.scripting.preRequestScript,
           scriptArgs,
@@ -115,7 +133,7 @@ export function useCommandExecution(
           "SCRIPT",
           `Executed pre-request script for ${cmdInfo.name}`,
           {
-            arguments: { payload: data, params },
+            arguments: { payload: processedData, params },
             returnValue: result === undefined ? "undefined" : result,
           },
         );
@@ -267,6 +285,25 @@ export function useCommandExecution(
           dataBytes = bytes;
         } else {
           dataBytes = encodeText(textPayload, currentEncoding);
+        }
+      }
+
+      // Apply position-mode parameters for binary protocols
+      if (cmdInfo && Object.keys(params).length > 0) {
+        const positionParams = collectPositionParameters(params, cmdInfo);
+        if (positionParams.length > 0) {
+          dataBytes = applyPositionParameters(dataBytes, positionParams);
+          addSystemLog(
+            "INFO",
+            "COMMAND",
+            `Applied ${positionParams.length} position parameter(s) to binary payload`,
+            {
+              positions: positionParams.map((p) => ({
+                name: p.name,
+                offset: p.offset,
+              })),
+            },
+          );
         }
       }
 

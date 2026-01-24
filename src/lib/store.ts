@@ -5,6 +5,7 @@ import { createUISlice, UISlice } from "./slices/uiSlice";
 import { createProjectSlice, ProjectSlice } from "./slices/projectSlice";
 import { createSessionSlice, SessionSlice } from "./slices/sessionSlice";
 import { createDeviceSlice, DeviceSlice } from "./slices/deviceSlice";
+import { createProtocolSlice, ProtocolSlice } from "./slices/protocolSlice";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import {
   PersistedStoreStateSchema,
@@ -19,15 +20,84 @@ import {
   ProjectContext,
   ThemeColor,
 } from "../types";
+import type { Protocol } from "./protocolTypes";
+import { IS_TAURI } from "./tauriEnv";
 
-const store = new LazyStore("settings.json");
+// Only create LazyStore if running in Tauri (uses official isTauri() API)
+const store = IS_TAURI ? new LazyStore("settings.json") : null;
 
 type Device = z.infer<typeof DeviceSchema>;
+
+/**
+ * localStorage fallback for browser mode (when Tauri is not available)
+ */
+const createLocalStorageFallback = () => {
+  const STORAGE_KEY = "serialport-store-fallback";
+  return {
+    getItem: async (name: string): Promise<string | null> => {
+      try {
+        const key = `${STORAGE_KEY}-${name}`;
+        const rawData = localStorage.getItem(key);
+        if (!rawData) return null;
+
+        const parsedData = JSON.parse(rawData);
+        const validationResult =
+          PersistedStoreStateSchema.safeParse(parsedData);
+
+        if (validationResult.success === false) {
+          console.warn(
+            "[LocalStorage] Validation failed, attempting recovery...",
+          );
+          const recovered = recoverPartialState(
+            parsedData,
+            validationResult.error,
+          );
+          const recoveredJson = JSON.stringify(recovered);
+          localStorage.setItem(key, recoveredJson);
+          return recoveredJson;
+        }
+
+        if (!validationResult.data.__version) {
+          validationResult.data.__version = STORE_VERSION;
+        }
+
+        return rawData;
+      } catch (error) {
+        console.error("[LocalStorage] Error loading:", error);
+        return null;
+      }
+    },
+
+    setItem: async (name: string, value: string): Promise<void> => {
+      try {
+        const key = `${STORAGE_KEY}-${name}`;
+        const parsedValue = JSON.parse(value);
+        const versionedValue = { ...parsedValue, __version: STORE_VERSION };
+        localStorage.setItem(key, JSON.stringify(versionedValue));
+      } catch (error) {
+        console.error("[LocalStorage] Error saving:", error);
+      }
+    },
+
+    removeItem: async (name: string): Promise<void> => {
+      const key = `${STORAGE_KEY}-${name}`;
+      localStorage.removeItem(key);
+    },
+  };
+};
 
 /**
  * Schema-aware Tauri storage with validation and error recovery
  */
 const createSchemaAwareTauriStorage = () => {
+  // Use localStorage fallback if not running in Tauri build
+  if (!store) {
+    console.info(
+      "[Store] Running in browser mode (non-Tauri build), using localStorage fallback for persistence",
+    );
+    return createLocalStorageFallback();
+  }
+
   return {
     getItem: async (name: string): Promise<string | null> => {
       try {
@@ -122,8 +192,15 @@ const createSchemaAwareTauriStorage = () => {
 function recoverPartialState(
   data: unknown,
   _error: ZodError,
-): typeof DEFAULT_PERSISTED_STATE & { devices: Device[] } {
-  const recovered = { ...DEFAULT_PERSISTED_STATE, devices: [] as Device[] };
+): typeof DEFAULT_PERSISTED_STATE & {
+  devices: Device[];
+  protocols: Protocol[];
+} {
+  const recovered = {
+    ...DEFAULT_PERSISTED_STATE,
+    devices: [] as Device[],
+    protocols: [] as Protocol[],
+  };
 
   if (!data || typeof data !== "object") {
     return recovered;
@@ -221,6 +298,21 @@ function recoverPartialState(
     console.warn("Failed to recover devices:", e);
   }
 
+  // Try to recover protocols
+  try {
+    if (Array.isArray(dataObj.protocols)) {
+      recovered.protocols = dataObj.protocols.filter(
+        (p: unknown) =>
+          p &&
+          typeof p === "object" &&
+          typeof (p as Record<string, unknown>).id === "string" &&
+          typeof (p as Record<string, unknown>).name === "string",
+      ) as Protocol[];
+    }
+  } catch (e) {
+    console.warn("Failed to recover protocols:", e);
+  }
+
   // Try to recover session data
   try {
     if (dataObj.sessions && typeof dataObj.sessions === "object") {
@@ -249,7 +341,11 @@ function recoverPartialState(
 
 const tauriStorage = createSchemaAwareTauriStorage();
 
-type AppState = UISlice & ProjectSlice & SessionSlice & DeviceSlice;
+type AppState = UISlice &
+  ProjectSlice &
+  SessionSlice &
+  DeviceSlice &
+  ProtocolSlice;
 
 export const useStore = create<AppState>()(
   devtools(
@@ -259,6 +355,7 @@ export const useStore = create<AppState>()(
         ...createProjectSlice(...a),
         ...createSessionSlice(...a),
         ...createDeviceSlice(...a),
+        ...createProtocolSlice(...a),
       }),
       {
         name: "serialport-store",
@@ -313,10 +410,14 @@ export const useStore = create<AppState>()(
               merged.loadedPresetId = data.loadedPresetId;
 
             // Devices (Manually handled since not in main schema yet)
-
             const anyData = data as Record<string, unknown>;
             if (anyData.devices && Array.isArray(anyData.devices)) {
               merged.devices = anyData.devices as AppState["devices"];
+            }
+
+            // Protocol system data (new)
+            if (anyData.protocols && Array.isArray(anyData.protocols)) {
+              merged.protocols = anyData.protocols as AppState["protocols"];
             }
 
             // Session data - cast to proper types since validation passed
@@ -336,14 +437,18 @@ export const useStore = create<AppState>()(
           // UI preferences
           themeMode: state.themeMode,
           themeColor: state.themeColor,
+          sidebarSectionsCollapsed: state.sidebarSectionsCollapsed,
 
-          // Project data
+          // Legacy project data (keeping for backward compatibility during migration)
           presets: state.presets,
           commands: state.commands,
           sequences: state.sequences,
           contexts: state.contexts,
           loadedPresetId: state.loadedPresetId,
           devices: state.devices,
+
+          // New protocol system data
+          protocols: state.protocols,
 
           // Session configs only (not runtime state like isConnected, logs)
           sessions: Object.fromEntries(

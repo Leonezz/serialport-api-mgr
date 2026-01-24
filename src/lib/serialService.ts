@@ -7,7 +7,7 @@ import {
 import { GenericPort } from "./connection";
 import { TauriSerialAPI, TauriEventNames, listenToTauriEvent } from "./tauri";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import "../../vite-env.d.ts";
+import { IS_TAURI, logTauriEnvInfo } from "./tauriEnv";
 
 export interface ISerialPort extends GenericPort {
   open(options: SerialOptions): Promise<void>;
@@ -184,11 +184,8 @@ class TauriProvider implements ISerialProvider {
   private eventListeners: Map<string, ((e: Event) => void)[]> = new Map();
 
   isSupported() {
-    // Check if running in Tauri environment
-    return (
-      typeof __TAURI_ENV_TARGET_TRIPLE__ !== "undefined" &&
-      !!__TAURI_ENV_TARGET_TRIPLE__
-    );
+    // Check if running in Tauri environment (uses official isTauri() API)
+    return IS_TAURI;
   }
 
   async getPorts(): Promise<ISerialPort[]> {
@@ -259,25 +256,18 @@ class TauriProvider implements ISerialProvider {
 // Auto-detect and create appropriate provider
 function createSerialProvider(): ISerialProvider {
   // Priority: Tauri (if available) > WebSerial (browser)
-  console.log(`Detecting serial provider...,
-        TAURI_PLATFORM: ${__TAURI_ENV_TARGET_TRIPLE__},
-        TAURI_PLATFORM_VERSION: ${__TAURI_ENV_PLATFORM_VERSION__},
-        TAURI_DEBUG: ${__TAURI_ENV_DEBUG__},
-        __TAURI__: ${typeof window !== "undefined" ? "__TAURI__" in window : "n/a"},
-        __TAURI_INTERNALs__: ${typeof window !== "undefined" ? "__TAURI_INTERNALs__" in window : "n/a"},
-        navigator.serial: ${typeof navigator !== "undefined" ? "serial" in navigator : "n/a"}`);
-  if (
-    typeof __TAURI_ENV_TARGET_TRIPLE__ !== "undefined" &&
-    __TAURI_ENV_TARGET_TRIPLE__
-  ) {
-    console.log("Using Tauri Serial Provider");
+  console.log("[SerialService] Detecting serial provider...");
+  logTauriEnvInfo();
+
+  if (IS_TAURI) {
+    console.log("[SerialService] Using Tauri Serial Provider");
     return new TauriProvider();
   } else if (typeof navigator !== "undefined" && "serial" in navigator) {
-    console.log("Using WebSerial Provider");
+    console.log("[SerialService] Using WebSerial Provider");
     return new WebSerialProvider();
   } else {
     console.warn(
-      "No serial provider available. Falling back to WebSerial (will fail)",
+      "[SerialService] No serial provider available. Falling back to WebSerial (will fail)",
     );
     return new WebSerialProvider();
   }

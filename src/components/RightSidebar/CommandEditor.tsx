@@ -1,18 +1,20 @@
 import React, { useState } from "react";
-
-import { Plus, Trash2, Check } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "../ui/Button";
+import { IconButton } from "../ui/IconButton";
 import { Input } from "../ui/Input";
 import { Textarea } from "../ui/Textarea";
-import { Select } from "../ui/Select";
+import { SelectDropdown } from "../ui/Select";
+import { DropdownOption } from "../ui/Dropdown";
 import { Label } from "../ui/Label";
+import { SegmentedControl } from "../ui/SegmentedControl";
 import { cn, generateId } from "../../lib/utils";
-import {
-  generateModbusFrame,
-  MODBUS_FUNCTIONS,
-  AT_COMMAND_LIBRARY,
-  ModbusParams,
-} from "../../services/protocolUtils";
 import { useStore } from "../../lib/store";
 import type {
   RightSidebarTab,
@@ -22,76 +24,219 @@ import type {
   TextEncoding,
   ParameterType,
   MatchType,
-  FramingStrategy,
+  VariableSyntax,
+  VariableExtractionRule,
+  ValidationMode,
 } from "../../types";
 import CodeEditor from "../ui/CodeEditor";
+import ParameterModeEditor from "../ui/ParameterModeEditor";
+import VariableExtractionEditor from "../ui/VariableExtractionEditor";
+import { Checkbox } from "../ui/Checkbox";
+import { Radio, RadioGroup } from "../ui/Radio";
+import { NumberInput } from "../ui/NumberInput";
 import { useTranslation } from "react-i18next";
-
-const DEFAULT_FRAMER_SCRIPT = `// Custom Framer Script
-// Args: chunks, forceFlush
-if (forceFlush) {
-    const totalLen = chunks.reduce((acc, c) => acc + c.data.length, 0);
-    const merged = new Uint8Array(totalLen);
-    let offset = 0;
-    for(const c of chunks) {
-        merged.set(c.data, offset);
-        offset += c.data.length;
-    }
-    return { frames: [{ data: merged, timestamp: Date.now() }], remaining: [] };
-}
-return { frames: [], remaining: chunks };`;
 
 interface Props {
   activeTab: RightSidebarTab;
 }
 
-// Utility: Card Style Selector
-const ToggleGroup = <T extends string>({
-  options,
-  value,
-  onChange,
-  className,
-}: {
-  options: { value: T; label: React.ReactNode }[];
-  value: T;
-  onChange: (val: T) => void;
-  className?: string;
-}) => (
-  <div
-    className={cn(
-      "flex bg-muted p-1 rounded-md border border-border h-8 items-center",
-      className,
-    )}
-  >
-    {options.map((opt) => (
-      <button
-        key={opt.value}
-        onClick={() => onChange(opt.value)}
+// Variable Syntax Options
+const VARIABLE_SYNTAX_OPTIONS: {
+  value: VariableSyntax;
+  label: string;
+  example: string;
+}[] = [
+  { value: "SHELL", label: "${name} (Default)", example: "${ssid}" },
+  { value: "MUSTACHE", label: "{{name}} (Mustache)", example: "{{ssid}}" },
+  { value: "BATCH", label: "%name% (Batch)", example: "%ssid%" },
+  { value: "COLON", label: ":name (SQL-like)", example: ":ssid" },
+  { value: "BRACES", label: "{name} (Braces)", example: "{ssid}" },
+  { value: "CUSTOM", label: "Custom Regex", example: "user-defined" },
+];
+
+// Parameter Card Component
+interface ParameterCardProps {
+  param: CommandParameter;
+  index: number;
+  onUpdate: (updates: Partial<CommandParameter>) => void;
+  onDelete: () => void;
+}
+
+const ParameterCard: React.FC<ParameterCardProps> = ({
+  param,
+  index,
+  onUpdate,
+  onDelete,
+}) => {
+  const [expanded, setExpanded] = useState(true);
+
+  // Get display info for collapsed state
+  const modeLabel = param.application?.mode || "SUBSTITUTE";
+  const typeLabel = param.type || "STRING";
+
+  return (
+    <div className="border rounded-lg bg-card overflow-hidden">
+      {/* Card Header - Collapsed View */}
+      <div
         className={cn(
-          "flex-1 text-[10px] font-bold h-full px-2 rounded-sm transition-all flex items-center justify-center gap-1.5",
-          value === opt.value
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+          "flex items-center gap-2 px-3 py-2 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors",
+          !expanded && "border-b-0",
         )}
+        onClick={() => setExpanded(!expanded)}
       >
-        {opt.label}
-      </button>
-    ))}
-  </div>
-);
+        <IconButton
+          variant="ghost"
+          size="xs"
+          aria-label={expanded ? "Collapse parameter" : "Expand parameter"}
+          className="shrink-0"
+        >
+          {expanded ? (
+            <ChevronDown className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5" />
+          )}
+        </IconButton>
+        <span className="font-mono text-xs font-medium text-primary">
+          ${param.name || `param${index + 1}`}
+        </span>
+        <span className="text-[9px] text-muted-foreground flex-1">
+          {typeLabel} • {modeLabel}
+          {param.required && " • Required"}
+        </span>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="h-5 w-5 text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+
+      {/* Expanded Content */}
+      {expanded && (
+        <div className="p-3 space-y-4 animate-in slide-in-from-top-1">
+          {/* Parameter Info Section */}
+          <div className="space-y-3">
+            <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+              Parameter Info
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[9px]">Variable Name</Label>
+                <Input
+                  value={param.name}
+                  onChange={(e) => onUpdate({ name: e.target.value })}
+                  className="h-7 text-xs font-mono"
+                  placeholder="varName"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px]">Type</Label>
+                <SelectDropdown
+                  options={
+                    [
+                      { value: "STRING", label: "String" },
+                      { value: "INTEGER", label: "Integer" },
+                      { value: "FLOAT", label: "Float" },
+                      { value: "BOOLEAN", label: "Boolean" },
+                      { value: "ENUM", label: "Enum" },
+                    ] as DropdownOption<ParameterType>[]
+                  }
+                  value={param.type}
+                  onChange={(value) => onUpdate({ type: value })}
+                  size="sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[9px]">Display Label</Label>
+                <Input
+                  value={param.label || ""}
+                  onChange={(e) => onUpdate({ label: e.target.value })}
+                  className="h-7 text-xs"
+                  placeholder="Human Readable Label"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px]">Default Value</Label>
+                <Input
+                  value={String(param.defaultValue ?? "")}
+                  onChange={(e) => onUpdate({ defaultValue: e.target.value })}
+                  className="h-7 text-xs"
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Checkbox
+                checked={param.required || false}
+                onChange={(e) => onUpdate({ required: e.target.checked })}
+                label="Required"
+                labelClassName="text-xs"
+              />
+
+              {(param.type === "INTEGER" || param.type === "FLOAT") && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-[9px]">Range:</Label>
+                  <Input
+                    type="number"
+                    value={param.min ?? ""}
+                    onChange={(e) =>
+                      onUpdate({
+                        min: e.target.value
+                          ? Number(e.target.value)
+                          : undefined,
+                      })
+                    }
+                    className="h-6 text-[10px] w-16"
+                    placeholder="Min"
+                  />
+                  <span className="text-muted-foreground">-</span>
+                  <Input
+                    type="number"
+                    value={param.max ?? ""}
+                    onChange={(e) =>
+                      onUpdate({
+                        max: e.target.value
+                          ? Number(e.target.value)
+                          : undefined,
+                      })
+                    }
+                    className="h-6 text-[10px] w-16"
+                    placeholder="Max"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Application Mode Section */}
+          <div className="border-t border-border/50 pt-3">
+            <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-3">
+              Application Mode
+            </div>
+            <ParameterModeEditor
+              application={param.application || { mode: "SUBSTITUTE" }}
+              onChange={(application) => onUpdate({ application })}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CommandEditor: React.FC<Props> = ({ activeTab }) => {
   const { t } = useTranslation();
-  const { editingCommand, setEditingCommand, contexts, devices } = useStore();
-
-  // Local state for Protocol Wizard
-  const [protoType, setProtoType] = useState<"MODBUS" | "AT">("MODBUS");
-  const [mbParams, setMbParams] = useState<ModbusParams>({
-    slaveId: 1,
-    functionCode: 3,
-    startAddress: 0,
-    quantityOrValue: 1,
-  });
+  const { editingCommand, setEditingCommand, devices } = useStore();
 
   if (!editingCommand) return null;
 
@@ -114,6 +259,7 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
       type: "STRING",
       label: "",
       defaultValue: "",
+      application: { mode: "SUBSTITUTE" },
     });
     updateCmd({ parameters: newParams });
   };
@@ -124,99 +270,216 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
     updateCmd({ parameters: newParams });
   };
 
-  // --- Render Tabs ---
+  // Detect variables in payload based on syntax
+  const detectVariables = (
+    payload: string,
+    syntax: VariableSyntax,
+  ): string[] => {
+    if (!payload) return [];
+    const patterns: Record<VariableSyntax, RegExp> = {
+      SHELL: /\$\{(\w+)\}/g,
+      MUSTACHE: /\{\{(\w+)\}\}/g,
+      BATCH: /%(\w+)%/g,
+      COLON: /:(\w+)/g,
+      BRACES: /\{(\w+)\}/g,
+      CUSTOM: editingCommand.customVariablePattern
+        ? new RegExp(editingCommand.customVariablePattern, "g")
+        : /(?!)/g, // Never matches if no custom pattern
+    };
+    const matches = [...payload.matchAll(patterns[syntax])];
+    return [...new Set(matches.map((m) => m[1]))];
+  };
 
+  const detectedVars = detectVariables(
+    editingCommand.payload || "",
+    editingCommand.variableSyntax || "SHELL",
+  );
+
+  // --- Basic Tab ---
   if (activeTab === "basic") {
     return (
-      <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar h-full">
-        <div className="space-y-1.5">
-          <Label className="text-xs">{t("cmd.name")}</Label>
-          <Input
-            value={editingCommand.name || ""}
-            onChange={(e) => updateCmd({ name: e.target.value })}
-            className="h-8 text-sm"
-          />
-        </div>
+      <div className="p-4 space-y-5 overflow-y-auto custom-scrollbar h-full">
+        {/* Command Definition Section */}
+        <div className="space-y-4">
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Command Definition
+          </div>
 
-        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs">{t("cmd.group")}</Label>
+            <Label className="text-xs">
+              {t("cmd.name")} <span className="text-destructive">*</span>
+            </Label>
             <Input
-              value={editingCommand.group || ""}
-              onChange={(e) => updateCmd({ group: e.target.value })}
+              value={editingCommand.name || ""}
+              onChange={(e) => updateCmd({ name: e.target.value })}
               className="h-8 text-sm"
-              placeholder="e.g. Motors"
+              placeholder="Command name"
             />
           </div>
+
           <div className="space-y-1.5">
-            <Label className="text-xs">Device</Label>
-            <Select
-              value={editingCommand.deviceId || ""}
-              onChange={(e) => updateCmd({ deviceId: e.target.value || null })}
-              className="h-8 text-xs"
-            >
-              <option value="">-- Unassigned --</option>
-              {devices.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </Select>
+            <Label className="text-xs">Description</Label>
+            <Input
+              value={editingCommand.description || ""}
+              onChange={(e) => updateCmd({ description: e.target.value })}
+              className="h-8 text-sm"
+              placeholder="Optional description"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">
+              {t("cmd.payload")} <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              value={editingCommand.payload || ""}
+              onChange={(e) => updateCmd({ payload: e.target.value })}
+              className="font-mono text-xs min-h-20 resize-none p-2 bg-muted/20"
+              placeholder='AT+CWJAP="${ssid}","${password}"'
+            />
+            {detectedVars.length > 0 && (
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <AlertCircle className="w-3 h-3" />
+                Variables detected:{" "}
+                {detectedVars.map((v) => `\${${v}}`).join(", ")}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs" title="Folder name for organizing">
+                Folder
+              </Label>
+              <Input
+                value={editingCommand.group || ""}
+                onChange={(e) => updateCmd({ group: e.target.value })}
+                className="h-8 text-sm"
+                placeholder="e.g. Network"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs" title="Target device">
+                Target Device
+              </Label>
+              <SelectDropdown
+                options={[
+                  { value: "", label: "-- No device --" },
+                  ...devices.map(
+                    (d): DropdownOption<string> => ({
+                      value: d.id,
+                      label: d.name,
+                    }),
+                  ),
+                ]}
+                value={editingCommand.deviceId || ""}
+                onChange={(value) =>
+                  updateCmd({ deviceId: value || undefined })
+                }
+                size="sm"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs">{t("cmd.format")}</Label>
-          <ToggleGroup
-            value={editingCommand.mode || "TEXT"}
-            onChange={(m) => updateCmd({ mode: m as unknown as DataMode })}
-            options={[
-              { value: "TEXT", label: "TEXT" },
-              { value: "HEX", label: "HEX" },
-              { value: "BINARY", label: "BIN" },
-            ]}
-          />
+        {/* Format Section */}
+        <div className="space-y-4 pt-4 border-t border-border/50">
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Format
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Mode</Label>
+            <SegmentedControl
+              value={editingCommand.mode || "TEXT"}
+              onChange={(v) => updateCmd({ mode: v as DataMode })}
+              size="sm"
+              options={[
+                { value: "TEXT", label: "TEXT" },
+                { value: "HEX", label: "HEX" },
+                { value: "BINARY", label: "BINARY" },
+              ]}
+            />
+          </div>
+
+          {editingCommand.mode === "TEXT" && (
+            <div className="space-y-1.5 animate-in fade-in">
+              <Label className="text-xs">{t("cmd.encoding")}</Label>
+              <SelectDropdown
+                options={
+                  [
+                    { value: "UTF-8", label: "UTF-8" },
+                    { value: "ASCII", label: "ASCII" },
+                    { value: "ISO-8859-1", label: "ISO-8859-1" },
+                  ] as DropdownOption<TextEncoding>[]
+                }
+                value={editingCommand.encoding || "UTF-8"}
+                onChange={(value) => updateCmd({ encoding: value })}
+                size="sm"
+              />
+            </div>
+          )}
         </div>
 
-        {editingCommand.mode === "TEXT" && (
-          <div className="space-y-1.5 animate-in fade-in">
-            <Label className="text-xs">{t("cmd.encoding")}</Label>
-            <Select
-              value={editingCommand.encoding || "UTF-8"}
-              onChange={(e) =>
-                updateCmd({
-                  encoding: e.target.value as unknown as TextEncoding,
-                })
-              }
-              className="h-8 text-xs"
-            >
-              <option value="UTF-8">UTF-8</option>
-              <option value="ASCII">ASCII</option>
-              <option value="ISO-8859-1">ISO-8859-1</option>
-            </Select>
+        {/* Variable Parsing Section */}
+        <div className="space-y-4 pt-4 border-t border-border/50">
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Variable Parsing
           </div>
-        )}
 
-        <div className="space-y-1.5 flex-1 flex flex-col">
-          <Label className="text-xs">{t("cmd.payload")}</Label>
-          <Textarea
-            value={editingCommand.payload || ""}
-            onChange={(e) => updateCmd({ payload: e.target.value })}
-            className="font-mono text-xs flex-1 min-h-25 resize-none p-2 bg-muted/20"
-            placeholder="Command content..."
+          <div className="space-y-1.5">
+            <Label className="text-xs">Variable Syntax</Label>
+            <SelectDropdown
+              options={VARIABLE_SYNTAX_OPTIONS.map(
+                (opt): DropdownOption<VariableSyntax> => ({
+                  value: opt.value,
+                  label: opt.label,
+                }),
+              )}
+              value={editingCommand.variableSyntax || "SHELL"}
+              onChange={(value) => updateCmd({ variableSyntax: value })}
+              size="sm"
+            />
+          </div>
+
+          {editingCommand.variableSyntax === "CUSTOM" && (
+            <div className="space-y-1.5 animate-in fade-in">
+              <Label className="text-xs">Custom Pattern (Regex)</Label>
+              <Input
+                value={editingCommand.customVariablePattern || ""}
+                onChange={(e) =>
+                  updateCmd({ customVariablePattern: e.target.value })
+                }
+                className="h-8 text-xs font-mono"
+                placeholder="\{\{(\w+)\}\}"
+              />
+              <p className="text-[9px] text-muted-foreground">
+                Use capture group () to extract variable name
+              </p>
+            </div>
+          )}
+
+          <Checkbox
+            checked={editingCommand.caseSensitiveVariables ?? true}
+            onChange={(e) =>
+              updateCmd({ caseSensitiveVariables: e.target.checked })
+            }
+            label="Case Sensitive Variables"
+            labelClassName="text-xs"
           />
         </div>
       </div>
     );
   }
 
+  // --- Parameters Tab ---
   if (activeTab === "params") {
     const params = editingCommand.parameters || [];
     return (
       <div className="flex flex-col h-full">
         <div className="p-3 border-b border-border flex justify-between items-center bg-muted/10 shrink-0">
           <div className="text-xs text-muted-foreground">
-            {params.length} Parameters
+            {params.length} Parameter{params.length !== 1 ? "s" : ""}
           </div>
           <Button
             size="sm"
@@ -229,129 +492,236 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
           {params.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground text-xs italic">
-              No parameters defined.
+            <div className="text-center py-8 text-muted-foreground space-y-2">
+              <div className="text-xs italic">No parameters defined.</div>
+              <p className="text-[10px]">
+                Parameters can be applied via substitution, transformation, or
+                direct byte insertion.
+              </p>
             </div>
           )}
           {params.map((param, idx) => (
-            <div
+            <ParameterCard
               key={param.id || idx}
-              className="p-3 border rounded-lg bg-card space-y-3 relative group"
-            >
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => removeParam(idx)}
-                className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-
-              <div className="grid grid-cols-2 gap-2 pr-6">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">
-                    Var Name
-                  </Label>
-                  <Input
-                    value={param.name}
-                    onChange={(e) => updateParam(idx, { name: e.target.value })}
-                    className="h-7 text-xs font-mono"
-                    placeholder="varName"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">
-                    Type
-                  </Label>
-                  <Select
-                    value={param.type}
-                    onChange={(e) =>
-                      updateParam(idx, {
-                        type: e.target.value as ParameterType,
-                      })
-                    }
-                    className="h-7 text-xs"
-                  >
-                    <option value="STRING">String</option>
-                    <option value="INTEGER">Integer</option>
-                    <option value="FLOAT">Float</option>
-                    <option value="BOOLEAN">Boolean</option>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">
-                  Label
-                </Label>
-                <Input
-                  value={param.label || ""}
-                  onChange={(e) => updateParam(idx, { label: e.target.value })}
-                  className="h-7 text-xs"
-                  placeholder="Human Readable Label"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">
-                  Default Value
-                </Label>
-                <Input
-                  value={String(param.defaultValue ?? "")}
-                  onChange={(e) =>
-                    updateParam(idx, { defaultValue: e.target.value })
-                  }
-                  className="h-7 text-xs"
-                  placeholder="Optional"
-                />
-              </div>
-            </div>
+              param={param}
+              index={idx}
+              onUpdate={(updates) => updateParam(idx, updates)}
+              onDelete={() => removeParam(idx)}
+            />
           ))}
         </div>
       </div>
     );
   }
 
-  if (activeTab === "processing") {
-    const scripting = editingCommand.scripting || { enabled: false };
+  // --- Validation Tab ---
+  if (activeTab === "validation") {
     const validation = editingCommand.validation || {
       enabled: false,
-      mode: "PATTERN",
-      timeout: 1000,
+      mode: "PATTERN" as ValidationMode,
+      timeout: 2000,
     };
-
-    const preEnabled = !!scripting.preRequestScript;
-    // Determine Response Mode: Pattern or Script
-    const responseMode = scripting.postResponseScript
-      ? "SCRIPT"
-      : validation.enabled
-        ? "PATTERN"
-        : "NONE";
 
     return (
       <div className="p-4 space-y-6 overflow-y-auto custom-scrollbar h-full">
-        {/* Pre-Request Section */}
+        {/* Response Validation Section */}
+        <div className="space-y-4">
+          <Checkbox
+            checked={validation.enabled}
+            onChange={(e) =>
+              updateCmd({
+                validation: { ...validation, enabled: e.target.checked },
+              })
+            }
+            label="Enable Response Validation"
+            labelClassName="font-bold text-xs"
+          />
+
+          {validation.enabled && (
+            <div className="pl-6 space-y-4 animate-in slide-in-from-top-1">
+              {/* Validation Mode Radio Group */}
+              <div className="space-y-2">
+                <Label className="text-xs">Validation Mode</Label>
+                <RadioGroup
+                  name="validationMode"
+                  value={validation.mode || "PATTERN"}
+                  onValueChange={(value) =>
+                    updateCmd({
+                      validation: {
+                        ...validation,
+                        mode: value as ValidationMode,
+                      },
+                    })
+                  }
+                  className="bg-muted/30 rounded-lg p-3 space-y-2"
+                >
+                  <Radio value="ALWAYS_PASS" label="Always Pass" />
+                  <Radio value="PATTERN" label="Pattern Match" />
+                  <Radio value="SCRIPT" label="Custom Script" />
+                </RadioGroup>
+              </div>
+
+              {/* Mode-specific Options */}
+              {validation.mode === "PATTERN" && (
+                <div className="space-y-3 animate-in fade-in">
+                  <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Pattern Options
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Match Type</Label>
+                      <SelectDropdown
+                        options={
+                          [
+                            { value: "CONTAINS", label: "Contains" },
+                            { value: "REGEX", label: "Regex" },
+                          ] as DropdownOption<MatchType>[]
+                        }
+                        value={validation.matchType || "CONTAINS"}
+                        onChange={(value) =>
+                          updateCmd({
+                            validation: {
+                              ...validation,
+                              matchType: value,
+                            },
+                          })
+                        }
+                        size="sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Pattern</Label>
+                      <Input
+                        value={validation.pattern || ""}
+                        onChange={(e) =>
+                          updateCmd({
+                            validation: {
+                              ...validation,
+                              pattern: e.target.value,
+                            },
+                          })
+                        }
+                        className="h-8 text-xs font-mono"
+                        placeholder="OK"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {validation.mode === "SCRIPT" && (
+                <div className="space-y-2 animate-in fade-in">
+                  <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Validation Script
+                  </div>
+                  <CodeEditor
+                    value={
+                      validation.validationScript ||
+                      '// Return true if response is valid\n// Available: data (string), raw (Uint8Array)\nreturn data.includes("OK");'
+                    }
+                    onChange={(val) =>
+                      updateCmd({
+                        validation: { ...validation, validationScript: val },
+                      })
+                    }
+                    height="120px"
+                    className="border-l-4 border-l-amber-500/30"
+                  />
+                  <p className="text-[9px] text-muted-foreground">
+                    Available: <code>data</code> (string), <code>raw</code>{" "}
+                    (Uint8Array). Return <code>true</code> if valid.
+                  </p>
+                </div>
+              )}
+
+              {/* Timeout - shown for all modes */}
+              <div className="space-y-1.5 pt-2 border-t border-border/30">
+                <Label className="text-xs">Timeout (ms)</Label>
+                <NumberInput
+                  value={validation.timeout}
+                  onChange={(val) =>
+                    updateCmd({
+                      validation: {
+                        ...validation,
+                        timeout: val ?? 2000,
+                      },
+                    })
+                  }
+                  min={100}
+                  max={60000}
+                  defaultValue={2000}
+                  className="h-8 text-xs"
+                />
+                <p className="text-[9px] text-muted-foreground">
+                  Wait time for response validation
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <hr className="border-border/50" />
+
+        {/* Variable Extraction Section */}
+        <div className="space-y-4">
+          <Checkbox
+            checked={validation.extractionEnabled || false}
+            onChange={(e) =>
+              updateCmd({
+                validation: {
+                  ...validation,
+                  extractionEnabled: e.target.checked,
+                },
+              })
+            }
+            label="Extract Variables from Response"
+            labelClassName="font-bold text-xs"
+          />
+
+          {validation.extractionEnabled && (
+            <div className="pl-6 animate-in slide-in-from-top-1">
+              <VariableExtractionEditor
+                rules={validation.extractionRules || []}
+                onChange={(rules: VariableExtractionRule[]) =>
+                  updateCmd({
+                    validation: { ...validation, extractionRules: rules },
+                  })
+                }
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Scripting Tab ---
+  if (activeTab === "scripting") {
+    const scripting = editingCommand.scripting || { enabled: false };
+    const preEnabled = !!scripting.preRequestScript;
+    const postEnabled = !!scripting.postResponseScript;
+
+    return (
+      <div className="p-4 space-y-6 overflow-y-auto custom-scrollbar h-full">
+        {/* Pre-Request Script Section */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="pre-req"
-              checked={preEnabled}
-              onChange={(e) =>
-                updateCmd({
-                  scripting: {
-                    ...scripting,
-                    enabled: true,
-                    preRequestScript: e.target.checked
-                      ? '// return payload + "\\r\\n";'
-                      : undefined,
-                  },
-                })
-              }
-              className="h-4 w-4 rounded border-input"
-            />
-            <Label htmlFor="pre-req" className="font-bold text-xs">
-              {t("proc.pre_req")}
-            </Label>
-          </div>
+          <Checkbox
+            checked={preEnabled}
+            onChange={(e) =>
+              updateCmd({
+                scripting: {
+                  ...scripting,
+                  enabled: e.target.checked || postEnabled,
+                  preRequestScript: e.target.checked
+                    ? "// Transform payload before sending\n// Available: payload, params, log\nreturn payload;"
+                    : undefined,
+                },
+              })
+            }
+            label="Pre-Request Script"
+            labelClassName="font-bold text-xs"
+          />
+
           {preEnabled && (
             <div className="pl-6 space-y-2 animate-in slide-in-from-top-1">
               <CodeEditor
@@ -361,11 +731,12 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
                     scripting: { ...scripting, preRequestScript: val },
                   })
                 }
-                height="120px"
+                height="140px"
                 className="border-l-4 border-l-blue-500/30"
               />
-              <p className="text-[10px] text-muted-foreground italic">
-                {t("proc.pre_req_desc")}
+              <p className="text-[9px] text-muted-foreground">
+                Transform the payload before sending. Available:{" "}
+                <code>payload</code>, <code>params</code>, <code>log(msg)</code>
               </p>
             </div>
           )}
@@ -373,93 +744,27 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
 
         <hr className="border-border/50" />
 
-        {/* Post-Response Section */}
-        <div className="space-y-4">
-          <Label className="font-bold text-xs">{t("proc.response")}</Label>
-
-          <ToggleGroup
-            value={responseMode}
-            onChange={(m) => {
-              const newScripting = { ...scripting };
-              const newValidation = { ...validation };
-
-              if (m === "NONE") {
-                newValidation.enabled = false;
-                newScripting.postResponseScript = undefined;
-              } else if (m === "PATTERN") {
-                newValidation.enabled = true;
-                newScripting.postResponseScript = undefined;
-              } else if (m === "SCRIPT") {
-                newValidation.enabled = false; // Implicitly handled by script or separated? Logic in App.tsx suggests SCRIPT mode uses script for validation too.
-                newScripting.postResponseScript =
-                  '// if (data.includes("OK")) return true;';
-                newScripting.enabled = true;
-              }
-              updateCmd({ scripting: newScripting, validation: newValidation });
-            }}
-            options={[
-              { value: "NONE", label: "None" },
-              { value: "PATTERN", label: t("proc.pattern") },
-              { value: "SCRIPT", label: t("proc.script") },
-            ]}
+        {/* Post-Response Script Section */}
+        <div className="space-y-3">
+          <Checkbox
+            checked={postEnabled}
+            onChange={(e) =>
+              updateCmd({
+                scripting: {
+                  ...scripting,
+                  enabled: preEnabled || e.target.checked,
+                  postResponseScript: e.target.checked
+                    ? '// Process response data\n// Available: data, raw, setVar, params, log\n// setVar("varName", value) to store to dashboard\nreturn true; // Return true if valid'
+                    : undefined,
+                },
+              })
+            }
+            label="Post-Response Script"
+            labelClassName="font-bold text-xs"
           />
 
-          {responseMode === "PATTERN" && (
-            <div className="p-3 bg-muted/20 border border-border rounded-lg space-y-3 animate-in fade-in">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Type</Label>
-                  <Select
-                    className="h-8 text-xs"
-                    value={validation.matchType || "CONTAINS"}
-                    onChange={(e) =>
-                      updateCmd({
-                        validation: {
-                          ...validation,
-                          matchType: e.target.value as unknown as MatchType,
-                        },
-                      })
-                    }
-                  >
-                    <option value="CONTAINS">Contains</option>
-                    <option value="REGEX">Regex</option>
-                  </Select>
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-[10px]">Pattern</Label>
-                  <Input
-                    className="h-8 text-xs font-mono"
-                    value={validation.pattern || ""}
-                    onChange={(e) =>
-                      updateCmd({
-                        validation: { ...validation, pattern: e.target.value },
-                      })
-                    }
-                    placeholder="OK"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px]">{t("proc.timeout")}</Label>
-                <Input
-                  type="number"
-                  className="h-8 text-xs"
-                  value={validation.timeout}
-                  onChange={(e) =>
-                    updateCmd({
-                      validation: {
-                        ...validation,
-                        timeout: parseInt(e.target.value),
-                      },
-                    })
-                  }
-                />
-              </div>
-            </div>
-          )}
-
-          {responseMode === "SCRIPT" && (
-            <div className="space-y-2 animate-in fade-in">
+          {postEnabled && (
+            <div className="pl-6 space-y-2 animate-in slide-in-from-top-1">
               <CodeEditor
                 value={scripting.postResponseScript || ""}
                 onChange={(val) =>
@@ -467,403 +772,110 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
                     scripting: { ...scripting, postResponseScript: val },
                   })
                 }
-                height="150px"
+                height="180px"
                 className="border-l-4 border-l-emerald-500/30"
               />
-              <p className="text-[10px] text-muted-foreground italic">
-                {t("proc.response_desc")}
+              <p className="text-[9px] text-muted-foreground">
+                Process response data. Available: <code>data</code> (string),{" "}
+                <code>raw</code> (Uint8Array), <code>setVar(name, value)</code>,{" "}
+                <code>params</code>, <code>log(msg)</code>
               </p>
             </div>
           )}
         </div>
-      </div>
-    );
-  }
 
-  if (activeTab === "framing") {
-    const framing = editingCommand.responseFraming;
-    const enabled = !!framing;
-    const config = framing || {
-      strategy: "NONE",
-      delimiter: "",
-      timeout: 50,
-      prefixLengthSize: 1,
-      byteOrder: "LE",
-      script: "",
-    };
-    const persistence = editingCommand.framingPersistence || "TRANSIENT";
-
-    return (
-      <div className="p-4 space-y-6 overflow-y-auto custom-scrollbar h-full">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="chk-frm"
-              checked={enabled}
-              onChange={(e) =>
-                updateCmd({
-                  responseFraming: e.target.checked ? config : undefined,
-                })
-              }
-              className="h-4 w-4 rounded border-input"
-            />
-            <Label htmlFor="chk-frm" className="font-bold text-xs">
-              Override Framing
-            </Label>
-          </div>
-          {enabled && (
-            <Select
-              value={persistence}
-              onChange={(e) =>
-                updateCmd({
-                  framingPersistence: e.target
-                    .value as unknown as SavedCommand["framingPersistence"],
-                })
-              }
-              className="h-7 text-[10px] w-30"
-            >
-              <option value="TRANSIENT">Transient (One-Shot)</option>
-              <option value="PERSISTENT">Persistent</option>
-            </Select>
-          )}
-        </div>
-
-        {enabled && (
-          <div className="pl-4 border-l-2 border-border space-y-4 animate-in slide-in-from-top-2">
-            <div className="space-y-1">
-              <Label className="text-[10px]">Strategy</Label>
-              <Select
-                value={config.strategy}
-                onChange={(e) => {
-                  const strat = e.target.value as FramingStrategy;
-                  let script = config.script;
-                  if (strat === "SCRIPT" && !script)
-                    script = DEFAULT_FRAMER_SCRIPT;
-                  updateCmd({
-                    responseFraming: { ...config, strategy: strat, script },
-                  });
-                }}
-                className="h-8 text-xs"
-              >
-                <option value="NONE">None (Raw)</option>
-                <option value="DELIMITER">Delimiter</option>
-                <option value="TIMEOUT">Timeout</option>
-                <option value="PREFIX_LENGTH">Prefix Length</option>
-                <option value="SCRIPT">Script</option>
-              </Select>
-            </div>
-
-            {/* Strategy Specific Configs */}
-            {config.strategy === "DELIMITER" && (
-              <div className="space-y-1">
-                <Label className="text-[10px]">Delimiter</Label>
-                <Input
-                  value={config.delimiter}
-                  onChange={(e) =>
-                    updateCmd({
-                      responseFraming: { ...config, delimiter: e.target.value },
-                    })
-                  }
-                  className="h-8 text-xs font-mono"
-                  placeholder="\\n or AA BB"
-                />
+        {/* Script Examples */}
+        {(preEnabled || postEnabled) && (
+          <>
+            <hr className="border-border/50" />
+            <div className="space-y-2">
+              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Quick Examples
               </div>
-            )}
-
-            {config.strategy === "TIMEOUT" && (
-              <div className="space-y-1">
-                <Label className="text-[10px]">Timeout (ms)</Label>
-                <Input
-                  type="number"
-                  value={config.timeout}
-                  onChange={(e) =>
-                    updateCmd({
-                      responseFraming: {
-                        ...config,
-                        timeout: parseInt(e.target.value),
-                      },
-                    })
-                  }
-                  className="h-8 text-xs"
-                />
-              </div>
-            )}
-
-            {config.strategy === "PREFIX_LENGTH" && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Length Bytes</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={8}
-                    value={config.prefixLengthSize}
-                    onChange={(e) =>
-                      updateCmd({
-                        responseFraming: {
-                          ...config,
-                          prefixLengthSize: parseInt(e.target.value),
-                        },
-                      })
-                    }
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px]">Byte Order</Label>
-                  <Select
-                    value={config.byteOrder}
-                    onChange={(e) =>
-                      updateCmd({
-                        responseFraming: {
-                          ...config,
-                          byteOrder: e.target
-                            .value as unknown as SavedCommand["responseFraming"]["byteOrder"],
-                        },
-                      })
-                    }
-                    className="h-8 text-xs"
-                  >
-                    <option value="LE">LE</option>
-                    <option value="BE">BE</option>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {config.strategy === "SCRIPT" && (
-              <div className="space-y-1">
-                <Label className="text-[10px]">Script</Label>
-                <CodeEditor
-                  value={config.script || ""}
-                  onChange={(val) =>
-                    updateCmd({ responseFraming: { ...config, script: val } })
-                  }
-                  height="150px"
-                  className="border-l-4 border-l-purple-500/30"
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (activeTab === "context") {
-    const activeContexts = contexts.filter((c) =>
-      editingCommand.contextIds?.includes(c.id),
-    );
-
-    return (
-      <div className="p-4 space-y-4 h-full flex flex-col">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Linked Contexts</Label>
-          <div className="space-y-2 max-h-50 overflow-y-auto border border-border rounded-md p-2 bg-muted/10">
-            {contexts.length === 0 ? (
-              <div className="text-xs text-muted-foreground italic py-2 text-center">
-                No contexts available
-              </div>
-            ) : (
-              contexts.map((context) => (
-                <div key={context.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={`ctx-editor-${context.id}`}
-                    checked={
-                      editingCommand.contextIds?.includes(context.id) || false
-                    }
-                    onChange={(e) => {
-                      const currentIds = editingCommand.contextIds || [];
-                      if (e.target.checked) {
-                        updateCmd({ contextIds: [...currentIds, context.id] });
-                      } else {
-                        updateCmd({
-                          contextIds: currentIds.filter(
-                            (id) => id !== context.id,
-                          ),
-                        });
-                      }
-                    }}
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  <label
-                    htmlFor={`ctx-editor-${context.id}`}
-                    className="text-xs cursor-pointer"
-                  >
-                    {context.title}
-                  </label>
-                </div>
-              ))
-            )}
-          </div>
-          <p className="text-[10px] text-muted-foreground">
-            Select one or more contexts to link to this command.
-          </p>
-        </div>
-
-        {activeContexts.length > 0 ? (
-          <div className="flex-1 bg-muted/20 border border-border rounded-md p-3 overflow-y-auto text-xs font-mono whitespace-pre-wrap">
-            {activeContexts.map((ctx, idx) => (
-              <div key={ctx.id}>
-                {idx > 0 && <hr className="my-2 border-border/50" />}
-                <div className="font-bold border-b border-border/50 mb-2 pb-1">
-                  {ctx.title}
-                </div>
-                {ctx.content}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs italic border border-dashed rounded-md">
-            Select contexts to view documentation overlay.
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (activeTab === "wizard") {
-    return (
-      <div className="p-4 space-y-6 overflow-y-auto custom-scrollbar h-full">
-        <div className="flex bg-muted p-1 rounded-md">
-          <button
-            onClick={() => setProtoType("MODBUS")}
-            className={cn(
-              "flex-1 py-1 text-xs font-bold rounded-sm transition-all",
-              protoType === "MODBUS"
-                ? "bg-background shadow-sm"
-                : "hover:text-foreground text-muted-foreground",
-            )}
-          >
-            MODBUS
-          </button>
-          <button
-            onClick={() => setProtoType("AT")}
-            className={cn(
-              "flex-1 py-1 text-xs font-bold rounded-sm transition-all",
-              protoType === "AT"
-                ? "bg-background shadow-sm"
-                : "hover:text-foreground text-muted-foreground",
-            )}
-          >
-            AT CMDS
-          </button>
-        </div>
-
-        {protoType === "MODBUS" && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[10px]">Slave ID</Label>
-                <Input
-                  type="number"
-                  value={mbParams.slaveId}
-                  onChange={(e) =>
-                    setMbParams({
-                      ...mbParams,
-                      slaveId: parseInt(e.target.value),
-                    })
-                  }
-                  className="h-7 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px]">Function</Label>
-                <Select
-                  value={mbParams.functionCode}
-                  onChange={(e) =>
-                    setMbParams({
-                      ...mbParams,
-                      functionCode: parseInt(e.target.value),
-                    })
-                  }
-                  className="h-7 text-xs"
-                >
-                  {MODBUS_FUNCTIONS.map((f) => (
-                    <option key={f.code} value={f.code}>
-                      {f.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px]">Addr (Dec)</Label>
-                <Input
-                  type="number"
-                  value={mbParams.startAddress}
-                  onChange={(e) =>
-                    setMbParams({
-                      ...mbParams,
-                      startAddress: parseInt(e.target.value),
-                    })
-                  }
-                  className="h-7 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px]">Value/Qty</Label>
-                <Input
-                  type="number"
-                  value={mbParams.quantityOrValue}
-                  onChange={(e) =>
-                    setMbParams({
-                      ...mbParams,
-                      quantityOrValue: parseInt(e.target.value),
-                    })
-                  }
-                  className="h-7 text-xs"
-                />
-              </div>
-            </div>
-            <Button
-              size="sm"
-              className="w-full text-xs gap-2"
-              onClick={() =>
-                updateCmd({
-                  mode: "HEX",
-                  payload: generateModbusFrame(mbParams),
-                })
-              }
-            >
-              <Check className="w-3 h-3" /> Apply to Payload
-            </Button>
-          </div>
-        )}
-
-        {protoType === "AT" && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="h-75 overflow-y-auto border rounded bg-background p-2 space-y-1">
-              {Object.entries(AT_COMMAND_LIBRARY).map(([cat, cmds]) => (
-                <div key={cat} className="mb-2">
-                  <div className="text-[9px] font-bold text-muted-foreground uppercase mb-1 sticky top-0 bg-background/95 backdrop-blur">
-                    {cat}
-                  </div>
-                  {cmds.map((c) => (
-                    <div
-                      key={c.cmd}
-                      className="flex justify-between items-center p-1.5 hover:bg-muted rounded cursor-pointer group border border-transparent hover:border-border/50"
+              <div className="grid grid-cols-2 gap-2">
+                {preEnabled && (
+                  <>
+                    <button
+                      type="button"
+                      className="text-left p-2 text-[9px] bg-muted/30 hover:bg-muted/50 rounded border border-border/50 transition-colors"
                       onClick={() =>
                         updateCmd({
-                          mode: "TEXT",
-                          payload: c.cmd,
-                          description: c.desc,
+                          scripting: {
+                            ...scripting,
+                            preRequestScript:
+                              '// Add line ending\nreturn payload + "\\r\\n";',
+                          },
                         })
                       }
                     >
-                      <code className="text-[10px] font-bold text-primary">
-                        {c.cmd}
-                      </code>
-                      <span className="text-[9px] text-muted-foreground">
-                        {c.desc}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ))}
+                      <div className="font-bold text-foreground">Add CRLF</div>
+                      <div className="text-muted-foreground">Append \\r\\n</div>
+                    </button>
+                    <button
+                      type="button"
+                      className="text-left p-2 text-[9px] bg-muted/30 hover:bg-muted/50 rounded border border-border/50 transition-colors"
+                      onClick={() =>
+                        updateCmd({
+                          scripting: {
+                            ...scripting,
+                            preRequestScript:
+                              "// Uppercase payload\nreturn payload.toUpperCase();",
+                          },
+                        })
+                      }
+                    >
+                      <div className="font-bold text-foreground">Uppercase</div>
+                      <div className="text-muted-foreground">
+                        Transform to upper
+                      </div>
+                    </button>
+                  </>
+                )}
+                {postEnabled && (
+                  <>
+                    <button
+                      type="button"
+                      className="text-left p-2 text-[9px] bg-muted/30 hover:bg-muted/50 rounded border border-border/50 transition-colors"
+                      onClick={() =>
+                        updateCmd({
+                          scripting: {
+                            ...scripting,
+                            postResponseScript:
+                              '// Parse JSON response\nconst json = JSON.parse(data);\nsetVar("result", json.value);\nreturn true;',
+                          },
+                        })
+                      }
+                    >
+                      <div className="font-bold text-foreground">
+                        Parse JSON
+                      </div>
+                      <div className="text-muted-foreground">
+                        Extract JSON value
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      className="text-left p-2 text-[9px] bg-muted/30 hover:bg-muted/50 rounded border border-border/50 transition-colors"
+                      onClick={() =>
+                        updateCmd({
+                          scripting: {
+                            ...scripting,
+                            postResponseScript:
+                              '// Extract with regex\nconst match = data.match(/temp=(\\d+)/);\nif (match) setVar("Temperature", parseInt(match[1]));\nreturn data.includes("OK");',
+                          },
+                        })
+                      }
+                    >
+                      <div className="font-bold text-foreground">
+                        Regex Extract
+                      </div>
+                      <div className="text-muted-foreground">Match pattern</div>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     );

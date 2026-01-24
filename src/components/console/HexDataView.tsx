@@ -1,6 +1,52 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { cn } from "../../lib/utils";
 import { ScanLine } from "lucide-react";
+import { Checkbox } from "../ui/Checkbox";
+
+/**
+ * HexDataView Component
+ *
+ * Design System Specifications (FIGMA-DESIGN.md 9.3):
+ * - Hex Table: Offset (60px), Hex (20px/byte), ASCII (8px/char)
+ * - Inspector: Side panel (256px), 2-column grid
+ * - Font: mono.sm (11px) for hex/ascii, mono.xs (10px) for offset/binary
+ *
+ * Design Tokens Used:
+ * - `text-text-muted`: Offset column, labels
+ * - `bg-bg-hover`: Hover background
+ * - `bg-bg-surface`: Row/card background
+ * - `bg-bg-elevated`: Header/inspector background
+ * - `border-border-default`: Table borders
+ *
+ * Byte Type Colors (Semantic):
+ * - Null (0x00): Dimmed (text-text-muted/40)
+ * - Printable ASCII (0x20-0x7E): Blue (text-blue-600/400)
+ * - Control chars (0x01-0x1F, 0x7F): Amber (text-amber-600/400)
+ * - Extended ASCII (0x80-0xFF): Default muted
+ */
+
+/**
+ * Get the color class for a byte based on its type
+ */
+const getByteColorClass = (byte: number, isSelected: boolean): string => {
+  if (isSelected) {
+    return "bg-primary text-primary-foreground font-bold";
+  }
+  // Null byte - dimmed
+  if (byte === 0x00) {
+    return "text-text-muted/40 hover:text-text-muted hover:bg-bg-hover";
+  }
+  // Printable ASCII (space to tilde)
+  if (byte >= 0x20 && byte <= 0x7e) {
+    return "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-bg-hover";
+  }
+  // Control characters (0x01-0x1F and DEL 0x7F)
+  if (byte < 0x20 || byte === 0x7f) {
+    return "text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-bg-hover";
+  }
+  // Extended ASCII (0x80-0xFF) - default muted
+  return "text-text-muted hover:text-text-primary hover:bg-bg-hover";
+};
 
 interface HexDataViewProps {
   data: Uint8Array;
@@ -167,14 +213,14 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
       return (
         <tr
           key={rowIndex}
-          className="group hover:bg-muted/10 transition-colors"
+          className="group hover:bg-bg-hover/50 transition-colors"
         >
           {/* Offset - Sticky Left */}
           <td
             className={cn(
-              "align-top py-0.5 pr-3 text-muted-foreground/50 border-r border-border/10 select-none text-right font-mono text-[10px]",
+              "align-top py-0.5 pr-3 text-text-muted/50 border-r border-border-default/10 select-none text-right font-mono text-[10px]",
               stickyHeader &&
-                "sticky left-0 z-10 bg-background/95 backdrop-blur-[1px]", // Sticky Left + BG
+                "sticky left-0 z-10 bg-bg-surface/95 backdrop-blur-[1px]", // Sticky Left + BG
             )}
             style={{ width: OFFSET_WIDTH, minWidth: OFFSET_WIDTH }}
           >
@@ -196,9 +242,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                     data-index={globalIndex}
                     className={cn(
                       "inline-block text-center cursor-pointer rounded-sm transition-colors",
-                      sel
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      getByteColorClass(byte, sel),
                       i > 0 && i % 4 === 0 ? "ml-2" : "ml-1",
                       i === 0 && "ml-0",
                     )}
@@ -214,7 +258,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
           {/* Binary */}
           {!hideBinary && (
             <td
-              className="align-top px-3 border-l border-border/10 whitespace-nowrap select-none"
+              className="align-top px-3 border-l border-border-default/10 whitespace-nowrap select-none"
               style={{ width: binColWidth, minWidth: binColWidth }}
             >
               <div className="flex font-mono text-[10px] tracking-tighter">
@@ -227,9 +271,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       data-index={globalIndex}
                       className={cn(
                         "inline-block cursor-pointer px-0.5 rounded-sm transition-colors",
-                        sel
-                          ? "bg-primary text-primary-foreground font-bold"
-                          : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/50",
+                        getByteColorClass(byte, sel),
                         i > 0 && i % 4 === 0 ? "ml-2" : "ml-1",
                         i === 0 && "ml-0",
                       )}
@@ -244,7 +286,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
 
           {/* ASCII */}
           <td
-            className="align-top px-3 border-l border-border/10 whitespace-nowrap select-none"
+            className="align-top px-3 border-l border-border-default/10 whitespace-nowrap select-none"
             style={{ width: asciiColWidth, minWidth: asciiColWidth }}
           >
             <div className="flex font-mono text-[11px] tracking-widest">
@@ -259,9 +301,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                     data-index={globalIndex}
                     className={cn(
                       "inline-block text-center cursor-pointer rounded-sm transition-colors",
-                      sel
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                      getByteColorClass(byte, sel),
                     )}
                     style={{ width: "8px" }} // Reduced width for tighter packing
                   >
@@ -279,7 +319,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
     const HEADER_HEIGHT_CLASS = "h-[26px]";
 
     return (
-      <div className="flex min-h-full w-fit gap-0 bg-background/50 text-[11px]">
+      <div className="flex min-h-full w-fit gap-0 bg-bg-surface/50 text-[11px]">
         {/* Table Area */}
         <div
           className={cn(
@@ -292,15 +332,15 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
           <table className="w-max table-fixed border-collapse">
             <thead
               className={cn(
-                "bg-card text-[10px] text-muted-foreground font-medium text-left shadow-sm",
+                "bg-bg-elevated text-[10px] text-text-muted font-medium text-left shadow-sm",
                 stickyHeader && "sticky top-0 z-30",
               )}
             >
               <tr className={HEADER_HEIGHT_CLASS}>
                 <th
                   className={cn(
-                    "px-0 pr-3 border-r border-border/10 font-normal text-right select-none align-middle",
-                    stickyHeader && "sticky left-0 z-40 bg-card", // Higher Z for intersection of sticky top/left
+                    "px-0 pr-3 border-r border-border-default/10 font-normal text-right select-none align-middle",
+                    stickyHeader && "sticky left-0 z-40 bg-bg-elevated", // Higher Z for intersection of sticky top/left
                   )}
                   style={{ width: OFFSET_WIDTH }}
                 >
@@ -310,7 +350,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                   className="px-3 font-normal select-none align-middle"
                   style={{ width: hexColWidth }}
                 >
-                  <div className="flex font-mono text-[9px] text-muted-foreground/60 leading-none pt-0.5">
+                  <div className="flex font-mono text-[9px] text-text-muted/60 leading-none pt-0.5">
                     {Array.from({ length: bytesPerRow }).map((_, i) => (
                       <span
                         key={i}
@@ -328,14 +368,14 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                 </th>
                 {!hideBinary && (
                   <th
-                    className="px-3 border-l border-border/10 font-normal select-none align-middle"
+                    className="px-3 border-l border-border-default/10 font-normal select-none align-middle"
                     style={{ width: binColWidth }}
                   >
                     BINARY
                   </th>
                 )}
                 <th
-                  className="px-3 border-l border-border/10 font-normal select-none align-middle"
+                  className="px-3 border-l border-border-default/10 font-normal select-none align-middle"
                   style={{ width: asciiColWidth }}
                 >
                   ASCII
@@ -350,11 +390,11 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
           </table>
         </div>
 
-        {/* Inspector Panel */}
+        {/* Inspector Panel (Side Panel - Section 9.3) */}
         {showInspector && (
           <div
             className={cn(
-              "w-64 border-l border-border bg-card shrink-0 animate-in slide-in-from-right-5 transition-all duration-300 min-h-full",
+              "w-64 border-l border-border-default bg-bg-elevated shrink-0 animate-in slide-in-from-right-5 transition-all duration-300 min-h-full",
               stickyHeader &&
                 "sticky right-0 z-20 shadow-[linear-gradient(to_right,rgba(0,0,0,0),rgba(0,0,0,0.1))]", // Sticky Right
             )}
@@ -368,36 +408,26 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
             >
               <div
                 className={cn(
-                  "flex items-center justify-between px-3 bg-card border-b border-border/10 shadow-sm text-[10px] text-muted-foreground font-medium z-10",
+                  "flex items-center justify-between px-3 bg-bg-elevated border-b border-border-default/10 shadow-sm text-[10px] text-text-muted font-medium z-10",
                   HEADER_HEIGHT_CLASS,
                 )}
               >
                 <span className="uppercase tracking-normal">INSPECTOR</span>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    id="le-chk"
-                    checked={littleEndian}
-                    onChange={(e) => setLittleEndian(e.target.checked)}
-                    className="h-3 w-3 rounded border-input"
-                  />
-                  <label
-                    htmlFor="le-chk"
-                    className="cursor-pointer select-none"
-                  >
-                    Little Endian
-                  </label>
-                </div>
+                <Checkbox
+                  checked={littleEndian}
+                  onChange={(e) => setLittleEndian(e.target.checked)}
+                  label="Little Endian"
+                />
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 space-y-3 font-mono text-[10px]">
                 {inspectorData ? (
                   <>
                     <div className="space-y-1">
-                      <div className="text-muted-foreground text-[9px] uppercase tracking-wider">
+                      <div className="text-text-muted text-[9px] uppercase tracking-wider">
                         Selection
                       </div>
-                      <div className="bg-background border border-border p-1.5 rounded truncate">
+                      <div className="bg-bg-surface border border-border-default p-1.5 rounded truncate">
                         {selection
                           ? `${selection.start} - ${selection.end} (${inspectorData.size} bytes)`
                           : "-"}
@@ -405,10 +435,10 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                     </div>
 
                     <div className="space-y-1">
-                      <div className="text-muted-foreground text-[9px] uppercase tracking-wider">
+                      <div className="text-text-muted text-[9px] uppercase tracking-wider">
                         Binary
                       </div>
-                      <div className="bg-background border border-border p-1.5 rounded break-all leading-tight max-h-25 overflow-y-auto">
+                      <div className="bg-bg-surface border border-border-default p-1.5 rounded break-all leading-tight max-h-25 overflow-y-auto">
                         {inspectorData.binary}
                       </div>
                     </div>
@@ -416,9 +446,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                     <div className="grid grid-cols-2 gap-2">
                       {inspectorData.int8 !== undefined && (
                         <div>
-                          <div className="text-muted-foreground opacity-70">
-                            Int8
-                          </div>
+                          <div className="text-text-muted opacity-70">Int8</div>
                           <div className="font-semibold">
                             {inspectorData.int8}
                           </div>
@@ -426,7 +454,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       )}
                       {inspectorData.uint8 !== undefined && (
                         <div>
-                          <div className="text-muted-foreground opacity-70">
+                          <div className="text-text-muted opacity-70">
                             Uint8
                           </div>
                           <div className="font-semibold">
@@ -436,7 +464,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       )}
                       {inspectorData.int16 !== undefined && (
                         <div>
-                          <div className="text-muted-foreground opacity-70">
+                          <div className="text-text-muted opacity-70">
                             Int16
                           </div>
                           <div className="font-semibold">
@@ -446,7 +474,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       )}
                       {inspectorData.uint16 !== undefined && (
                         <div>
-                          <div className="text-muted-foreground opacity-70">
+                          <div className="text-text-muted opacity-70">
                             Uint16
                           </div>
                           <div className="font-semibold">
@@ -456,7 +484,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       )}
                       {inspectorData.int32 !== undefined && (
                         <div>
-                          <div className="text-muted-foreground opacity-70">
+                          <div className="text-text-muted opacity-70">
                             Int32
                           </div>
                           <div className="font-semibold">
@@ -466,7 +494,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       )}
                       {inspectorData.uint32 !== undefined && (
                         <div>
-                          <div className="text-muted-foreground opacity-70">
+                          <div className="text-text-muted opacity-70">
                             Uint32
                           </div>
                           <div className="font-semibold">
@@ -476,7 +504,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       )}
                       {inspectorData.float32 !== undefined && (
                         <div className="col-span-2">
-                          <div className="text-muted-foreground opacity-70">
+                          <div className="text-text-muted opacity-70">
                             Float32
                           </div>
                           <div className="font-semibold">
@@ -486,7 +514,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       )}
                       {inspectorData.int64 !== undefined && (
                         <div className="col-span-2">
-                          <div className="text-muted-foreground opacity-70">
+                          <div className="text-text-muted opacity-70">
                             Int64
                           </div>
                           <div className="font-semibold truncate">
@@ -496,7 +524,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                       )}
                       {inspectorData.float64 !== undefined && (
                         <div className="col-span-2">
-                          <div className="text-muted-foreground opacity-70">
+                          <div className="text-text-muted opacity-70">
                             Float64
                           </div>
                           <div className="font-semibold truncate">
@@ -507,7 +535,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-muted-foreground/40 space-y-2 select-none py-6">
+                  <div className="flex flex-col items-center justify-center text-text-muted/40 space-y-2 select-none py-6">
                     <ScanLine className="w-8 h-8 opacity-50" />
                     <p className="text-center font-sans text-xs">
                       Select bytes

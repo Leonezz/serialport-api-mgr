@@ -5,6 +5,7 @@ import { cn, generateId } from "../../lib/utils";
 import { createChatSession } from "../../services/geminiService";
 import { Button } from "../ui/Button";
 import { Textarea } from "../ui/Textarea";
+import { FileInput, FileInputRef } from "../ui/FileInput";
 import { Chat, Part } from "@google/genai";
 import { useStore } from "../../lib/store";
 import { ChatMessage } from "@/types";
@@ -34,7 +35,7 @@ const AIAssistantContent: React.FC = () => {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatSessionRef = useRef<Chat | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<FileInputRef>(null);
 
   useEffect(() => {
     try {
@@ -141,7 +142,7 @@ const AIAssistantContent: React.FC = () => {
       reader.onerror = () => console.error("Failed to read file.");
       reader.readAsDataURL(file);
     }
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    fileInputRef.current?.reset();
   };
 
   return (
@@ -201,12 +202,10 @@ const AIAssistantContent: React.FC = () => {
             </button>
           </div>
         )}
-        <input
+        <FileInput
           ref={fileInputRef}
-          type="file"
           accept="image/*,.pdf,.txt,.json,.csv"
           onChange={handleFileChange}
-          className="hidden"
         />
         <div className="bg-muted/30 border border-border rounded-2xl flex flex-col focus-within:ring-1 focus-within:ring-primary/20 transition-all shadow-sm">
           <Textarea
@@ -223,7 +222,7 @@ const AIAssistantContent: React.FC = () => {
           />
           <div className="flex justify-between items-center p-1.5">
             <Button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => fileInputRef.current?.open()}
               disabled={isProcessing}
               size="icon"
               variant="ghost"

@@ -34,6 +34,7 @@ Object.defineProperty(globalThis, "__TAURI_ENV_DEBUG__", {
 // Mock Tauri API
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
+  isTauri: vi.fn(() => false), // Default to false in tests (browser mode)
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
