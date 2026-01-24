@@ -41,3 +41,4 @@ claude
 .trae/
 .windsurf/
 docs/
+.playwright-mcp/
