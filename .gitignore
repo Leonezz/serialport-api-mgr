@@ -28,6 +28,8 @@ coverage/
 *.md
 !README.md
 claude
+.agent/
+.agents/
 .claude/
 .codex/
 .cursor/
