@@ -1,52 +1,53 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "./Button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "./Card";
+import { cn } from "../../lib/utils";
+
+/**
+ * Modal Component
+ *
+ * Design System Specifications (FIGMA-DESIGN.md 6.4):
+ * - Sizes: sm (400px), md (560px), lg (720px)
+ * - Structure: Header (56px) -> Content (scrollable) -> Footer (64px)
+ * - Overlay: black @ 50% opacity
+ * - Animation: fade in + scale from 95%, 200ms ease-out
+ */
 
 export interface ModalProps {
   /** Whether the modal is open */
   isOpen: boolean;
-
   /** Callback when modal should close */
   onClose: () => void;
-
   /** Modal title */
   title: string | React.ReactNode;
-
   /** Modal content */
   children: React.ReactNode;
-
   /** Optional footer content (buttons, actions, etc.) */
   footer?: React.ReactNode;
-
   /** Modal size variant */
   size?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
-
   /** z-index level (50 for standard, 100 for high priority) */
   zIndex?: 50 | 100;
-
   /** Whether to show close button in header */
   showCloseButton?: boolean;
-
-  /** Additional className for the Card */
+  /** Additional className for the modal */
   className?: string;
-
-  /** Additional className for CardHeader */
+  /** Additional className for header */
   headerClassName?: string;
-
-  /** Additional className for CardContent */
+  /** Additional className for content */
   contentClassName?: string;
-
-  /** Additional className for CardFooter */
+  /** Additional className for footer */
   footerClassName?: string;
+  /** Whether clicking outside closes the modal */
+  closeOnClickOutside?: boolean;
 }
 
 const sizeClasses = {
-  sm: "max-w-sm",
-  md: "max-w-md",
-  lg: "max-w-lg",
-  xl: "max-w-xl",
-  "2xl": "max-w-2xl",
+  sm: "max-w-[400px]",
+  md: "max-w-[560px]",
+  lg: "max-w-[720px]",
+  xl: "max-w-[900px]",
+  "2xl": "max-w-[1024px]",
   full: "max-w-full",
 };
 
@@ -67,6 +68,7 @@ export const Modal: React.FC<ModalProps> = ({
   headerClassName = "",
   contentClassName = "",
   footerClassName = "",
+  closeOnClickOutside = true,
 }) => {
   // Handle Escape key to close modal
   useEffect(() => {
@@ -92,42 +94,62 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 ${zIndex === 100 ? "z-[100]" : "z-50"}`}
-      onClick={onClose} // Click backdrop to close
+      className={cn(
+        "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overscroll-contain",
+        zIndex === 100 ? "z-[100]" : "z-50",
+      )}
+      onClick={closeOnClickOutside ? onClose : undefined}
+      style={{ overscrollBehavior: "contain" }}
     >
-      <Card
-        className={`w-full ${sizeClasses[size]} shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200 ${className}`}
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+      <div
+        className={cn(
+          "w-full bg-bg-surface rounded-radius-lg shadow-xl",
+          "animate-in fade-in zoom-in-95 duration-200",
+          "flex flex-col max-h-[90vh]",
+          sizeClasses[size],
+          className,
+        )}
+        onClick={(e) => e.stopPropagation()}
       >
-        <CardHeader
-          className={`flex flex-row items-center justify-between pb-2 border-b border-border bg-muted/20 ${headerClassName}`}
+        {/* Header - 56px */}
+        <div
+          className={cn(
+            "flex items-center justify-between px-4 h-14 flex-shrink-0",
+            "border-b border-border-default bg-bg-muted/30",
+            headerClassName,
+          )}
         >
-          <CardTitle className="text-lg">{title}</CardTitle>
+          <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
           {showCloseButton && (
             <Button
               variant="ghost"
-              size="icon"
+              size="icon-sm"
               onClick={onClose}
-              className="h-8 w-8 -mr-2"
               aria-label="Close modal"
             >
               <X className="w-4 h-4" />
             </Button>
           )}
-        </CardHeader>
+        </div>
 
-        <CardContent className={`pt-6 ${contentClassName}`}>
+        {/* Content - Scrollable */}
+        <div className={cn("flex-1 overflow-y-auto p-4", contentClassName)}>
           {children}
-        </CardContent>
+        </div>
 
+        {/* Footer - 64px */}
         {footer && (
-          <CardFooter
-            className={`flex justify-end bg-muted/20 border-t border-border p-4 gap-2 ${footerClassName}`}
+          <div
+            className={cn(
+              "flex items-center justify-end gap-2 px-4 h-16 flex-shrink-0",
+              "border-t border-border-default bg-bg-muted/30",
+              footerClassName,
+            )}
           >
             {footer}
-          </CardFooter>
+          </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 };
