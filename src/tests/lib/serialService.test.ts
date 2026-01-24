@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// Mock Tauri environment
+// Mock Tauri API - isTauri returns false for WebSerial tests
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(),
+  isTauri: vi.fn(() => false),
+}));
+
+// Mock Tauri environment (compile-time variables)
 Object.defineProperty(globalThis, "__TAURI_ENV_TARGET_TRIPLE__", {
   value: "",
   writable: true,

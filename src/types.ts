@@ -38,6 +38,8 @@ import {
   SerialSequenceSchema,
   ProjectContextSchema,
   DeviceAttachmentSchema,
+  DeviceSerialOptionsSchema,
+  DeviceProtocolBindingSchema,
   DeviceSchema,
   AIProjectResultSchema,
   ExportProfileSchema,
@@ -46,6 +48,35 @@ import {
   ParitySchema,
   FlowControlSchema,
   WidgetTypeSchema,
+  // Variable parsing schemas
+  VariableSyntaxSchema,
+  ParameterApplicationModeSchema,
+  // Substitute mode schemas
+  SubstituteTypeSchema,
+  QuoteStyleSchema,
+  SubstituteConfigSchema,
+  // Transform mode schemas
+  TransformPresetSchema,
+  TransformConfigSchema,
+  // Format mode schemas
+  FormatTypeSchema,
+  NumberRadixSchema,
+  PaddingTypeSchema,
+  AlignmentSchema,
+  NumberFormatConfigSchema,
+  StringFormatConfigSchema,
+  DateFormatSchema,
+  DateFormatConfigSchema,
+  ByteSizeSchema,
+  ByteOutputSchema,
+  BytesFormatConfigSchema,
+  FormatConfigSchema,
+  // Position mode schemas
+  PositionConfigSchema,
+  // Combined application schema
+  ParameterApplicationSchema,
+  // Variable extraction
+  VariableExtractionRuleSchema,
 } from "./lib/schemas";
 
 import {
@@ -115,6 +146,46 @@ export type ParameterType = z.infer<typeof ParameterTypeSchema>;
 export type FramingStrategy = z.infer<typeof FramingStrategySchema>;
 export type AttachmentCategory = z.infer<typeof AttachmentCategorySchema>;
 
+// Variable parsing types
+export type VariableSyntax = z.infer<typeof VariableSyntaxSchema>;
+export type ParameterApplicationMode = z.infer<
+  typeof ParameterApplicationModeSchema
+>;
+
+// Substitute mode types
+export type SubstituteType = z.infer<typeof SubstituteTypeSchema>;
+export type QuoteStyle = z.infer<typeof QuoteStyleSchema>;
+export type SubstituteConfig = z.infer<typeof SubstituteConfigSchema>;
+
+// Transform mode types
+export type TransformPreset = z.infer<typeof TransformPresetSchema>;
+export type TransformConfig = z.infer<typeof TransformConfigSchema>;
+
+// Format mode types
+export type FormatType = z.infer<typeof FormatTypeSchema>;
+export type NumberRadix = z.infer<typeof NumberRadixSchema>;
+export type PaddingType = z.infer<typeof PaddingTypeSchema>;
+export type Alignment = z.infer<typeof AlignmentSchema>;
+export type NumberFormatConfig = z.infer<typeof NumberFormatConfigSchema>;
+export type StringFormatConfig = z.infer<typeof StringFormatConfigSchema>;
+export type DateFormat = z.infer<typeof DateFormatSchema>;
+export type DateFormatConfig = z.infer<typeof DateFormatConfigSchema>;
+export type ByteSize = z.infer<typeof ByteSizeSchema>;
+export type ByteOutput = z.infer<typeof ByteOutputSchema>;
+export type BytesFormatConfig = z.infer<typeof BytesFormatConfigSchema>;
+export type FormatConfig = z.infer<typeof FormatConfigSchema>;
+
+// Position mode types
+export type PositionConfig = z.infer<typeof PositionConfigSchema>;
+
+// Combined application type
+export type ParameterApplication = z.infer<typeof ParameterApplicationSchema>;
+
+// Variable extraction types
+export type VariableExtractionRule = z.infer<
+  typeof VariableExtractionRuleSchema
+>;
+
 // Unified serial types (use EnumConverter when communicating with Rust/Tauri)
 export type DataBits = z.infer<typeof DataBitsSchema>;
 export type StopBits = z.infer<typeof StopBitsSchema>;
@@ -141,6 +212,8 @@ export type SequenceStep = z.infer<typeof SequenceStepSchema>;
 export type SerialSequence = z.infer<typeof SerialSequenceSchema>;
 export type ProjectContext = z.infer<typeof ProjectContextSchema>;
 export type DeviceAttachment = z.infer<typeof DeviceAttachmentSchema>;
+export type DeviceSerialOptions = z.infer<typeof DeviceSerialOptionsSchema>;
+export type DeviceProtocolBinding = z.infer<typeof DeviceProtocolBindingSchema>;
 export type Device = z.infer<typeof DeviceSchema>;
 
 // Export/AI
@@ -273,6 +346,8 @@ export {
   SerialSequenceSchema,
   ProjectContextSchema,
   DeviceAttachmentSchema,
+  DeviceSerialOptionsSchema,
+  DeviceProtocolBindingSchema,
   DeviceSchema,
   AIProjectResultSchema,
   ExportProfileSchema,
@@ -281,6 +356,29 @@ export {
   StopBitsSchema,
   ParitySchema,
   FlowControlSchema,
+  // Variable parsing schemas
+  VariableSyntaxSchema,
+  ParameterApplicationModeSchema,
+  SubstituteTypeSchema,
+  QuoteStyleSchema,
+  SubstituteConfigSchema,
+  TransformPresetSchema,
+  TransformConfigSchema,
+  FormatTypeSchema,
+  NumberRadixSchema,
+  PaddingTypeSchema,
+  AlignmentSchema,
+  NumberFormatConfigSchema,
+  StringFormatConfigSchema,
+  DateFormatSchema,
+  DateFormatConfigSchema,
+  ByteSizeSchema,
+  ByteOutputSchema,
+  BytesFormatConfigSchema,
+  FormatConfigSchema,
+  PositionConfigSchema,
+  ParameterApplicationSchema,
+  VariableExtractionRuleSchema,
 
   // Store schemas
   RightSidebarTabSchema,
@@ -327,6 +425,107 @@ export {
   listenToMultipleEvents,
   listenOnce,
 };
+
+// ============================================================================
+// PROTOCOL SYSTEM TYPES (from protocolTypes.ts)
+// ============================================================================
+
+export type {
+  // Base
+  BaseEntity as ProtocolBaseEntity,
+
+  // Data types
+  DataType,
+  ByteOrder,
+  ElementEncoding,
+  ChecksumAlgorithm as ProtocolChecksumAlgorithm,
+
+  // Framing
+  FramingStrategy as ProtocolFramingStrategy,
+  DelimiterConfig,
+  TimeoutConfig,
+  LengthFieldConfig,
+  SyncPatternConfig,
+  FramingStep,
+  CompositeFramingConfig,
+  ScriptFramingConfig,
+  FramingConfig as ProtocolFramingConfig,
+
+  // Message elements
+  StaticElementConfig,
+  AddressElementConfig,
+  FieldElementConfig,
+  LengthElementConfig,
+  ChecksumElementConfig,
+  PayloadElementConfig,
+  PaddingElementConfig,
+  ReservedElementConfig,
+  ElementConfig,
+  MessageElement,
+  MessageStructure,
+
+  // Parameters
+  ParameterType as ProtocolParameterType,
+  SimpleParameter,
+  CommandParameter as ProtocolCommandParameter,
+  SimpleExtraction,
+  CommandValidation as ProtocolCommandValidation,
+  CommandHooks,
+
+  // Commands
+  LineEnding as ProtocolLineEnding,
+  DataMode as ProtocolDataMode,
+  TextEncoding as ProtocolTextEncoding,
+  SimpleCommand,
+  ElementBinding,
+  StaticBinding,
+  ComputedBinding,
+  ResponsePattern,
+  StructuredCommand,
+  CommandTemplate,
+
+  // Protocol
+  Protocol,
+
+  // Device
+  DeviceProtocolBinding as ProtocolDeviceProtocolBinding,
+  AttachmentCategory as ProtocolAttachmentCategory,
+  DeviceAttachment as ProtocolDeviceAttachment,
+  SerialOptions as ProtocolSerialOptions,
+  Device as ProtocolDevice,
+
+  // Sequence
+  StaticParameterSource,
+  VariableParameterSource,
+  PreviousStepParameterSource,
+  ExpressionParameterSource,
+  ParameterSource,
+  StepCondition,
+  SequenceStep as ProtocolSequenceStep,
+  SequenceExecutionConfig,
+  Sequence as ProtocolSequence,
+
+  // Shared package
+  SharedPackageType,
+  ConflictResolution,
+  SharedPackage,
+
+  // AI
+  ConfidenceLevel,
+  GeneratedProtocol,
+} from "./lib/protocolTypes";
+
+export {
+  // Type guards
+  isSimpleCommand,
+  isStructuredCommand,
+
+  // Helper functions
+  getCommandsByCategory,
+  getProtocolCategories,
+  findCommand,
+  findMessageStructure,
+} from "./lib/protocolTypes";
 
 // ============================================================================
 // WEB SERIAL API (browser types - keep as-is)

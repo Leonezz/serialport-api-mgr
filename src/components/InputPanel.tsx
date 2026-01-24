@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/Button";
 import { Textarea } from "./ui/Textarea";
+import { HexInput } from "./ui/HexInput";
 import { Select } from "./ui/Select";
 import { Send, ArrowDownToLine, Zap, Paperclip, X } from "lucide-react";
 import {
@@ -268,21 +269,29 @@ const InputPanel: React.FC<Props> = ({
 
       <div className="p-4 bg-background/50 relative">
         <div className="flex flex-col gap-3 w-full">
-          <Textarea
-            value={inputBuffer}
-            onChange={(e) => setInputBuffer(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="font-mono text-sm resize-none border-border bg-background focus-visible:border-primary focus-visible:ring-primary/30 p-3 leading-relaxed transition-all custom-scrollbar shadow-sm"
-            style={{ height: `${textareaHeight}px` }}
-            placeholder={
-              sendMode === "TEXT"
-                ? `Enter text...`
-                : sendMode === "HEX"
-                  ? `Enter Hex (e.g. AA BB 0D 0A for \\r\\n)...`
-                  : `Enter Binary (e.g. 01010101 00001101)...`
-            }
-            spellCheck={false}
-          />
+          {sendMode === "HEX" || sendMode === "BINARY" ? (
+            <div style={{ minHeight: `${textareaHeight}px` }}>
+              <HexInput
+                mode={sendMode}
+                value={inputBuffer}
+                onChange={setInputBuffer}
+                autoFormat
+                showByteCount
+                showPreview
+                className="font-mono text-sm"
+              />
+            </div>
+          ) : (
+            <Textarea
+              value={inputBuffer}
+              onChange={(e) => setInputBuffer(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="font-mono text-sm resize-none border-border bg-background focus-visible:border-primary focus-visible:ring-primary/30 p-3 leading-relaxed transition-all custom-scrollbar shadow-sm"
+              style={{ height: `${textareaHeight}px` }}
+              placeholder="Enter text..."
+              spellCheck={false}
+            />
+          )}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Button

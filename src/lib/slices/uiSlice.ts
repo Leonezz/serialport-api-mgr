@@ -45,6 +45,7 @@ export interface UISliceState {
   rightSidebarTab: RightSidebarTab;
   leftSidebarCollapsed: boolean;
   rightSidebarCollapsed: boolean;
+  sidebarSectionsCollapsed: Record<string, boolean>;
 }
 
 // Actions interface (all methods)
@@ -67,6 +68,10 @@ export interface UISliceActions {
     type: ToastMessage["type"],
     title: string,
     message: string,
+    options?: {
+      action?: { label: string; onClick: () => void };
+      duration?: number;
+    },
   ) => void;
   removeToast: (id: string) => void;
 
@@ -88,6 +93,7 @@ export interface UISliceActions {
   setRightSidebarTab: (tab: RightSidebarTab) => void;
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
   setRightSidebarCollapsed: (collapsed: boolean) => void;
+  toggleSidebarSection: (section: string) => void;
 }
 
 // Complete slice: State & Actions
@@ -117,10 +123,20 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
   clearSystemLogs: () => set({ systemLogs: [] }),
 
   toasts: [],
-  addToast: (type, title, message) => {
+  addToast: (type, title, message, options) => {
     const id = generateId();
     set((state) => ({
-      toasts: [...state.toasts, { id, type, title, message }],
+      toasts: [
+        ...state.toasts,
+        {
+          id,
+          type,
+          title,
+          message,
+          action: options?.action,
+          duration: options?.duration,
+        },
+      ],
     }));
   },
   removeToast: (id) =>
@@ -143,6 +159,12 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
   rightSidebarTab: "ai",
   leftSidebarCollapsed: false,
   rightSidebarCollapsed: false,
+  sidebarSectionsCollapsed: {
+    devices: false,
+    protocols: false,
+    commands: false,
+    sequences: false,
+  },
 
   setEditingCommand: (cmd) => set({ editingCommand: cmd }),
   setIsCommandModalOpen: (open) => set({ isCommandModalOpen: open }),
@@ -163,4 +185,11 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
     set({ leftSidebarCollapsed: collapsed }),
   setRightSidebarCollapsed: (collapsed) =>
     set({ rightSidebarCollapsed: collapsed }),
+  toggleSidebarSection: (section) =>
+    set((state) => ({
+      sidebarSectionsCollapsed: {
+        ...state.sidebarSectionsCollapsed,
+        [section]: !state.sidebarSectionsCollapsed[section],
+      },
+    })),
 });

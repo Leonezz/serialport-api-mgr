@@ -7,7 +7,6 @@ import {
   ResponsiveContainer,
   Tooltip,
   CartesianGrid,
-  Legend,
   Brush,
 } from "recharts";
 import { useStore } from "../../lib/store";
@@ -21,30 +20,66 @@ import {
   X,
   LineChart as ChartIcon,
   ArrowRight,
-  Edit2,
+  Pencil,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Card } from "../ui/Card";
 import { Label } from "../ui/Label";
-import { Select } from "../ui/Select";
+import { SelectDropdown } from "../ui/Select";
+import { DropdownOption } from "../ui/Dropdown";
 import { Input } from "../ui/Input";
 import { handleChartWheel } from "../../hooks/useChartZoomPan";
-import { PlotterParserType } from "@/types";
+import { PlotterParserType, PlotterDataPoint } from "@/types";
+import { SegmentedControl, SegmentOption } from "../ui/SegmentedControl";
+import { Checkbox } from "../ui/Checkbox";
 
+// Series colors per FIGMA-DESIGN.md 9.6
 const CHART_COLORS = [
-  "#ef4444", // Red
-  "#22c55e", // Green
-  "#3b82f6", // Blue
-  "#f59e0b", // Amber
-  "#8b5cf6", // Violet
-  "#ec4899", // Pink
-  "#06b6d4", // Cyan
-  "#14b8a6", // Teal
-  "#f97316", // Orange
-  "#6366f1", // Indigo
+  "#3b82f6", // blue.500
+  "#22c55e", // green.500
+  "#f59e0b", // amber.500
+  "#8b5cf6", // purple.500
+  "#ef4444", // red.500
+  "#06b6d4", // cyan
+  "#ec4899", // pink
+  "#84cc16", // lime
 ];
 
 const WINDOW_SIZE = 200; // Visible points in auto-scroll mode
+
+// Time window options (Section 9.6)
+type TimeWindowValue = "30s" | "1m" | "5m" | "15m" | "ALL";
+const TIME_WINDOW_OPTIONS: SegmentOption[] = [
+  { value: "30s", label: "30s" },
+  { value: "1m", label: "1m" },
+  { value: "5m", label: "5m" },
+  { value: "15m", label: "15m" },
+  { value: "ALL", label: "All" },
+];
+
+// Time window in milliseconds
+const TIME_WINDOW_MS: Record<TimeWindowValue, number | null> = {
+  "30s": 30 * 1000,
+  "1m": 60 * 1000,
+  "5m": 5 * 60 * 1000,
+  "15m": 15 * 60 * 1000,
+  ALL: null, // null = show all data
+};
+
+// Interpolation options (Section 9.6)
+type InterpolationType = "linear" | "step" | "smooth";
+const INTERPOLATION_OPTIONS: SegmentOption[] = [
+  { value: "linear", label: "Linear" },
+  { value: "step", label: "Step" },
+  { value: "smooth", label: "Smooth" },
+];
+
+// Map to Recharts curve types
+const INTERPOLATION_MAP: Record<InterpolationType, string> = {
+  linear: "linear",
+  step: "stepAfter",
+  smooth: "monotone",
+};
 
 const PlotterPanel: React.FC = () => {
   const activeSessionId = useStore((state) => state.activeSessionId);
@@ -55,6 +90,11 @@ const PlotterPanel: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+
+  // Section 9.6: Time Window & Interpolation state
+  const [timeWindow, setTimeWindow] = useState<TimeWindowValue>("1m");
+  const [interpolation, setInterpolation] =
+    useState<InterpolationType>("linear");
 
   // Auto-Scroll & Zoom State
   const [isAutoScroll, setIsAutoScroll] = useState(true);
@@ -75,8 +115,24 @@ const PlotterPanel: React.FC = () => {
   const aliases = plotter?.aliases || {};
 
   // Data to display (handle pause)
-  const [frozenData, setFrozenData] = useState<unknown[]>([]);
-  const displayData = isPaused ? frozenData : data;
+  const [frozenData, setFrozenData] = useState<PlotterDataPoint[]>([]);
+  const rawDisplayData = isPaused ? frozenData : data;
+
+  // Section 9.6: Apply time window filter
+  // Use the latest data point's timestamp as reference (more stable than Date.now())
+  const displayData = useMemo(() => {
+    const windowMs = TIME_WINDOW_MS[timeWindow];
+    if (windowMs === null || rawDisplayData.length === 0) {
+      return rawDisplayData;
+    }
+    // Use latest data point time as the reference point
+    const latestTime = rawDisplayData[rawDisplayData.length - 1]?.time;
+    if (latestTime === undefined) {
+      return rawDisplayData;
+    }
+    const cutoff = latestTime - windowMs;
+    return rawDisplayData.filter((point) => (point.time ?? 0) >= cutoff);
+  }, [rawDisplayData, timeWindow]);
 
   // Defer displayData to keep UI responsive during high-frequency updates
   const deferredDisplayData = useDeferredValue(displayData);
@@ -115,20 +171,6 @@ const PlotterPanel: React.FC = () => {
     }
   };
 
-  const handleLegendClick = (e: unknown) => {
-    if (!e || typeof e !== "object" || !("dataKey" in e)) return;
-    const dataKey = String(e.dataKey);
-    setHiddenSeries((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(dataKey)) {
-        newSet.delete(dataKey);
-      } else {
-        newSet.add(dataKey);
-      }
-      return newSet;
-    });
-  };
-
   const handleExport = () => {
     if (data.length === 0) return;
 
@@ -158,249 +200,342 @@ const PlotterPanel: React.FC = () => {
 
   const getSeriesName = (key: string) => aliases[key] || key;
 
+  // Toggle series visibility
+  const toggleSeriesVisibility = (seriesKey: string) => {
+    setHiddenSeries((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(seriesKey)) {
+        newSet.delete(seriesKey);
+      } else {
+        newSet.add(seriesKey);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <div className="flex flex-col h-full bg-muted/10 overflow-hidden relative">
-      {/* Header Controls */}
-      <div className="flex justify-between items-center p-4 bg-background/50 border-b border-border shrink-0 z-20">
+      {/* ===== SECTION 9.6: Legend Row (36px) ===== */}
+      <div className="h-9 flex items-center justify-between px-4 bg-bg-surface border-b border-border-default shrink-0">
         <div className="flex items-center gap-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <ChartIcon className="w-4 h-4" /> Real-time Plotter
-          </h3>
-          <div className="flex items-center gap-1 bg-muted/50 p-0.5 rounded-md border border-border">
-            <Button
-              variant={config.enabled ? "default" : "ghost"}
-              size="sm"
-              className="h-7 px-3 text-xs"
-              onClick={togglePlotter}
-            >
-              {config.enabled ? "Enabled" : "Disabled"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2"
-              onClick={() => setShowSettings(true)}
-              title="Plotter Settings"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </Button>
-          </div>
+          {/* Series Legend Items */}
+          {series.map((s, i) => {
+            const isHidden = hiddenSeries.has(s);
+            const lastVal =
+              deferredDisplayData[deferredDisplayData.length - 1]?.[s];
+            return (
+              <button
+                key={s}
+                onClick={() => toggleSeriesVisibility(s)}
+                className={cn(
+                  "flex items-center gap-2 text-label-sm transition-opacity",
+                  isHidden && "opacity-40",
+                )}
+              >
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{
+                    backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                    opacity: isHidden ? 0.4 : 1,
+                  }}
+                />
+                <span className={cn("font-medium", isHidden && "line-through")}>
+                  {getSeriesName(s)}
+                </span>
+                {!isHidden && typeof lastVal === "number" && (
+                  <span className="font-mono text-text-muted text-[10px]">
+                    {lastVal.toFixed(2)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {series.length === 0 && (
+            <span className="text-text-muted text-label-sm italic">
+              No series detected
+            </span>
+          )}
         </div>
 
+        {/* Legend Action Buttons */}
         <div className="flex items-center gap-2">
           {!isAutoScroll && (
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setIsAutoScroll(true)}
-              className="h-8 gap-1.5 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/20"
+              className="h-7 gap-1.5 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/20"
             >
               <ArrowRight className="w-3.5 h-3.5" /> Follow
             </Button>
           )}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleTogglePause}
             className={cn(
-              "h-8 gap-1.5 text-xs",
-              isPaused && "bg-amber-500/10 border-amber-500/50 text-amber-600",
+              "h-7 w-7 p-0",
+              isPaused && "bg-amber-500/10 text-amber-600",
             )}
+            title={isPaused ? "Resume" : "Pause"}
           >
             {isPaused ? (
               <Play className="w-3.5 h-3.5" />
             ) : (
               <Pause className="w-3.5 h-3.5" />
             )}
-            {isPaused ? "Resume" : "Pause"}
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={clearPlotterData}
-            className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+            className="h-7 w-7 p-0 text-text-muted hover:text-destructive"
+            title="Clear Data"
           >
-            <Trash2 className="w-3.5 h-3.5" /> Clear
+            <Trash2 className="w-3.5 h-3.5" />
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleExport}
             disabled={data.length === 0}
-            className="h-8 gap-1.5 text-xs"
+            className="h-7 w-7 p-0"
+            title="Export CSV"
           >
-            <Download className="w-3.5 h-3.5" /> Export
+            <Download className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSettings(true)}
+            className="h-7 w-7 p-0"
+            title="Settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* Main Plot Area */}
-      <div className="flex-1 min-h-0 relative p-4 flex flex-col gap-4">
-        {!config.enabled ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground opacity-50 bg-card/30 rounded-xl border-2 border-dashed border-border">
-            <ChartIcon className="w-12 h-12 mb-4" />
-            <p className="font-semibold">Plotter is Disabled</p>
-            <p className="text-sm mb-4">
-              Enable to start visualizing incoming data
-            </p>
-            <Button onClick={togglePlotter}>Enable Plotter</Button>
-          </div>
-        ) : displayData.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground opacity-50 bg-card/30 rounded-xl border border-border">
-            <div className="animate-pulse flex flex-col items-center">
-              <ChartIcon className="w-8 h-8 mb-2" />
-              <p className="text-xs">Waiting for data stream...</p>
-              <p className="text-[10px] mt-1 font-mono uppercase">
-                Format: {config.autoDiscover ? "Auto-Detect" : config.parser}
-              </p>
+      {/* ===== SECTION 9.6: Main Content (Variable Selector + Chart) ===== */}
+      <div className="flex-1 min-h-0 flex">
+        {/* Variable Selector Panel (200px left) */}
+        {config.enabled && series.length > 0 && (
+          <div className="w-50 border-r border-border-default bg-bg-surface/50 flex flex-col shrink-0">
+            <div className="h-8 flex items-center px-3 border-b border-border-default bg-bg-muted/50">
+              <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">
+                Variables
+              </span>
             </div>
-          </div>
-        ) : (
-          <div
-            className="flex-1 bg-card border border-border rounded-xl shadow-sm p-4 min-h-0 relative"
-            onWheel={(e) => {
-              const currentStart = viewRange?.start ?? 0;
-              const currentEnd =
-                viewRange?.end ?? Math.max(0, deferredDisplayData.length - 1);
+            <div className="flex-1 overflow-y-auto custom-scrollbar py-1">
+              {series.map((s, i) => {
+                const isVisible = !hiddenSeries.has(s);
+                const color = CHART_COLORS[i % CHART_COLORS.length];
+                const lastVal =
+                  deferredDisplayData[deferredDisplayData.length - 1]?.[s];
 
-              handleChartWheel(
-                e,
-                { start: currentStart, end: currentEnd },
-                deferredDisplayData.length,
-                (newRange) => setManualViewRange(newRange),
-                () => setIsAutoScroll(false),
-              );
-            }}
-          >
-            {/* Data Loading Indicator */}
-            {isDataStale && (
-              <div className="absolute top-2 right-2 z-10 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1 text-[10px] font-medium text-amber-600 animate-pulse">
-                Updating...
-              </div>
-            )}
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={deferredDisplayData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  strokeOpacity={0.1}
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="time"
-                  type="number"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={(t) => new Date(t).toLocaleTimeString()}
-                  tick={{ fontSize: 10 }}
-                  height={30}
-                />
-                <YAxis
-                  width={40}
-                  tick={{ fontSize: 10 }}
-                  domain={["auto", "auto"]}
-                />
-                <Tooltip
-                  labelFormatter={(t) => new Date(t).toLocaleTimeString()}
-                  formatter={(value: number, name: string) => [
-                    value,
-                    getSeriesName(name),
-                  ]}
-                  contentStyle={{
-                    borderRadius: "0.5rem",
-                    border: "1px solid hsl(var(--border))",
-                    fontSize: "12px",
-                    backgroundColor: "hsl(var(--popover))",
-                    color: "hsl(var(--popover-foreground))",
-                  }}
-                />
-                <Legend
-                  iconType="circle"
-                  wrapperStyle={{
-                    fontSize: "12px",
-                    paddingTop: "10px",
-                    cursor: "pointer",
-                  }}
-                  onClick={handleLegendClick}
-                  formatter={(value) => getSeriesName(value)}
-                />
-                {series.map((key, i) => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    name={key}
-                    stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                    strokeWidth={2}
-                    dot={false}
-                    isAnimationActive={false}
-                    hide={hiddenSeries.has(key)}
-                  />
-                ))}
-                <Brush
-                  dataKey="time"
-                  height={30}
-                  stroke="hsl(var(--border))"
-                  fill="hsl(var(--muted)/0.3)"
-                  tickFormatter={() => ""}
-                  startIndex={viewRange?.start}
-                  endIndex={viewRange?.end}
-                  onChange={handleBrushChange}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+                return (
+                  <div
+                    key={s}
+                    className={cn(
+                      "h-8 flex items-center gap-2 px-3 hover:bg-bg-hover transition-colors cursor-pointer",
+                      !isVisible && "opacity-50",
+                    )}
+                    onClick={() => toggleSeriesVisibility(s)}
+                  >
+                    <Checkbox
+                      checked={isVisible}
+                      onChange={() => toggleSeriesVisibility(s)}
+                    />
+                    <div
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="flex-1 text-xs font-medium truncate">
+                      {getSeriesName(s)}
+                    </span>
+                    <span className="text-[10px] font-mono text-text-muted tabular-nums">
+                      {typeof lastVal === "number" ? lastVal.toFixed(1) : "--"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* Quick Config / Status Bar (Bottom) */}
-        {config.enabled && series.length > 0 && (
-          <div className="bg-card border border-border rounded-lg p-3 flex flex-wrap gap-4 items-center shrink-0 shadow-sm">
-            <div className="flex items-center gap-2 pr-4 border-r border-border">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">
-                Active Series
-              </span>
-              <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {series.length}
-              </span>
+        {/* Chart Area */}
+        <div className="flex-1 min-h-0 relative p-4">
+          {!config.enabled ? (
+            <div className="h-full flex flex-col items-center justify-center text-text-muted opacity-50 bg-bg-surface/30 rounded-xl border-2 border-dashed border-border-default">
+              <ChartIcon className="w-12 h-12 mb-4" />
+              <p className="font-semibold">Plotter is Disabled</p>
+              <p className="text-sm mb-4">
+                Enable to start visualizing incoming data
+              </p>
+              <Button onClick={togglePlotter}>Enable Plotter</Button>
             </div>
-            {series.slice(0, 8).map((s, i) => {
-              const lastVal =
-                deferredDisplayData[deferredDisplayData.length - 1]?.[s];
-              const isHidden = hiddenSeries.has(s);
-              return (
-                <div
-                  key={s}
-                  className={cn(
-                    "flex items-center gap-2 cursor-pointer transition-opacity",
-                    isHidden && "opacity-40 grayscale",
-                  )}
-                  onClick={() => handleLegendClick({ dataKey: s })}
-                  title={getSeriesName(s)}
+          ) : displayData.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-text-muted opacity-50 bg-bg-surface/30 rounded-xl border border-border-default">
+              <div className="animate-pulse flex flex-col items-center">
+                <ChartIcon className="w-8 h-8 mb-2" />
+                <p className="text-xs">Waiting for data stream...</p>
+                <p className="text-[10px] mt-1 font-mono uppercase">
+                  Format: {config.autoDiscover ? "Auto-Detect" : config.parser}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="h-full bg-bg-surface border border-border-default rounded-xl shadow-sm p-4 relative"
+              onWheel={(e) => {
+                const currentStart = viewRange?.start ?? 0;
+                const currentEnd =
+                  viewRange?.end ?? Math.max(0, deferredDisplayData.length - 1);
+
+                handleChartWheel(
+                  e,
+                  { start: currentStart, end: currentEnd },
+                  deferredDisplayData.length,
+                  (newRange) => setManualViewRange(newRange),
+                  () => setIsAutoScroll(false),
+                );
+              }}
+            >
+              {/* Data Loading Indicator */}
+              {isDataStale && (
+                <div className="absolute top-2 right-2 z-10 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1 text-[10px] font-medium text-amber-600 animate-pulse">
+                  Updating...
+                </div>
+              )}
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={deferredDisplayData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                 >
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{
-                      backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.1}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="time"
+                    type="number"
+                    domain={["dataMin", "dataMax"]}
+                    tickFormatter={(t) => new Date(t).toLocaleTimeString()}
+                    tick={{ fontSize: 10 }}
+                    height={30}
+                  />
+                  <YAxis
+                    width={40}
+                    tick={{ fontSize: 10 }}
+                    domain={["auto", "auto"]}
+                  />
+                  <Tooltip
+                    labelFormatter={(t) => new Date(t).toLocaleTimeString()}
+                    formatter={(value: number, name: string) => [
+                      value,
+                      getSeriesName(name),
+                    ]}
+                    contentStyle={{
+                      borderRadius: "0.5rem",
+                      border: "1px solid hsl(var(--border))",
+                      fontSize: "12px",
+                      backgroundColor: "hsl(var(--popover))",
+                      color: "hsl(var(--popover-foreground))",
                     }}
                   />
-                  <span className="text-xs font-medium truncate max-w-25">
-                    {getSeriesName(s)}:
-                  </span>
-                  <span className="text-xs font-mono font-bold text-primary">
-                    {typeof lastVal === "number" ? lastVal.toFixed(2) : "--"}
-                  </span>
-                </div>
-              );
-            })}
-            {series.length > 8 && (
-              <span className="text-xs text-muted-foreground">
-                +{series.length - 8} more
-              </span>
-            )}
-          </div>
-        )}
+                  {series.map((key, i) => (
+                    <Line
+                      key={key}
+                      type={
+                        INTERPOLATION_MAP[interpolation] as
+                          | "linear"
+                          | "stepAfter"
+                          | "monotone"
+                      }
+                      dataKey={key}
+                      name={key}
+                      stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                      isAnimationActive={false}
+                      hide={hiddenSeries.has(key)}
+                    />
+                  ))}
+                  <Brush
+                    dataKey="time"
+                    height={30}
+                    stroke="var(--color-border-default)"
+                    fill="var(--color-bg-muted)"
+                    tickFormatter={() => ""}
+                    startIndex={viewRange?.start}
+                    endIndex={viewRange?.end}
+                    onChange={handleBrushChange}
+                    travellerWidth={10}
+                    className="recharts-brush-themed"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ===== SECTION 9.6: Bottom Controls Bar ===== */}
+      {config.enabled && (
+        <div className="h-10 flex items-center justify-between px-4 bg-bg-surface border-t border-border-default shrink-0 relative">
+          <div className="flex items-center gap-4">
+            {/* Enable/Disable Toggle */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant={config.enabled ? "default" : "outline"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={togglePlotter}
+              >
+                {config.enabled ? "Enabled" : "Disabled"}
+              </Button>
+            </div>
+
+            {/* Time Window */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold text-text-muted">
+                Time Window
+              </span>
+              <SegmentedControl
+                options={TIME_WINDOW_OPTIONS}
+                value={timeWindow}
+                onChange={(v) => setTimeWindow(v as TimeWindowValue)}
+                size="sm"
+              />
+            </div>
+
+            {/* Data Stats - Positioned here to not affect Interpolation layout */}
+            <div className="text-[10px] font-mono text-text-muted tabular-nums">
+              {deferredDisplayData.length} pts
+              {data.length !== deferredDisplayData.length && (
+                <span className="ml-1 text-text-muted/60">
+                  / {data.length} total
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Interpolation - Isolated on the right */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-bold text-text-muted">
+              Interpolation
+            </span>
+            <SegmentedControl
+              options={INTERPOLATION_OPTIONS}
+              value={interpolation}
+              onChange={(v) => setInterpolation(v as InterpolationType)}
+              size="sm"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Settings Modal */}
       {showSettings && (
@@ -451,19 +586,18 @@ const PlotterPanel: React.FC = () => {
                 {!config.autoDiscover && (
                   <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
                     <Label className="text-xs">Manual Parser</Label>
-                    <Select
-                      className="h-8 text-xs"
-                      value={config.parser}
-                      onChange={(e) =>
-                        setPlotterConfig({
-                          parser: e.target.value as PlotterParserType,
-                        })
+                    <SelectDropdown
+                      options={
+                        [
+                          { value: "CSV", label: "Comma Separated (CSV)" },
+                          { value: "JSON", label: "Structured JSON" },
+                          { value: "REGEX", label: "Custom Regex" },
+                        ] as DropdownOption<PlotterParserType>[]
                       }
-                    >
-                      <option value="CSV">Comma Separated (CSV)</option>
-                      <option value="JSON">Structured JSON</option>
-                      <option value="REGEX">Custom Regex</option>
-                    </Select>
+                      value={config.parser}
+                      onChange={(value) => setPlotterConfig({ parser: value })}
+                      size="sm"
+                    />
                   </div>
                 )}
 
@@ -488,18 +622,21 @@ const PlotterPanel: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label className="text-xs">Buffer Size (History)</Label>
-                  <Select
-                    className="h-8 text-xs"
-                    value={config.bufferSize.toString()}
-                    onChange={(e) =>
-                      setPlotterConfig({ bufferSize: parseInt(e.target.value) })
+                  <SelectDropdown
+                    options={
+                      [
+                        { value: 100, label: "100 points" },
+                        { value: 500, label: "500 points" },
+                        { value: 1000, label: "1000 points" },
+                        { value: 5000, label: "5000 points" },
+                      ] as DropdownOption<number>[]
                     }
-                  >
-                    <option value="100">100 points</option>
-                    <option value="500">500 points</option>
-                    <option value="1000">1000 points</option>
-                    <option value="5000">5000 points</option>
-                  </Select>
+                    value={config.bufferSize}
+                    onChange={(value) =>
+                      setPlotterConfig({ bufferSize: value })
+                    }
+                    size="sm"
+                  />
                 </div>
               </div>
 
@@ -507,7 +644,7 @@ const PlotterPanel: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b pb-2 mb-2">
                   <div className="h-6 w-6 bg-emerald-500/10 rounded flex items-center justify-center text-emerald-600">
-                    <Edit2 className="w-3.5 h-3.5" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-xs font-bold uppercase text-muted-foreground">
                     Series Configuration

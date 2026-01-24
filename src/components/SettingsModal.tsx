@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { SerialConfig, SerialPreset } from "../types";
-import { X, Save, Trash2, Download } from "lucide-react";
+import { X, Check, Trash2, Download } from "lucide-react";
 import { Button } from "./ui/Button";
-import { Select } from "./ui/Select";
+import { SelectDropdown } from "./ui/Select";
 import { Label } from "./ui/Label";
 import {
   Card,
@@ -11,6 +11,7 @@ import {
   CardContent,
   CardFooter,
 } from "./ui/Card";
+import { DropdownOption } from "./ui/Dropdown";
 
 interface Props {
   config: SerialConfig;
@@ -21,6 +22,32 @@ interface Props {
   onClose: () => void;
 }
 
+// Options for serial configuration
+const BAUD_RATE_OPTIONS: DropdownOption<number>[] = [
+  9600, 19200, 38400, 57600, 74880, 115200, 230400, 460800, 921600,
+].map((rate) => ({ value: rate, label: rate.toLocaleString() }));
+
+const DATA_BITS_OPTIONS: DropdownOption<SerialConfig["dataBits"]>[] = [
+  { value: "Seven", label: "7" },
+  { value: "Eight", label: "8" },
+];
+
+const STOP_BITS_OPTIONS: DropdownOption<SerialConfig["stopBits"]>[] = [
+  { value: "One", label: "1" },
+  { value: "Two", label: "2" },
+];
+
+const PARITY_OPTIONS: DropdownOption<string>[] = [
+  { value: "none", label: "None" },
+  { value: "even", label: "Even" },
+  { value: "odd", label: "Odd" },
+];
+
+const FLOW_CONTROL_OPTIONS: DropdownOption<string>[] = [
+  { value: "none", label: "None" },
+  { value: "hardware", label: "Hardware (RTS/CTS)" },
+];
+
 const SettingsModal: React.FC<Props> = ({
   config,
   setConfig,
@@ -29,25 +56,38 @@ const SettingsModal: React.FC<Props> = ({
   onDeletePreset,
   onClose,
 }) => {
-  const handleChange = (
-    key: keyof SerialConfig,
-    value: SerialConfig[keyof SerialConfig],
+  const [selectedPresetId, setSelectedPresetId] = useState<string>("");
+
+  const handleChange = <K extends keyof SerialConfig>(
+    key: K,
+    value: SerialConfig[K],
   ) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const presetId = e.target.value;
+  const handlePresetChange = (presetId: string) => {
     if (!presetId) return;
+    setSelectedPresetId(presetId);
     const preset = presets.find((p) => p.id === presetId);
     if (preset) {
       setConfig({ ...preset.config });
     }
   };
 
+  const presetOptions: DropdownOption<string>[] = presets.map((p) => ({
+    value: p.id,
+    label: p.name,
+  }));
+
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm shadow-2xl border-border">
+    <div
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <Card
+        className="w-full max-w-sm shadow-2xl border-border"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border">
           <CardTitle className="text-lg">Port Settings</CardTitle>
           <Button
@@ -67,20 +107,14 @@ const SettingsModal: React.FC<Props> = ({
               <Download className="w-3 h-3" /> Presets
             </Label>
             <div className="flex gap-2">
-              <Select
-                className="flex-1 bg-background"
-                onChange={handlePresetChange}
-                defaultValue=""
-              >
-                <option value="" disabled>
-                  Load a preset...
-                </option>
-                {presets.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
+              <div className="flex-1">
+                <SelectDropdown
+                  options={presetOptions}
+                  value={selectedPresetId}
+                  onChange={handlePresetChange}
+                  placeholder="Load a preset..."
+                />
+              </div>
               <Button
                 size="icon"
                 variant="outline"
@@ -93,20 +127,20 @@ const SettingsModal: React.FC<Props> = ({
                 }}
                 title="Save current settings as preset"
               >
-                <Save className="w-4 h-4" />
+                <Check className="w-4 h-4" />
               </Button>
               <Button
                 size="icon"
                 variant="outline"
                 className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
                 onClick={() => {
-                  const select = document.querySelector("select");
-                  const presetId = select ? select.value : "";
-                  if (presetId && confirm("Delete this preset?")) {
-                    onDeletePreset(presetId);
+                  if (selectedPresetId && confirm("Delete this preset?")) {
+                    onDeletePreset(selectedPresetId);
+                    setSelectedPresetId("");
                   }
                 }}
                 title="Delete selected preset"
+                disabled={!selectedPresetId}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -116,81 +150,55 @@ const SettingsModal: React.FC<Props> = ({
           <div className="grid gap-4">
             <div className="space-y-2">
               <Label>Baud Rate</Label>
-              <Select
+              <SelectDropdown
+                options={BAUD_RATE_OPTIONS}
                 value={config.baudRate}
-                onChange={(e) =>
-                  handleChange("baudRate", parseInt(e.target.value))
-                }
-              >
-                {[
-                  9600, 19200, 38400, 57600, 74880, 115200, 230400, 460800,
-                  921600,
-                ].map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </Select>
+                onChange={(value) => handleChange("baudRate", value)}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Data Bits</Label>
-                <Select
+                <SelectDropdown
+                  options={DATA_BITS_OPTIONS}
                   value={config.dataBits}
-                  onChange={(e) =>
-                    handleChange("dataBits", parseInt(e.target.value))
-                  }
-                >
-                  <option value={7}>7</option>
-                  <option value={8}>8</option>
-                </Select>
+                  onChange={(value) => handleChange("dataBits", value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Stop Bits</Label>
-                <Select
+                <SelectDropdown
+                  options={STOP_BITS_OPTIONS}
                   value={config.stopBits}
-                  onChange={(e) =>
-                    handleChange("stopBits", parseInt(e.target.value))
-                  }
-                >
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                </Select>
+                  onChange={(value) => handleChange("stopBits", value)}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Parity</Label>
-              <Select
+              <SelectDropdown
+                options={PARITY_OPTIONS}
                 value={config.parity}
-                onChange={(e) =>
-                  handleChange(
-                    "parity",
-                    e.target.value as unknown as SerialConfig["parity"],
-                  )
+                onChange={(value) =>
+                  handleChange("parity", value as SerialConfig["parity"])
                 }
-              >
-                <option value="none">None</option>
-                <option value="even">Even</option>
-                <option value="odd">Odd</option>
-              </Select>
+              />
             </div>
 
             <div className="space-y-2">
               <Label>Flow Control</Label>
-              <Select
+              <SelectDropdown
+                options={FLOW_CONTROL_OPTIONS}
                 value={config.flowControl}
-                onChange={(e) =>
+                onChange={(value) =>
                   handleChange(
                     "flowControl",
-                    e.target.value as unknown as SerialConfig["flowControl"],
+                    value as SerialConfig["flowControl"],
                   )
                 }
-              >
-                <option value="none">None</option>
-                <option value="hardware">Hardware (RTS/CTS)</option>
-              </Select>
+              />
             </div>
           </div>
         </CardContent>

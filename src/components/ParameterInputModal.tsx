@@ -4,8 +4,10 @@ import { Play, RotateCcw } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
-import { Select } from "./ui/Select";
+import { SelectDropdown } from "./ui/Select";
+import { DropdownOption } from "./ui/Dropdown";
 import { Modal } from "./ui/Modal";
+import { Checkbox } from "./ui/Checkbox";
 
 interface Props {
   command: SavedCommand;
@@ -42,36 +44,29 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
     const val = values[param.name];
 
     switch (param.type) {
-      case "ENUM":
+      case "ENUM": {
+        const enumOptions: DropdownOption<string | number>[] =
+          param.options?.map((opt) => ({
+            value: opt.value,
+            label: String(opt.label || opt.value),
+          })) || [];
         return (
-          <Select
-            value={val as string}
-            onChange={(e) => handleChange(param.name, e.target.value)}
-            className="w-full"
-          >
-            {param.options?.map((opt, i) => (
-              <option key={i} value={opt.value}>
-                {opt.label || opt.value}
-              </option>
-            ))}
-          </Select>
+          <SelectDropdown
+            options={enumOptions}
+            value={val as string | number}
+            onChange={(value) => handleChange(param.name, value)}
+          />
         );
+      }
       case "BOOLEAN":
         return (
           <div className="flex items-center h-10">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={!!val}
               onChange={(e) => handleChange(param.name, e.target.checked)}
-              className="w-5 h-5 rounded border-input text-primary focus:ring-primary"
-              id={`param-${param.id}`}
+              label={val ? "True / Enabled" : "False / Disabled"}
+              labelClassName="text-muted-foreground"
             />
-            <label
-              htmlFor={`param-${param.id}`}
-              className="ml-2 text-sm text-muted-foreground select-none cursor-pointer"
-            >
-              {val ? "True / Enabled" : "False / Disabled"}
-            </label>
           </div>
         );
       case "INTEGER":

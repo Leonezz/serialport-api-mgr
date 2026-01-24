@@ -16,6 +16,7 @@ import {
   FramingConfigSchema,
   DeviceSchema,
 } from "./schemas";
+import { ProtocolSchema } from "./protocolSchemas";
 
 // ============================================================================
 // SLICE-SPECIFIC SCHEMAS
@@ -25,10 +26,8 @@ export const RightSidebarTabSchema = z.enum([
   "ai",
   "basic",
   "params",
-  "processing",
-  "framing",
-  "context",
-  "wizard",
+  "validation",
+  "scripting",
   "device",
 ]);
 
@@ -218,13 +217,16 @@ export const PersistedStoreStateSchema = z
     themeMode: ThemeModeSchema.optional(),
     themeColor: ThemeColorSchema.optional(),
 
-    // Project data
+    // Legacy project data (for backward compatibility)
     devices: z.array(DeviceSchema).optional(),
     presets: z.array(SerialPresetSchema).optional(),
     commands: z.array(SavedCommandSchema).optional(),
     sequences: z.array(SerialSequenceSchema).optional(),
     contexts: z.array(ProjectContextSchema).optional(),
     loadedPresetId: z.string().nullable().optional(),
+
+    // New protocol system data
+    protocols: z.array(ProtocolSchema).optional(),
 
     // Session data
     sessions: z.record(z.string(), SessionSchema).optional(),

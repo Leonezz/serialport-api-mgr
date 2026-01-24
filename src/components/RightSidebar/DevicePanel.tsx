@@ -4,7 +4,7 @@ import {
   Link2,
   FileText,
   BookOpen,
-  Edit2,
+  Pencil,
   Plus,
   ArrowRight,
   Cpu,
@@ -63,7 +63,7 @@ export const DevicePanel: React.FC = () => {
             )}
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Edit2 className="w-4 h-4" />
+            <Pencil className="w-4 h-4" />
           </Button>
         </div>
       </div>

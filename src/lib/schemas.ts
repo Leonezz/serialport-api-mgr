@@ -1,6 +1,18 @@
 import { z } from "zod";
 
 // ============================================================================
+// RUNTIME/SESSION SCHEMAS
+//
+// These schemas are used for runtime state management:
+// - Serial port configuration (sessions, presets)
+// - Saved commands and sequences (project-level entities)
+// - Device organization (grouping commands/sequences/presets)
+//
+// Note: For protocol-based data modeling (Protocol, MessageStructure,
+// CommandTemplate, Device with protocol bindings), see protocolSchemas.ts
+// ============================================================================
+
+// ============================================================================
 // SERIAL PORT CONFIGURATION SCHEMAS
 // These are the unified schemas for serial port configuration
 // Use EnumConverter when sending values to Rust/Tauri
@@ -30,7 +42,11 @@ export const ChecksumAlgorithmSchema = z.enum([
 
 export const MatchTypeSchema = z.enum(["CONTAINS", "REGEX"]);
 
-export const ValidationModeSchema = z.enum(["PATTERN"]);
+export const ValidationModeSchema = z.enum([
+  "ALWAYS_PASS",
+  "PATTERN",
+  "SCRIPT",
+]);
 
 export const ThemeColorSchema = z.enum([
   "zinc",
@@ -53,6 +69,160 @@ export const ParameterTypeSchema = z.enum([
   "BOOLEAN",
 ]);
 
+// ============================================================================
+// VARIABLE PARSING & PARAMETER APPLICATION SCHEMAS
+// ============================================================================
+
+// Variable syntax patterns for detecting variables in payloads
+export const VariableSyntaxSchema = z.enum([
+  "SHELL", // ${name} - default
+  "MUSTACHE", // {{name}}
+  "BATCH", // %name%
+  "COLON", // :name
+  "BRACES", // {name}
+  "CUSTOM", // user-defined regex
+]);
+
+// Parameter application modes
+export const ParameterApplicationModeSchema = z.enum([
+  "SUBSTITUTE", // Direct text replacement
+  "TRANSFORM", // JavaScript expression transformation
+  "FORMAT", // Structured formatting (number, string, date, bytes)
+  "POSITION", // Binary byte-position insertion
+]);
+
+// Substitute mode options
+export const SubstituteTypeSchema = z.enum([
+  "DIRECT", // Raw value
+  "QUOTED", // Wrap in quotes
+  "ESCAPED", // Escape special characters
+  "URL_ENCODED", // Percent-encode
+  "BASE64", // Base64 encode
+]);
+
+export const QuoteStyleSchema = z.enum([
+  "DOUBLE", // "value"
+  "SINGLE", // 'value'
+  "BACKTICK", // `value`
+]);
+
+export const SubstituteConfigSchema = z.object({
+  type: SubstituteTypeSchema.default("DIRECT"),
+  quoteStyle: QuoteStyleSchema.optional(),
+  escapeChars: z.string().optional(), // Characters to escape
+});
+
+// Transform mode options
+export const TransformPresetSchema = z.enum([
+  "CUSTOM", // Custom expression
+  "UPPERCASE", // value.toUpperCase()
+  "LOWERCASE", // value.toLowerCase()
+  "TO_HEX", // Number to hex string
+  "FROM_HEX", // Hex string to number
+  "CHECKSUM_MOD256",
+  "CHECKSUM_XOR",
+  "CHECKSUM_CRC16",
+  "JSON_STRINGIFY",
+  "JSON_PARSE",
+  "LENGTH", // Get string/array length
+  "TRIM", // Trim whitespace
+]);
+
+export const TransformConfigSchema = z.object({
+  preset: TransformPresetSchema.default("CUSTOM"),
+  expression: z.string().optional(), // Custom JS expression
+});
+
+// Format mode options
+export const FormatTypeSchema = z.enum(["NUMBER", "STRING", "DATE", "BYTES"]);
+
+export const NumberRadixSchema = z.enum(["2", "8", "10", "16"]);
+
+export const PaddingTypeSchema = z.enum(["NONE", "SPACE", "ZERO"]);
+
+export const AlignmentSchema = z.enum(["LEFT", "CENTER", "RIGHT"]);
+
+export const NumberFormatConfigSchema = z.object({
+  radix: NumberRadixSchema.default("10"),
+  width: z.number().int().min(0).max(32).optional(),
+  padding: PaddingTypeSchema.default("NONE"),
+  prefix: z.string().optional(), // e.g., "0x", "0b"
+  suffix: z.string().optional(), // e.g., "h", "b"
+  uppercase: z.boolean().default(false),
+  signed: z.boolean().default(false),
+});
+
+export const StringFormatConfigSchema = z.object({
+  width: z.number().int().min(0).max(255).optional(),
+  alignment: AlignmentSchema.default("LEFT"),
+  paddingChar: z.string().max(1).default(" "),
+  truncate: z.boolean().default(false),
+  nullTerminate: z.boolean().default(false),
+});
+
+export const DateFormatSchema = z.enum(["ISO", "UNIX", "UNIX_MS", "CUSTOM"]);
+
+export const DateFormatConfigSchema = z.object({
+  format: DateFormatSchema.default("ISO"),
+  customPattern: z.string().optional(), // For CUSTOM format
+  timezone: z.string().optional(), // e.g., "UTC", "America/New_York"
+});
+
+export const ByteSizeSchema = z.enum(["1", "2", "4", "8"]);
+
+export const ByteOutputSchema = z.enum(["ARRAY", "HEX_STRING", "RAW"]);
+
+export const BytesFormatConfigSchema = z.object({
+  byteSize: ByteSizeSchema.default("1"),
+  endianness: z.enum(["LE", "BE"]).default("LE"),
+  signed: z.boolean().default(false),
+  output: ByteOutputSchema.default("RAW"),
+});
+
+export const FormatConfigSchema = z.object({
+  type: FormatTypeSchema.default("NUMBER"),
+  number: NumberFormatConfigSchema.optional(),
+  string: StringFormatConfigSchema.optional(),
+  date: DateFormatConfigSchema.optional(),
+  bytes: BytesFormatConfigSchema.optional(),
+});
+
+// Position mode options (for binary protocols)
+export const PositionConfigSchema = z.object({
+  byteOffset: z.number().int().min(0).default(0),
+  byteSize: ByteSizeSchema.default("1"),
+  endianness: z.enum(["LE", "BE"]).default("LE"),
+  valueTransform: z.string().optional(), // Optional JS expression before insertion
+  bitField: z
+    .object({
+      startBit: z.number().int().min(0).max(63),
+      bitCount: z.number().int().min(1).max(64),
+    })
+    .optional(),
+});
+
+// Parameter application config - union of all modes
+export const ParameterApplicationSchema = z.object({
+  mode: ParameterApplicationModeSchema.default("SUBSTITUTE"),
+  substitute: SubstituteConfigSchema.optional(),
+  transform: TransformConfigSchema.optional(),
+  format: FormatConfigSchema.optional(),
+  position: PositionConfigSchema.optional(),
+});
+
+// Variable extraction rule for response parsing
+export const VariableExtractionRuleSchema = z.object({
+  id: z.string(),
+  variableName: z.string().min(1),
+  pattern: z.string().min(1), // Regex pattern with capture group
+  captureGroup: z.number().int().min(0).default(1),
+  transform: z.string().optional(), // Optional JS expression to transform match
+  storeTo: z.string().optional(), // Dashboard variable name to store value
+});
+
+// Session-level framing strategies (simpler set for runtime use)
+// For protocol-level framing with extended strategies (LENGTH_FIELD, SYNC_PATTERN,
+// COMPOSITE), see FramingConfigSchema in protocolSchemas.ts
 export const FramingStrategySchema = z.enum([
   "NONE",
   "DELIMITER",
@@ -62,6 +232,7 @@ export const FramingStrategySchema = z.enum([
 ]);
 
 // --- Configs ---
+// Session-level framing config for runtime data parsing
 export const FramingConfigSchema = z.object({
   strategy: FramingStrategySchema,
   delimiter: z.string().optional().default(""),
@@ -142,6 +313,8 @@ export const CommandParameterSchema = z.object({
       }),
     )
     .optional(),
+  // Parameter application settings
+  application: ParameterApplicationSchema.optional(),
 });
 
 export const CommandValidationSchema = z.object({
@@ -149,7 +322,11 @@ export const CommandValidationSchema = z.object({
   mode: ValidationModeSchema,
   matchType: MatchTypeSchema.optional(),
   pattern: z.string().optional(),
+  validationScript: z.string().optional(), // For SCRIPT mode
   timeout: z.number().int().positive(),
+  // Variable extraction from response
+  extractionEnabled: z.boolean().optional(),
+  extractionRules: z.array(VariableExtractionRuleSchema).optional(),
 });
 
 export const CommandScriptingSchema = z.object({
@@ -172,10 +349,15 @@ export const SavedCommandSchema = BaseEntitySchema.extend({
   payload: z.string().default(""), // Default to empty string if missing
   mode: DataModeSchema,
   encoding: TextEncodingSchema.optional(),
+  // Variable parsing settings
+  variableSyntax: VariableSyntaxSchema.optional().default("SHELL"),
+  customVariablePattern: z.string().optional(), // Regex for CUSTOM syntax
+  caseSensitiveVariables: z.boolean().optional().default(true),
+  // Parameters with application modes
   parameters: z.array(CommandParameterSchema).optional(),
   validation: CommandValidationSchema.optional(),
   scripting: CommandScriptingSchema.optional(),
-  responseFraming: FramingConfigSchema.optional(), // New field
+  responseFraming: FramingConfigSchema.optional(),
   framingPersistence: z
     .enum(["TRANSIENT", "PERSISTENT"])
     .optional()
@@ -224,15 +406,35 @@ export const DeviceAttachmentSchema = BaseEntitySchema.extend({
   category: AttachmentCategorySchema,
 });
 
+// Serial options for device defaults
+export const DeviceSerialOptionsSchema = z.object({
+  baudRate: z.number().int().positive().optional(),
+  dataBits: z.enum(["Five", "Six", "Seven", "Eight"]).optional(),
+  stopBits: z.enum(["One", "Two"]).optional(),
+  parity: z.enum(["None", "Even", "Odd"]).optional(),
+  flowControl: z.enum(["None", "Hardware", "Software"]).optional(),
+});
+
+// Protocol binding for a device
+export const DeviceProtocolBindingSchema = z.object({
+  protocolId: z.string(),
+  parameterDefaults: z.record(z.string(), z.unknown()).optional(),
+});
+
+// Device schema - combines organizational grouping with hardware details
 export const DeviceSchema = BaseEntitySchema.extend({
   icon: z.string().optional(),
   manufacturer: z.string().optional(),
   model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  firmwareVersion: z.string().optional(),
   presetIds: z.array(z.string()).default([]),
   commandIds: z.array(z.string()).default([]),
   sequenceIds: z.array(z.string()).default([]),
   contextIds: z.array(z.string()).default([]),
   attachments: z.array(DeviceAttachmentSchema).default([]),
+  defaultSerialOptions: DeviceSerialOptionsSchema.optional(),
+  protocols: z.array(DeviceProtocolBindingSchema).default([]),
 });
 
 // --- Full Profile Export/Import Schema ---

@@ -1,8 +1,20 @@
 import React, { useState } from "react";
-import { Clock, X } from "lucide-react";
+import { X, MoreHorizontal } from "lucide-react";
 import { cn, getBytes } from "../../lib/utils";
 import HexDataView from "./HexDataView";
 import { LogEntry } from "@/types";
+
+/**
+ * HexLogEntry Component
+ *
+ * Design System Specifications (FIGMA-DESIGN.md 9.3):
+ * - Padding: 16px
+ * - Border Radius: radius.lg (8px)
+ * - Background: bg.surface
+ * - Border: 1px border.default
+ * - Margin Bottom: 12px
+ * - 16 bytes per row
+ */
 
 const HexLogEntry: React.FC<{ log: LogEntry }> = ({ log }) => {
   const bytes = getBytes(log.data);
@@ -20,44 +32,65 @@ const HexLogEntry: React.FC<{ log: LogEntry }> = ({ log }) => {
     fractionalSecondDigits: 3,
   } as Intl.DateTimeFormatOptions);
 
+  // Tag based on direction
+  const tag = isTx ? "CMD" : "DATA";
+
   return (
     <div
       className={cn(
-        "mb-3 border rounded-md overflow-hidden shadow-sm transition-all w-fit max-w-full",
-        isTx
-          ? "border-primary/30 bg-primary/5 dark:bg-primary/5"
-          : "border-border bg-card",
+        "mb-3 border rounded-radius-lg overflow-hidden shadow-sm transition-all w-fit max-w-full",
+        "bg-bg-surface border-border-default",
       )}
     >
-      {/* Header */}
+      {/* Card Header - Section 9.3 */}
       <div
         className={cn(
-          "flex items-center justify-between px-3 py-1.5 border-b select-none min-w-0",
+          "flex items-center justify-between px-4 py-2 border-b select-none min-w-0",
           isTx
-            ? "bg-primary/10 border-primary/20 text-primary"
-            : "bg-muted/50 border-border/50 text-muted-foreground",
+            ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20"
+            : "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20",
         )}
       >
         <div className="flex items-center gap-3 shrink-0">
+          {/* Timestamp */}
+          <span className="text-[11px] flex items-center gap-1.5 font-mono text-text-muted">
+            {time}
+          </span>
+
+          {/* Direction Badge */}
           <span
             className={cn(
-              "font-bold text-[10px] px-1.5 py-0.5 rounded",
+              "font-bold text-[11px] font-mono",
               isTx
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted-foreground/20 text-foreground",
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-green-600 dark:text-green-400",
             )}
           >
             {log.direction}
           </span>
-          <span className="opacity-70 text-[10px] flex items-center gap-1 font-mono">
-            <Clock className="w-3 h-3" /> {time}
+
+          {/* Tag */}
+          <span
+            className={cn(
+              "text-[11px] font-mono font-medium",
+              isTx
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-purple-600 dark:text-purple-400",
+            )}
+          >
+            [{tag}]
+          </span>
+
+          {/* Byte count */}
+          <span className="text-[11px] font-mono text-text-muted">
+            {bytes.length} bytes
           </span>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           {selection && (
             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
-              <span className="font-mono text-[10px] bg-background/50 px-2 py-0.5 rounded border border-border/50 shadow-sm">
+              <span className="font-mono text-[10px] bg-bg-surface px-2 py-0.5 rounded border border-border-default shadow-sm">
                 Sel: {Math.abs(selection.end - selection.start) + 1} B
               </span>
               <button
@@ -65,21 +98,23 @@ const HexLogEntry: React.FC<{ log: LogEntry }> = ({ log }) => {
                   e.stopPropagation();
                   setSelection(null);
                 }}
-                className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-sm hover:bg-black/5 dark:hover:bg-white/10"
+                className="text-text-muted hover:text-text-primary transition-colors p-0.5 rounded-sm hover:bg-bg-hover"
                 title="Clear Selection"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
-          <div className="text-[10px] opacity-70 font-semibold font-mono">
-            {bytes.length} BYTES
-          </div>
+
+          {/* More Options Button */}
+          <button className="p-1 rounded-sm text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors">
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Content (Using Shared Viewer) */}
-      <div className="p-3 overflow-x-auto bg-background/50 custom-scrollbar">
+      {/* Hex Content - 16 bytes per row (Section 9.3) */}
+      <div className="p-4 overflow-x-auto bg-bg-surface custom-scrollbar">
         <div className="min-w-fit">
           <HexDataView
             data={bytes}

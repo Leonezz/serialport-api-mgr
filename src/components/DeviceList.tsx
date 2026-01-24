@@ -1,18 +1,21 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { useStore } from "../lib/store";
 import {
   Plus,
   Cpu,
-  Edit2,
+  Pencil,
   Trash2,
   Thermometer,
   Wifi,
   Box,
   Monitor,
   Server,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/Button";
+import { EmptyState } from "./ui/EmptyState";
 
 // Map icon strings to Lucide components
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -44,10 +47,17 @@ export const DeviceList: React.FC = () => {
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between px-2 py-1">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Devices
-        </h3>
+      <div className="flex items-center justify-between pb-1 sticky top-0 bg-card z-10">
+        <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-2">
+          <Cpu className="w-3 h-3" /> Devices
+          <Link
+            to="/devices"
+            className="p-0.5 text-muted-foreground hover:text-primary transition-colors"
+            title="Open Device Library"
+          >
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        </span>
         <Button
           variant="ghost"
           size="icon"
@@ -64,9 +74,14 @@ export const DeviceList: React.FC = () => {
 
       <div className="space-y-0.5">
         {devices.length === 0 && (
-          <div className="px-3 py-2 text-xs text-muted-foreground italic text-center border border-dashed rounded-md mx-2 bg-muted/20">
-            No devices configured
-          </div>
+          <EmptyState
+            variant="devices"
+            className="py-6"
+            onAction={() => {
+              setEditingDevice(null);
+              setShowDeviceModal(true);
+            }}
+          />
         )}
 
         {devices.map((device) => {
@@ -109,7 +124,7 @@ export const DeviceList: React.FC = () => {
                   }}
                   title="Edit Device"
                 >
-                  <Edit2 className="w-3 h-3" />
+                  <Pencil className="w-3 h-3" />
                 </button>
                 <button
                   className="p-1 hover:bg-destructive/10 hover:text-destructive rounded"

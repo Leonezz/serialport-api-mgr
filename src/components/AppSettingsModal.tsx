@@ -13,7 +13,8 @@ import {
 import { useStore } from "../lib/store";
 import { Button } from "./ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
-import { Select } from "./ui/Select";
+import { SelectDropdown } from "./ui/Select";
+import { DropdownOption } from "./ui/Dropdown";
 import { Label } from "./ui/Label";
 import { ThemeMode, ThemeColor } from "../types";
 import { useTranslation } from "react-i18next";
@@ -42,8 +43,14 @@ const AppSettingsModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200">
+    <div
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={() => setShowAppSettings(false)}
+    >
+      <Card
+        className="w-full max-w-lg shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border bg-muted/20">
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-primary" />
@@ -102,18 +109,20 @@ const AppSettingsModal: React.FC = () => {
               </div>
               <div className="col-span-2 space-y-2">
                 <Label>{t("settings.accent")}</Label>
-                <Select
+                <SelectDropdown
+                  options={
+                    [
+                      { value: "zinc", label: "Zinc (Neutral)" },
+                      { value: "blue", label: "Blue" },
+                      { value: "green", label: "Green" },
+                      { value: "orange", label: "Orange" },
+                      { value: "rose", label: "Rose" },
+                      { value: "yellow", label: "Yellow" },
+                    ] as DropdownOption<ThemeColor>[]
+                  }
                   value={themeColor}
-                  onChange={(e) => setThemeColor(e.target.value as ThemeColor)}
-                  className="h-9"
-                >
-                  <option value="zinc">Zinc (Neutral)</option>
-                  <option value="blue">Blue</option>
-                  <option value="green">Green</option>
-                  <option value="orange">Orange</option>
-                  <option value="rose">Rose</option>
-                  <option value="yellow">Yellow</option>
-                </Select>
+                  onChange={(value) => setThemeColor(value)}
+                />
               </div>
             </div>
           </div>

@@ -5,11 +5,13 @@ import {
   NetworkConfig,
   ConnectionType,
 } from "../types";
-import { X, Save, ArrowDownCircle } from "lucide-react";
+import { X, Check, ArrowDownCircle } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
-import { Select } from "./ui/Select";
+import { SelectDropdown } from "./ui/Select";
+import { DropdownOption } from "./ui/Dropdown";
+import { SegmentedControl } from "./ui/SegmentedControl";
 import {
   Card,
   CardHeader,
@@ -82,8 +84,14 @@ const PresetFormModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+    <div
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <Card
+        className="w-full max-w-md shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border bg-muted/20 shrink-0">
           <CardTitle className="text-lg">Edit Configuration Preset</CardTitle>
           <Button
@@ -128,127 +136,117 @@ const PresetFormModal: React.FC<Props> = ({
 
             <div className="space-y-2">
               <Label>Connection Type</Label>
-              <div className="flex items-center gap-2 p-1 bg-muted rounded-lg border border-border">
-                <button
-                  type="button"
-                  onClick={() => setType("SERIAL")}
-                  className={`flex-1 text-xs font-bold py-1.5 rounded-md transition-all ${type === "SERIAL" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Serial Port
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setType("NETWORK")}
-                  className={`flex-1 text-xs font-bold py-1.5 rounded-md transition-all ${type === "NETWORK" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Network (TCP)
-                </button>
-              </div>
+              <SegmentedControl
+                value={type}
+                onChange={(v) => setType(v as ConnectionType)}
+                size="sm"
+                options={[
+                  { value: "SERIAL", label: "Serial Port" },
+                  { value: "NETWORK", label: "Network (TCP)" },
+                ]}
+              />
             </div>
 
             {type === "SERIAL" ? (
               <div className="grid grid-cols-2 gap-4 border p-3 rounded-md bg-muted/10">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Baud Rate</Label>
-                  <Select
-                    value={localConfig.baudRate}
-                    onChange={(e) =>
-                      handleSerialChange("baudRate", parseInt(e.target.value))
-                    }
-                    className="h-8 text-xs bg-background"
-                  >
-                    {[
+                  <SelectDropdown
+                    options={[
                       9600, 19200, 38400, 57600, 74880, 115200, 230400, 460800,
                       921600,
-                    ].map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </Select>
+                    ].map(
+                      (r): DropdownOption<number> => ({
+                        value: r,
+                        label: r.toString(),
+                      }),
+                    )}
+                    value={localConfig.baudRate}
+                    onChange={(value) => handleSerialChange("baudRate", value)}
+                    size="sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Data Bits</Label>
-                  <Select
-                    value={localConfig.dataBits}
-                    onChange={(e) =>
-                      handleSerialChange("dataBits", parseInt(e.target.value))
+                  <SelectDropdown
+                    options={
+                      [
+                        { value: "Eight", label: "8-bit" },
+                        { value: "Seven", label: "7-bit" },
+                      ] as DropdownOption<SerialConfig["dataBits"]>[]
                     }
-                    className="h-8 text-xs bg-background"
-                  >
-                    <option value={8}>8-bit</option>
-                    <option value={7}>7-bit</option>
-                  </Select>
+                    value={localConfig.dataBits}
+                    onChange={(value) => handleSerialChange("dataBits", value)}
+                    size="sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Parity</Label>
-                  <Select
-                    value={localConfig.parity}
-                    onChange={(e) =>
-                      handleSerialChange(
-                        "parity",
-                        e.target.value as unknown as SerialConfig["parity"],
-                      )
+                  <SelectDropdown
+                    options={
+                      [
+                        { value: "None", label: "None" },
+                        { value: "Even", label: "Even" },
+                        { value: "Odd", label: "Odd" },
+                      ] as DropdownOption<SerialConfig["parity"]>[]
                     }
-                    className="h-8 text-xs bg-background"
-                  >
-                    <option value="none">None</option>
-                    <option value="even">Even</option>
-                    <option value="odd">Odd</option>
-                  </Select>
+                    value={localConfig.parity}
+                    onChange={(value) => handleSerialChange("parity", value)}
+                    size="sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Stop Bits</Label>
-                  <Select
-                    value={localConfig.stopBits}
-                    onChange={(e) =>
-                      handleSerialChange("stopBits", parseInt(e.target.value))
+                  <SelectDropdown
+                    options={
+                      [
+                        { value: "One", label: "1-bit" },
+                        { value: "Two", label: "2-bit" },
+                      ] as DropdownOption<SerialConfig["stopBits"]>[]
                     }
-                    className="h-8 text-xs bg-background"
-                  >
-                    <option value={1}>1-bit</option>
-                    <option value={2}>2-bit</option>
-                  </Select>
+                    value={localConfig.stopBits}
+                    onChange={(value) => handleSerialChange("stopBits", value)}
+                    size="sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Line Ending</Label>
-                  <Select
-                    value={localConfig.lineEnding}
-                    onChange={(e) =>
-                      handleSerialChange(
-                        "lineEnding",
-                        e.target.value as unknown as SerialConfig["lineEnding"],
-                      )
+                  <SelectDropdown
+                    options={
+                      [
+                        { value: "NONE", label: "None" },
+                        { value: "LF", label: "LF (\\n)" },
+                        { value: "CR", label: "CR (\\r)" },
+                        { value: "CRLF", label: "CRLF (\\r\\n)" },
+                      ] as DropdownOption<SerialConfig["lineEnding"]>[]
                     }
-                    className="h-8 text-xs bg-background"
-                  >
-                    <option value="NONE">None</option>
-                    <option value="LF">LF (\n)</option>
-                    <option value="CR">CR (\r)</option>
-                    <option value="CRLF">CRLF (\r\n)</option>
-                  </Select>
+                    value={localConfig.lineEnding}
+                    onChange={(value) =>
+                      handleSerialChange("lineEnding", value)
+                    }
+                    size="sm"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Flow Control</Label>
-                  <Select
-                    value={localConfig.flowControl}
-                    onChange={(e) =>
-                      handleSerialChange(
-                        "flowControl",
-                        e.target
-                          .value as unknown as SerialConfig["flowControl"],
-                      )
+                  <SelectDropdown
+                    options={
+                      [
+                        { value: "None", label: "None" },
+                        { value: "Hardware", label: "Hardware (RTS/CTS)" },
+                      ] as DropdownOption<SerialConfig["flowControl"]>[]
                     }
-                    className="h-8 text-xs bg-background"
-                  >
-                    <option value="none">None</option>
-                    <option value="hardware">Hardware (RTS/CTS)</option>
-                  </Select>
+                    value={localConfig.flowControl}
+                    onChange={(value) =>
+                      handleSerialChange("flowControl", value)
+                    }
+                    size="sm"
+                  />
                 </div>
               </div>
             ) : (
@@ -284,7 +282,7 @@ const PresetFormModal: React.FC<Props> = ({
               Cancel
             </Button>
             <Button type="submit">
-              <Save className="w-4 h-4 mr-2" /> Save Changes
+              <Check className="w-4 h-4 mr-2" /> Save Changes
             </Button>
           </CardFooter>
         </form>

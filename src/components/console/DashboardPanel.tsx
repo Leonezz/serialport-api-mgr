@@ -8,7 +8,7 @@ import {
   Download,
   Gauge,
   X,
-  Save,
+  Check,
   Maximize2,
   Minimize2,
   Activity,
@@ -22,7 +22,8 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Label } from "../ui/Label";
 import { Input } from "../ui/Input";
-import { Select } from "../ui/Select";
+import { SelectDropdown } from "../ui/Select";
+import { DropdownOption } from "../ui/Dropdown";
 import ConfirmationModal from "../ConfirmationModal";
 
 // Import Widget Sub-components
@@ -134,74 +135,101 @@ const DashboardPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-muted/10 p-4 overflow-hidden relative">
-      <div className="flex justify-between items-center mb-4 shrink-0">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-          <LayoutDashboard className="w-4 h-4" /> Live Telemetry
+    <div className="flex flex-col h-full bg-muted/10 overflow-hidden relative">
+      {/* ===== SECTION 9.7: Header ===== */}
+      <div className="h-10 flex justify-between items-center px-4 bg-bg-surface border-b border-border-default shrink-0">
+        <h3 className="text-label-sm font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
+          <LayoutDashboard className="w-4 h-4" /> Dashboard
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsAddModalOpen(true)}
-            className="h-8 gap-1 text-xs"
+            className="h-7 gap-1.5 text-xs"
           >
-            <Plus className="w-3.5 h-3.5" /> Add Widget
+            <Plus className="w-3.5 h-3.5" /> Widget
           </Button>
+
           {widgets.length > 0 && (
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={clearVariables}
-              className="text-muted-foreground hover:text-destructive h-8 w-8"
+              className="h-7 w-7 p-0 text-text-muted hover:text-destructive"
               title="Clear All Widgets"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>
       </div>
 
-      {widgets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-full bg-card/50 text-muted-foreground select-none">
-          <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-4">
-            <LayoutDashboard className="w-8 h-8 opacity-50" />
+      {/* ===== SECTION 9.7: Grid Layout ===== */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-4">
+        {widgets.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center bg-bg-surface/30 text-text-muted select-none rounded-xl border-2 border-dashed border-border-default">
+            <div className="w-16 h-16 bg-bg-muted/50 rounded-full flex items-center justify-center mb-4">
+              <LayoutDashboard className="w-8 h-8 opacity-50" />
+            </div>
+            <h3 className="font-semibold text-lg mb-1">Telemetry Dashboard</h3>
+            <p className="text-sm opacity-70 max-w-sm text-center">
+              No widgets defined. <br />
+              Variables from scripts will auto-create widgets, or you can add
+              them manually.
+            </p>
+            <div className="mt-4">
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" /> Add Widget
+              </Button>
+            </div>
           </div>
-          <h3 className="font-semibold text-lg mb-1">Telemetry Dashboard</h3>
-          <p className="text-sm opacity-70 max-w-sm text-center">
-            No widgets defined. <br />
-            Variables from scripts will auto-create widgets, or you can add them
-            manually.
-          </p>
-          <div className="mt-4 flex gap-3">
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" /> Add Widget
-            </Button>
+        ) : (
+          /* CSS Grid: 12 columns, 80px row height, 16px gap (Section 9.7) */
+          <div
+            className="grid gap-4"
+            style={{
+              gridTemplateColumns: "repeat(12, 1fr)",
+              gridAutoRows: "80px",
+            }}
+          >
+            {sortedWidgets.map((widget) => (
+              <WidgetCard
+                key={widget.id}
+                widget={widget}
+                variable={variables[widget.variableName]}
+                globalMinTime={globalMinTime}
+                globalMaxTime={globalMaxTime}
+                onDragStart={(e) => handleDragStart(e, widget.id)}
+                onDragOver={(e) => handleDragOver(e, widget.id)}
+                onDrop={(e) => handleDrop(e, widget.id)}
+                isDragging={draggedItem === widget.id}
+                brushTimeRange={brushTimeRange}
+                setBrushTimeRange={setBrushTimeRange}
+                onEdit={() => setEditingWidget(widget)}
+                onDelete={() => confirmRemoveWidget(widget)}
+                onMaximize={() => setMaximizedWidgetId(widget.id)}
+                isMaximized={false}
+              />
+            ))}
+
+            {/* Section 9.7: Add Widget Placeholder (Dashed) */}
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className={cn(
+                "col-span-3 row-span-2 rounded-lg border-2 border-dashed border-border-default",
+                "flex flex-col items-center justify-center gap-2",
+                "text-text-muted hover:text-text-secondary",
+                "hover:border-accent-primary hover:bg-blue-50 dark:hover:bg-blue-500/10",
+                "transition-all duration-150 cursor-pointer",
+              )}
+            >
+              <Plus className="w-6 h-6" />
+              <span className="text-xs font-medium">Add Widget</span>
+            </button>
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-4 overflow-y-auto overflow-x-hidden pb-4 custom-scrollbar content-start">
-          {sortedWidgets.map((widget) => (
-            <WidgetCard
-              key={widget.id}
-              widget={widget}
-              variable={variables[widget.variableName]} // Pass linked variable data
-              globalMinTime={globalMinTime}
-              globalMaxTime={globalMaxTime}
-              onDragStart={(e) => handleDragStart(e, widget.id)}
-              onDragOver={(e) => handleDragOver(e, widget.id)}
-              onDrop={(e) => handleDrop(e, widget.id)}
-              isDragging={draggedItem === widget.id}
-              brushTimeRange={brushTimeRange}
-              setBrushTimeRange={setBrushTimeRange}
-              onEdit={() => setEditingWidget(widget)}
-              onDelete={() => confirmRemoveWidget(widget)}
-              onMaximize={() => setMaximizedWidgetId(widget.id)}
-              isMaximized={false}
-            />
-          ))}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Maximized Overlay */}
       {maximizedWidgetId && (
@@ -310,14 +338,25 @@ const WidgetCard: React.FC<{
   const { updateWidget } = useStore();
   const config = widget.config;
 
-  // Width class is irrelevant if maximized
-  const widthClass = isMaximized
-    ? "w-full"
-    : config.width === 3
-      ? "w-full"
-      : config.width === 2
-        ? "w-[calc(66.66%-0.7rem)]"
-        : "w-[calc(33.33%-0.7rem)] min-w-[280px]";
+  // Section 9.7: Grid-based sizing (cols × rows)
+  // Default sizes: CARD: 3×2, LINE: 6×3, GAUGE: 3×3
+  const getGridSpan = () => {
+    if (isMaximized) return "";
+    const sizeMap: Record<string, { cols: number; rows: number }> = {
+      CARD: {
+        cols: config.width === 1 ? 3 : config.width === 2 ? 4 : 6,
+        rows: 2,
+      },
+      LINE: {
+        cols: config.width === 1 ? 4 : config.width === 2 ? 6 : 12,
+        rows: 3,
+      },
+      GAUGE: { cols: 3, rows: 3 },
+    };
+    const size = sizeMap[config.type] || sizeMap.CARD;
+    return { cols: size.cols, rows: size.rows };
+  };
+  const gridSpan = getGridSpan();
 
   // Fallback dummy variable if real one missing to prevent crash, but show empty state
   const safeVar = variable || {
@@ -548,19 +587,22 @@ const WidgetCard: React.FC<{
       onDragOver={isMaximized ? undefined : onDragOver}
       onDrop={isMaximized ? undefined : onDrop}
       className={cn(
-        "bg-card border rounded-xl shadow-sm flex flex-col relative transition-all duration-200 group",
-        isMaximized
-          ? "h-full w-full border-0 shadow-none"
-          : `h-50 ${widthClass}`,
-        isDragging
-          ? "opacity-50 border-dashed border-primary"
-          : isMaximized
-            ? ""
-            : "border-border",
-        !isMaximized && isBool && safeVar.value
-          ? "border-emerald-500/50 bg-emerald-500/5"
-          : "",
+        "bg-bg-surface border border-border-default rounded-lg shadow-sm flex flex-col relative transition-all duration-200 group",
+        isMaximized && "h-full w-full border-0 shadow-none",
+        isDragging && "opacity-50 border-dashed border-accent-primary",
+        !isMaximized &&
+          isBool &&
+          safeVar.value &&
+          "border-emerald-500/50 bg-emerald-500/5",
       )}
+      style={
+        !isMaximized && gridSpan
+          ? {
+              gridColumn: `span ${gridSpan.cols} / span ${gridSpan.cols}`,
+              gridRow: `span ${gridSpan.rows} / span ${gridSpan.rows}`,
+            }
+          : undefined
+      }
     >
       {/* Header / Controls */}
       <div className="flex justify-between items-start p-3 pb-0 relative z-10">
@@ -689,6 +731,7 @@ const WidgetSettingsModal: React.FC<{
   // Local State
   const [title, setTitle] = useState(widget.title);
   const [varName, setVarName] = useState(widget.variableName);
+  const [type, setType] = useState<WidgetType>(config.type);
   const [min, setMin] = useState(config.min?.toString() || "0");
   const [max, setMax] = useState(config.max?.toString() || "100");
   const [unit, setUnit] = useState(config.unit || "");
@@ -699,8 +742,9 @@ const WidgetSettingsModal: React.FC<{
       variableName: varName,
       config: {
         ...config,
-        min: parseFloat(min),
-        max: parseFloat(max),
+        type,
+        min: type !== "CARD" ? parseFloat(min) : undefined,
+        max: type !== "CARD" ? parseFloat(max) : undefined,
         unit: unit.trim(),
       },
     });
@@ -748,6 +792,22 @@ const WidgetSettingsModal: React.FC<{
           </div>
 
           <div className="space-y-1">
+            <Label className="text-[10px]">Widget Type</Label>
+            <SelectDropdown
+              options={
+                [
+                  { value: "CARD", label: "Value Card" },
+                  { value: "LINE", label: "Line Chart" },
+                  { value: "GAUGE", label: "Gauge" },
+                ] as DropdownOption<WidgetType>[]
+              }
+              value={type}
+              onChange={(value) => setType(value)}
+              size="sm"
+            />
+          </div>
+
+          <div className="space-y-1">
             <Label className="text-[10px]">Unit Label</Label>
             <Input
               className="h-8 text-xs"
@@ -757,33 +817,35 @@ const WidgetSettingsModal: React.FC<{
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <div className="space-y-1">
-              <Label className="text-[10px]">Min Value</Label>
-              <Input
-                className="h-8 text-xs"
-                type="number"
-                value={min}
-                onChange={(e) => setMin(e.target.value)}
-              />
+          {type !== "CARD" && (
+            <div className="grid grid-cols-2 gap-3 pt-1 animate-in fade-in zoom-in-95">
+              <div className="space-y-1">
+                <Label className="text-[10px]">Min Value</Label>
+                <Input
+                  className="h-8 text-xs"
+                  type="number"
+                  value={min}
+                  onChange={(e) => setMin(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Max Value</Label>
+                <Input
+                  className="h-8 text-xs"
+                  type="number"
+                  value={max}
+                  onChange={(e) => setMax(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[10px]">Max Value</Label>
-              <Input
-                className="h-8 text-xs"
-                type="number"
-                value={max}
-                onChange={(e) => setMax(e.target.value)}
-              />
-            </div>
-          </div>
+          )}
 
           <Button
             size="sm"
             className="w-full h-8 text-xs gap-2 mt-2"
             onClick={handleSave}
           >
-            <Save className="w-3 h-3" /> Save Changes
+            <Check className="w-3 h-3" /> Save Changes
           </Button>
         </div>
       </Card>
@@ -872,15 +934,18 @@ const AddWidgetModal: React.FC<{
 
           <div className="space-y-1">
             <Label className="text-[10px]">Widget Type</Label>
-            <Select
-              className="h-8 text-xs"
+            <SelectDropdown
+              options={
+                [
+                  { value: "CARD", label: "Value Card" },
+                  { value: "LINE", label: "Line Chart" },
+                  { value: "GAUGE", label: "Gauge" },
+                ] as DropdownOption<WidgetType>[]
+              }
               value={type}
-              onChange={(e) => setType(e.target.value as unknown as WidgetType)}
-            >
-              <option value="CARD">Value Card</option>
-              <option value="LINE">Line Chart</option>
-              <option value="GAUGE">Gauge</option>
-            </Select>
+              onChange={(value) => setType(value)}
+              size="sm"
+            />
           </div>
 
           <div className="space-y-1">
