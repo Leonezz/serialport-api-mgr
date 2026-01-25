@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   SerialConfig,
   NetworkConfig,
@@ -31,6 +32,7 @@ import {
   Copy,
   Wand2,
   Scissors,
+  Link2,
 } from "lucide-react";
 import { cn, generateId } from "../lib/utils";
 import SimpleInputModal from "./SimpleInputModal";
@@ -73,11 +75,27 @@ const ControlPanel: React.FC<Props> = ({
     contexts,
     devices,
     applyPresetLayout,
+    protocols,
+    setProtocolFramingEnabled,
+    setActiveProtocolId,
   } = useStore();
 
   const activeSession = sessions[activeSessionId];
-  const { config, networkConfig, connectionType, isConnected, widgets } =
-    activeSession;
+  const {
+    config,
+    networkConfig,
+    connectionType,
+    isConnected,
+    widgets,
+    protocolFramingEnabled,
+    activeProtocolId,
+  } = activeSession;
+
+  // Get the active protocol for framing display
+  const activeProtocol = useMemo(() => {
+    if (!protocolFramingEnabled || !activeProtocolId) return null;
+    return protocols.find((p) => p.id === activeProtocolId) ?? null;
+  }, [protocolFramingEnabled, activeProtocolId, protocols]);
 
   const [availablePorts, setAvailablePorts] = useState<ISerialPort[]>([]);
   const [selectedPortIndex, setSelectedPortIndex] = useState<string>("");
@@ -557,7 +575,7 @@ const ControlPanel: React.FC<Props> = ({
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
                     Data Bits
                   </span>
-                  <div className="w-17.5">
+                  <div className="w-24">
                     <SelectDropdown
                       options={
                         [
@@ -569,6 +587,7 @@ const ControlPanel: React.FC<Props> = ({
                       onChange={(value) => handleChange("dataBits", value)}
                       disabled={isConnected}
                       size="sm"
+                      menuMinWidth={120}
                     />
                   </div>
                 </div>
@@ -576,7 +595,7 @@ const ControlPanel: React.FC<Props> = ({
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
                     Parity
                   </span>
-                  <div className="w-20">
+                  <div className="w-24">
                     <SelectDropdown
                       options={
                         [
@@ -589,6 +608,7 @@ const ControlPanel: React.FC<Props> = ({
                       onChange={(value) => handleChange("parity", value)}
                       disabled={isConnected}
                       size="sm"
+                      menuMinWidth={120}
                     />
                   </div>
                 </div>
@@ -596,7 +616,7 @@ const ControlPanel: React.FC<Props> = ({
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
                     Stop Bits
                   </span>
-                  <div className="w-17.5">
+                  <div className="w-24">
                     <SelectDropdown
                       options={
                         [
@@ -608,37 +628,91 @@ const ControlPanel: React.FC<Props> = ({
                       onChange={(value) => handleChange("stopBits", value)}
                       disabled={isConnected}
                       size="sm"
+                      menuMinWidth={120}
                     />
                   </div>
                 </div>
 
-                {/* Framing Strategy Button */}
+                {/* Framing Strategy Section */}
                 <div className="flex flex-col gap-1.5 relative">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
                     {t("cp.framing")}
                   </span>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "h-9 px-3 text-xs gap-2 border-border bg-muted/30",
-                      strategy !== "NONE" &&
-                        "border-primary/50 text-primary bg-primary/5",
+                  <div className="flex items-center gap-1">
+                    {/* Protocol Framing Toggle */}
+                    {protocols.length > 0 && (
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-9 px-2 text-xs gap-1.5 border-border bg-muted/30",
+                          protocolFramingEnabled &&
+                            activeProtocol &&
+                            "border-emerald-500/50 text-emerald-600 bg-emerald-500/5",
+                        )}
+                        onClick={() => {
+                          if (protocolFramingEnabled) {
+                            setProtocolFramingEnabled(false);
+                            setActiveProtocolId(undefined);
+                          } else if (protocols.length === 1) {
+                            // Auto-select if only one protocol
+                            setActiveProtocolId(protocols[0].id);
+                            setProtocolFramingEnabled(true);
+                          } else {
+                            // Show protocol selector (for now, just enable with first)
+                            setActiveProtocolId(protocols[0].id);
+                            setProtocolFramingEnabled(true);
+                          }
+                        }}
+                        title={
+                          protocolFramingEnabled && activeProtocol
+                            ? `Using framing from: ${activeProtocol.name}`
+                            : "Enable protocol-defined framing"
+                        }
+                      >
+                        <Link2
+                          className={cn(
+                            "w-3.5 h-3.5",
+                            protocolFramingEnabled && "text-emerald-500",
+                          )}
+                        />
+                        {protocolFramingEnabled && activeProtocol
+                          ? activeProtocol.name.length > 8
+                            ? activeProtocol.name.slice(0, 8) + "…"
+                            : activeProtocol.name
+                          : "Proto"}
+                      </Button>
                     )}
-                    onClick={() => setShowFramingModal(true)}
-                    // Framing can be changed while connected to parse data differently on the fly
-                    disabled={false}
-                  >
-                    <Scissors className="w-3.5 h-3.5" />
-                    {strategy === "NONE"
-                      ? "None"
-                      : strategy === "TIMEOUT"
-                        ? "Timeout"
-                        : strategy === "PREFIX_LENGTH"
-                          ? "Prefix"
-                          : strategy === "SCRIPT"
-                            ? "Script"
-                            : "Delim"}
-                  </Button>
+                    {/* Custom Framing Button */}
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "h-9 px-3 text-xs gap-2 border-border bg-muted/30",
+                        !protocolFramingEnabled &&
+                          strategy !== "NONE" &&
+                          "border-primary/50 text-primary bg-primary/5",
+                      )}
+                      onClick={() => setShowFramingModal(true)}
+                      disabled={protocolFramingEnabled}
+                      title={
+                        protocolFramingEnabled
+                          ? "Disable protocol framing to use custom framing"
+                          : "Configure custom framing strategy"
+                      }
+                    >
+                      <Scissors className="w-3.5 h-3.5" />
+                      {protocolFramingEnabled
+                        ? "Custom"
+                        : strategy === "NONE"
+                          ? "None"
+                          : strategy === "TIMEOUT"
+                            ? "Timeout"
+                            : strategy === "PREFIX_LENGTH"
+                              ? "Prefix"
+                              : strategy === "SCRIPT"
+                                ? "Script"
+                                : "Delim"}
+                    </Button>
+                  </div>
                 </div>
               </>
             ) : (
@@ -859,45 +933,47 @@ const ControlPanel: React.FC<Props> = ({
         />
       )}
 
-      {showFramingModal && (
-        <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setShowFramingModal(false)}
-        >
+      {showFramingModal &&
+        createPortal(
           <div
-            className="w-full max-w-2xl bg-card border border-border rounded-lg shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-60 flex items-center justify-center p-4"
+            onClick={() => setShowFramingModal(false)}
           >
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Scissors className="w-4 h-4" /> Framing Strategy
-              </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowFramingModal(false)}
-                className="h-8 w-8"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+            <div
+              className="w-full max-w-2xl bg-card border border-border rounded-lg shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-border">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Scissors className="w-4 h-4" /> Framing Strategy
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowFramingModal(false)}
+                  className="h-8 w-8"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
 
-            <FramingConfigEditor
-              config={config.framing}
-              onChange={handleFramingChange}
-            />
+              <FramingConfigEditor
+                config={config.framing}
+                onChange={handleFramingChange}
+              />
 
-            <div className="flex justify-end pt-2">
-              <Button
-                onClick={() => setShowFramingModal(false)}
-                className="w-full sm:w-auto"
-              >
-                Done
-              </Button>
+              <div className="flex justify-end pt-2">
+                <Button
+                  onClick={() => setShowFramingModal(false)}
+                  className="w-full sm:w-auto"
+                >
+                  Done
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 };

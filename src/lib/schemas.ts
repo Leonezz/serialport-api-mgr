@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+// Import shared schemas from protocolSchemas.ts for use in two-layer architecture
+import {
+  SimpleParameterSchema as ProtocolSimpleParameterSchema,
+  SimpleExtractionSchema as ProtocolSimpleExtractionSchema,
+  ElementBindingSchema as ProtocolElementBindingSchema,
+} from "./protocolSchemas";
+
 // ============================================================================
 // RUNTIME/SESSION SCHEMAS
 //
@@ -335,6 +342,132 @@ export const CommandScriptingSchema = z.object({
   postResponseScript: z.string().optional(),
 });
 
+// ============================================================================
+// TWO-LAYER ARCHITECTURE: PROTOCOL INTEGRATION SCHEMAS
+//
+// Layer 1 (Protocol Layer): Data synced from protocol templates - always updated
+// Layer 2 (Command Layer): User customizations - never overwritten by sync
+// ============================================================================
+
+/**
+ * Widget binding for dashboard integration (used in CommandLayerSchema)
+ */
+export const WidgetBindingSchema = z.object({
+  variableName: z.string(),
+  widgetType: z.enum(["CARD", "GAUGE", "LINE"]),
+  config: z.record(z.string(), z.unknown()).optional(),
+});
+
+// Re-export schemas from protocolSchemas.ts for use in two-layer architecture
+// These schemas are shared between the protocol system and the execution system
+export {
+  ProtocolSimpleParameterSchema as SimpleParameterSchema,
+  ProtocolSimpleExtractionSchema as SimpleExtractionSchema,
+  ProtocolElementBindingSchema as ElementBindingSchema,
+};
+
+/**
+ * Protocol Layer Schema - Data synced from protocol templates
+ *
+ * This layer always stays in sync with the source protocol.
+ * Contains: payload template, parameters (definitions only), validation,
+ * extraction rules, and protocol-defined hooks.
+ */
+export const ProtocolLayerSchema = z.object({
+  // Reference to source protocol/command
+  protocolId: z.string(),
+  protocolCommandId: z.string(),
+  protocolVersion: z.string(),
+  protocolCommandUpdatedAt: z.number(),
+
+  // Core command data from protocol
+  payload: z.string(),
+  mode: DataModeSchema,
+  encoding: TextEncodingSchema.optional(),
+
+  // Parameters (without application modes - that's L2)
+  parameters: z.array(ProtocolSimpleParameterSchema).default([]),
+
+  // For STRUCTURED commands
+  messageStructureId: z.string().optional(),
+  elementBindings: z.array(ProtocolElementBindingSchema).optional(),
+
+  // Validation from protocol
+  validation: z
+    .object({
+      enabled: z.boolean(),
+      successPattern: z.string().optional(),
+      successPatternType: z.enum(["CONTAINS", "REGEX"]).optional(),
+      timeout: z.number().optional(),
+    })
+    .optional(),
+
+  // Variable extraction from protocol
+  extractVariables: z.array(ProtocolSimpleExtractionSchema).optional(),
+
+  // Protocol hooks
+  protocolPreRequestScript: z.string().optional(),
+  protocolPostResponseScript: z.string().optional(),
+
+  // Default framing from protocol
+  defaultFraming: FramingConfigSchema.optional(),
+});
+
+/**
+ * Parameter Enhancement Schema - User customizations per parameter
+ */
+export const ParameterEnhancementSchema = z.object({
+  // Application mode for text substitution
+  application: ParameterApplicationSchema.optional(),
+  // Override default value
+  customDefault: z.unknown().optional(),
+  // Custom label
+  customLabel: z.string().optional(),
+});
+
+/**
+ * Command Layer Schema - User customizations
+ *
+ * This layer is never overwritten by protocol sync.
+ * Contains: custom naming, parameter enhancements, additional scripts,
+ * overrides, and dashboard bindings.
+ */
+export const CommandLayerSchema = z.object({
+  // Naming overrides
+  customName: z.string().optional(),
+  customDescription: z.string().optional(),
+  group: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+
+  // Parameter enhancements (keyed by parameter name)
+  parameterEnhancements: z
+    .record(z.string(), ParameterEnhancementSchema)
+    .optional(),
+
+  // Variable syntax for parameter substitution
+  variableSyntax: VariableSyntaxSchema.optional(),
+
+  // Additional extraction rules (extends protocol extractions)
+  additionalExtractions: z.array(VariableExtractionRuleSchema).optional(),
+
+  // User scripts (run AFTER protocol scripts)
+  userPreRequestScript: z.string().optional(),
+  userPostResponseScript: z.string().optional(),
+
+  // Overrides
+  timeoutOverride: z.number().optional(),
+  framingOverride: FramingConfigSchema.optional(),
+  checksumOverride: ChecksumAlgorithmSchema.optional(),
+
+  // Dashboard integration
+  widgetBindings: z.array(WidgetBindingSchema).optional(),
+});
+
+/**
+ * Command Source - indicates whether command comes from protocol or is custom
+ */
+export const CommandSourceSchema = z.enum(["CUSTOM", "PROTOCOL"]);
+
 export const BaseEntitySchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -344,10 +477,43 @@ export const BaseEntitySchema = z.object({
   updatedAt: z.number(),
 });
 
+/**
+ * SavedCommand Schema - Two-Layer Architecture
+ *
+ * Commands can come from two sources:
+ * - CUSTOM: User-created commands with all data in "custom*" fields
+ * - PROTOCOL: Commands derived from protocol templates with L1/L2 layers
+ *
+ * For PROTOCOL commands:
+ * - protocolLayer (L1): Synced from protocol, updated automatically
+ * - commandLayer (L2): User customizations, never overwritten
+ *
+ * The existing fields (payload, mode, parameters, etc.) are preserved
+ * for backward compatibility and serve as the "custom" fields for
+ * CUSTOM source commands.
+ */
 export const SavedCommandSchema = BaseEntitySchema.extend({
+  // === TWO-LAYER ARCHITECTURE FIELDS ===
+
+  // Source type: CUSTOM (user-created) or PROTOCOL (from protocol template)
+  // Defaults to CUSTOM for backward compatibility with existing commands
+  source: CommandSourceSchema.optional().default("CUSTOM"),
+
+  // Protocol Layer (L1) - present for PROTOCOL source commands
+  // Contains data synced from protocol templates
+  protocolLayer: ProtocolLayerSchema.optional(),
+
+  // Command Layer (L2) - user customizations
+  // Present for all commands, contains user overrides and enhancements
+  commandLayer: CommandLayerSchema.optional(),
+
+  // === LEGACY/CUSTOM COMMAND FIELDS ===
+  // These fields are used for CUSTOM source commands
+  // For PROTOCOL commands, use protocolLayer + commandLayer instead
+
   group: z.string().optional(),
   payload: z.string().default(""), // Default to empty string if missing
-  mode: DataModeSchema,
+  mode: DataModeSchema.optional(),
   encoding: TextEncodingSchema.optional(),
   // Variable parsing settings
   variableSyntax: VariableSyntaxSchema.optional().default("SHELL"),

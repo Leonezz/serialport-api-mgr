@@ -1,6 +1,13 @@
 import { StateCreator } from "zustand";
 import { generateId } from "../utils";
 import { DEFAULT_COMMANDS, DEFAULT_PRESETS } from "../defaults";
+import {
+  instantiateFromProtocol,
+  syncAllProtocolCommands,
+  detachFromProtocol,
+  getCommandsSyncStatus,
+} from "../protocolIntegration";
+import type { Protocol, CommandTemplate } from "../protocolTypes";
 import type {
   SerialPreset,
   SavedCommand,
@@ -45,6 +52,24 @@ export interface ProjectSliceActions {
   addSequence: (seqData: Omit<SerialSequence, "id">) => void;
   updateSequence: (id: string, updates: Partial<SerialSequence>) => void;
   deleteSequence: (id: string) => void;
+
+  // Protocol command actions
+  addProtocolCommand: (
+    template: CommandTemplate,
+    protocol: Protocol,
+    deviceId?: string,
+  ) => string;
+  syncProtocolCommands: (protocols: Protocol[]) => {
+    synced: string[];
+    updated: string[];
+  };
+  detachCommand: (commandId: string, protocols: Protocol[]) => void;
+  getCommandsSyncStatus: (protocols: Protocol[]) => {
+    synced: string[];
+    outdated: string[];
+    orphaned: string[];
+    custom: string[];
+  };
 }
 
 // Complete slice: State & Actions
@@ -126,4 +151,65 @@ export const createProjectSlice: StateCreator<ProjectSlice> = (set) => ({
     set((state) => ({
       sequences: state.sequences.filter((s) => s.id !== id),
     })),
+
+  // Protocol command actions
+  addProtocolCommand: (template, protocol, deviceId) => {
+    const timestamp = Date.now();
+    const id = generateId();
+    const cmdData = instantiateFromProtocol(template, protocol, deviceId);
+    const newCmd: SavedCommand = {
+      id,
+      ...cmdData,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      usedBy: [],
+    };
+    set((state) => ({ commands: [...state.commands, newCmd] }));
+    return id;
+  },
+
+  syncProtocolCommands: (protocols) => {
+    const result = { synced: [] as string[], updated: [] as string[] };
+    set((state) => {
+      const syncedCommands = syncAllProtocolCommands(state.commands, protocols);
+
+      // Track which commands were updated
+      for (let i = 0; i < state.commands.length; i++) {
+        const original = state.commands[i];
+        const synced = syncedCommands[i];
+        if (original.updatedAt !== synced.updatedAt) {
+          result.updated.push(synced.id);
+        } else if (original.source === "PROTOCOL") {
+          result.synced.push(original.id);
+        }
+      }
+
+      return { commands: syncedCommands };
+    });
+    return result;
+  },
+
+  detachCommand: (commandId, protocols) => {
+    set((state) => ({
+      commands: state.commands.map((cmd) =>
+        cmd.id === commandId ? detachFromProtocol(cmd, protocols) : cmd,
+      ),
+    }));
+  },
+
+  getCommandsSyncStatus: (protocols) => {
+    let status = { synced: [], outdated: [], orphaned: [], custom: [] } as {
+      synced: string[];
+      outdated: string[];
+      orphaned: string[];
+      custom: string[];
+    };
+    // We need to access state, but this is a getter pattern
+    // Using a workaround with zustand's get() if available, or computing from current state
+    set((state) => {
+      status = getCommandsSyncStatus(state.commands, protocols);
+      return {}; // No state change
+    });
+    return status;
+  },
 });
