@@ -77,6 +77,12 @@ import {
   ParameterApplicationSchema,
   // Variable extraction
   VariableExtractionRuleSchema,
+  // Two-layer architecture schemas
+  WidgetBindingSchema,
+  ProtocolLayerSchema,
+  ParameterEnhancementSchema,
+  CommandLayerSchema,
+  CommandSourceSchema,
 } from "./lib/schemas";
 
 import {
@@ -207,6 +213,14 @@ export type CommandParameter = z.infer<typeof CommandParameterSchema>;
 export type CommandValidation = z.infer<typeof CommandValidationSchema>;
 export type CommandScripting = z.infer<typeof CommandScriptingSchema>;
 export type BaseEntity = z.infer<typeof BaseEntitySchema>;
+
+// Two-layer architecture types
+export type WidgetBinding = z.infer<typeof WidgetBindingSchema>;
+export type ProtocolLayer = z.infer<typeof ProtocolLayerSchema>;
+export type ParameterEnhancement = z.infer<typeof ParameterEnhancementSchema>;
+export type CommandLayer = z.infer<typeof CommandLayerSchema>;
+export type CommandSource = z.infer<typeof CommandSourceSchema>;
+
 export type SavedCommand = z.infer<typeof SavedCommandSchema>;
 export type SequenceStep = z.infer<typeof SequenceStepSchema>;
 export type SerialSequence = z.infer<typeof SerialSequenceSchema>;
@@ -379,6 +393,12 @@ export {
   PositionConfigSchema,
   ParameterApplicationSchema,
   VariableExtractionRuleSchema,
+  // Two-layer architecture schemas
+  WidgetBindingSchema,
+  ProtocolLayerSchema,
+  ParameterEnhancementSchema,
+  CommandLayerSchema,
+  CommandSourceSchema,
 
   // Store schemas
   RightSidebarTabSchema,
