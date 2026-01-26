@@ -539,7 +539,7 @@ const PlotterPanel: React.FC = () => {
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="absolute inset-0 z-50 bg-background/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="absolute inset-0 z-[60] bg-background/60 backdrop-blur-sm flex items-center justify-center p-4">
           <Card className="w-112.5 shadow-2xl border-border animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20 shrink-0">
               <span className="font-bold text-sm flex items-center gap-2">
