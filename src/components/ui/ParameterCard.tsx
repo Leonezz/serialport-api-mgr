@@ -3,7 +3,8 @@ import { X, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "./Button";
 import { Input } from "./Input";
-import { Select } from "./Select";
+import { SelectDropdown } from "./Select";
+import { DropdownOption } from "./Dropdown";
 
 /**
  * ParameterCard Component
@@ -52,7 +53,7 @@ export interface ParameterCardProps {
   readOnly?: boolean;
 }
 
-const typeOptions: { label: string; value: ParameterType }[] = [
+const typeOptions: DropdownOption<ParameterType>[] = [
   { label: "String", value: "STRING" },
   { label: "Integer", value: "INTEGER" },
   { label: "Float", value: "FLOAT" },
@@ -153,20 +154,14 @@ const ParameterCard: React.FC<ParameterCardProps> = ({
               <label className="text-xs font-medium text-text-secondary">
                 Type
               </label>
-              <Select
+              <SelectDropdown
+                options={typeOptions}
                 value={type}
-                onChange={(e) =>
-                  onChange?.({ type: e.target.value as ParameterType })
-                }
-                selectSize="sm"
+                onChange={(value) => onChange?.({ type: value })}
+                size="sm"
                 disabled={readOnly}
-              >
-                {typeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
+                menuMinWidth={120}
+              />
             </div>
           </div>
 
@@ -176,7 +171,14 @@ const ParameterCard: React.FC<ParameterCardProps> = ({
               Default Value
             </label>
             {type === "BOOLEAN" ? (
-              <Select
+              <SelectDropdown
+                options={
+                  [
+                    { value: "", label: "Not set" },
+                    { value: "true", label: "True" },
+                    { value: "false", label: "False" },
+                  ] as DropdownOption<string>[]
+                }
                 value={
                   defaultValue === true
                     ? "true"
@@ -184,8 +186,7 @@ const ParameterCard: React.FC<ParameterCardProps> = ({
                       ? "false"
                       : ""
                 }
-                onChange={(e) => {
-                  const val = e.target.value;
+                onChange={(val) => {
                   onChange?.({
                     defaultValue:
                       val === "true"
@@ -195,13 +196,10 @@ const ParameterCard: React.FC<ParameterCardProps> = ({
                           : undefined,
                   });
                 }}
-                selectSize="sm"
+                size="sm"
                 disabled={readOnly}
-              >
-                <option value="">Not set</option>
-                <option value="true">True</option>
-                <option value="false">False</option>
-              </Select>
+                menuMinWidth={100}
+              />
             ) : (
               <Input
                 value={

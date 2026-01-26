@@ -26,7 +26,7 @@ const inputVariants = cva(
       },
       state: {
         default:
-          "border border-border-default hover:border-border-hover focus:border-border-focus focus:shadow-focus",
+          "border border-border-default/60 hover:border-border-hover focus:border-border-focus focus:shadow-focus",
         error:
           "border border-border-error focus:border-border-error focus:shadow-error",
       },

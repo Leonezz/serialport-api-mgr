@@ -32,7 +32,7 @@ const selectVariants = cva(
       },
       state: {
         default:
-          "border border-border-default hover:border-border-hover focus:border-border-focus focus:shadow-focus focus:outline-none",
+          "border border-border-default/60 hover:border-border-hover focus:border-border-focus focus:shadow-focus focus:outline-none",
         error:
           "border border-border-error focus:border-border-error focus:shadow-error focus:outline-none",
       },
@@ -140,6 +140,8 @@ export interface SelectDropdownProps<T = string> {
   errorMessage?: string;
   /** Additional className */
   className?: string;
+  /** Minimum width for dropdown menu in pixels */
+  menuMinWidth?: number;
   /** ID for accessibility */
   id?: string;
   /** Name for form submission */
@@ -160,6 +162,7 @@ function SelectDropdownInner<T = string>(
     helperText,
     errorMessage,
     className,
+    menuMinWidth,
     id,
     name,
     "aria-label": ariaLabel,
@@ -180,6 +183,7 @@ function SelectDropdownInner<T = string>(
         error={error}
         disabled={disabled}
         className={className}
+        menuMinWidth={menuMinWidth}
         id={id}
         name={name}
         aria-label={ariaLabel}
