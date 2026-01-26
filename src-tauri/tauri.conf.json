@@ -9,14 +9,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
-      {
-        "title": "serialport-api",
-        "minWidth": 1720,
-        "minHeight": 800,
-        "dragDropEnabled": false
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }
