@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/Button";
 import { Textarea } from "./ui/Textarea";
 import { HexInput } from "./ui/HexInput";
-import { Select } from "./ui/Select";
+import { SelectDropdown } from "./ui/Select";
+import { DropdownOption } from "./ui/Dropdown";
 import { Send, ArrowDownToLine, Zap, Paperclip, X } from "lucide-react";
 import {
   LineEnding,
@@ -161,17 +162,19 @@ const InputPanel: React.FC<Props> = ({
                   Encoding
                 </span>
                 <div className="w-32">
-                  <Select
-                    value={encoding}
-                    onChange={(e) =>
-                      setEncoding(e.target.value as TextEncoding)
+                  <SelectDropdown
+                    options={
+                      [
+                        { value: "UTF-8", label: "UTF-8" },
+                        { value: "ASCII", label: "ASCII (7-bit)" },
+                        { value: "ISO-8859-1", label: "ISO-8859-1" },
+                      ] as DropdownOption<TextEncoding>[]
                     }
-                    className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"
-                  >
-                    <option value="UTF-8">UTF-8</option>
-                    <option value="ASCII">ASCII (7-bit)</option>
-                    <option value="ISO-8859-1">ISO-8859-1</option>
-                  </Select>
+                    value={encoding}
+                    onChange={(value) => setEncoding(value)}
+                    size="sm"
+                    menuMinWidth={140}
+                  />
                 </div>
               </div>
               <div className="w-px h-9 bg-border/60 shrink-0"></div>
@@ -180,18 +183,20 @@ const InputPanel: React.FC<Props> = ({
                   Line Ending
                 </span>
                 <div className="w-32">
-                  <Select
-                    value={config.lineEnding}
-                    onChange={(e) =>
-                      setLineEnding(e.target.value as LineEnding)
+                  <SelectDropdown
+                    options={
+                      [
+                        { value: "NONE", label: "None" },
+                        { value: "LF", label: "LF (\\n)" },
+                        { value: "CR", label: "CR (\\r)" },
+                        { value: "CRLF", label: "CRLF (\\r\\n)" },
+                      ] as DropdownOption<LineEnding>[]
                     }
-                    className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"
-                  >
-                    <option value="NONE">None</option>
-                    <option value="LF">LF (\n)</option>
-                    <option value="CR">CR (\r)</option>
-                    <option value="CRLF">CRLF (\r\n)</option>
-                  </Select>
+                    value={config.lineEnding}
+                    onChange={(value) => setLineEnding(value)}
+                    size="sm"
+                    menuMinWidth={140}
+                  />
                 </div>
               </div>
               <div className="w-px h-9 bg-border/60 shrink-0"></div>
@@ -203,18 +208,20 @@ const InputPanel: React.FC<Props> = ({
               Checksum
             </span>
             <div className="w-32">
-              <Select
-                value={checksum}
-                onChange={(e) =>
-                  setChecksum(e.target.value as ChecksumAlgorithm)
+              <SelectDropdown
+                options={
+                  [
+                    { value: "NONE", label: "None" },
+                    { value: "MOD256", label: "Mod 256 (Sum)" },
+                    { value: "XOR", label: "XOR 8-bit" },
+                    { value: "CRC16", label: "CRC16 (Modbus)" },
+                  ] as DropdownOption<ChecksumAlgorithm>[]
                 }
-                className="h-9 text-[11px] bg-background/80 border-border/60 focus:border-primary focus:ring-primary/20 shadow-sm"
-              >
-                <option value="NONE">None</option>
-                <option value="MOD256">Mod 256 (Sum)</option>
-                <option value="XOR">XOR 8-bit</option>
-                <option value="CRC16">CRC16 (Modbus)</option>
-              </Select>
+                value={checksum}
+                onChange={(value) => setChecksum(value)}
+                size="sm"
+                menuMinWidth={160}
+              />
             </div>
           </div>
           <div className="w-px h-9 bg-border/60 shrink-0"></div>
