@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Settings,
@@ -9,6 +10,7 @@ import {
   Monitor,
   Trash2,
   Database,
+  Palette,
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { Button } from "./ui/Button";
@@ -42,9 +44,9 @@ const AppSettingsModal: React.FC = () => {
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-60 flex items-center justify-center p-4"
       onClick={() => setShowAppSettings(false)}
     >
       <Card
@@ -108,7 +110,12 @@ const AppSettingsModal: React.FC = () => {
                 </div>
               </div>
               <div className="col-span-2 space-y-2">
-                <Label>{t("settings.accent")}</Label>
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {t("settings.accent")}
+                  </span>
+                </div>
                 <SelectDropdown
                   options={
                     [
@@ -174,7 +181,8 @@ const AppSettingsModal: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

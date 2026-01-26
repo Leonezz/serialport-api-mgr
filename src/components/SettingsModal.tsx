@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { SerialConfig, SerialPreset } from "../types";
 import { X, Check, Trash2, Download } from "lucide-react";
 import { Button } from "./ui/Button";
@@ -79,9 +80,9 @@ const SettingsModal: React.FC<Props> = ({
     label: p.name,
   }));
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-60 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <Card
@@ -209,7 +210,8 @@ const SettingsModal: React.FC<Props> = ({
           </Button>
         </CardFooter>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
