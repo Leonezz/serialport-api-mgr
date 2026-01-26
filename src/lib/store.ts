@@ -396,15 +396,19 @@ export const useStore = create<AppState>()(
             // UI preferences
             if (data.themeMode) merged.themeMode = data.themeMode;
             if (data.themeColor) merged.themeColor = data.themeColor;
+            if (data.sidebarSectionsCollapsed)
+              merged.sidebarSectionsCollapsed =
+                data.sidebarSectionsCollapsed as Record<string, boolean>;
 
             // Project data - cast to proper types since validation passed
-            if (data.presets)
+            // Only override defaults if persisted data has items (prevent empty arrays from clearing defaults)
+            if (data.presets && data.presets.length > 0)
               merged.presets = data.presets as AppState["presets"];
-            if (data.commands)
+            if (data.commands && data.commands.length > 0)
               merged.commands = data.commands as AppState["commands"];
-            if (data.sequences)
+            if (data.sequences && data.sequences.length > 0)
               merged.sequences = data.sequences as AppState["sequences"];
-            if (data.contexts)
+            if (data.contexts && data.contexts.length > 0)
               merged.contexts = data.contexts as AppState["contexts"];
             if (data.loadedPresetId !== undefined)
               merged.loadedPresetId = data.loadedPresetId;
