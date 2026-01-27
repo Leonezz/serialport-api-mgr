@@ -71,6 +71,7 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -88,6 +89,7 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -112,12 +114,14 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
         await result.current.connect(
           "session-2",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -143,6 +147,7 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -155,6 +160,7 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -175,6 +181,7 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -223,12 +230,14 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
         await result.current.connect(
           "session-2",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -264,6 +273,7 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -295,6 +305,7 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -329,18 +340,21 @@ describe("useSerialConnection", () => {
           "session-A",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
         await result.current.connect(
           "session-B",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
         await result.current.connect(
           "session-C",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -368,12 +382,14 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
         await result.current.connect(
           "session-2",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });
@@ -427,6 +443,7 @@ describe("useSerialConnection", () => {
           "session-1",
           defaultConfig,
           defaultNetworkConfig,
+          "SERIAL",
           "mock-echo",
         );
       });

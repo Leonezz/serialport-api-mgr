@@ -352,6 +352,7 @@ const MainWorkspace: React.FC = () => {
                   activeSessionId,
                   config,
                   networkConfig,
+                  connectionType,
                   port,
                 );
                 setIsConnected(true);
