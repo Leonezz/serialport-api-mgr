@@ -116,8 +116,8 @@ export interface SessionSliceActions {
     updater: NetworkConfig | ((prev: NetworkConfig) => NetworkConfig),
   ) => void;
   setConnectionType: (type: "SERIAL" | "NETWORK") => void;
-  setIsConnected: (connected: boolean) => void;
-  setPortName: (name: string) => void;
+  setIsConnected: (connected: boolean, sessionId?: string) => void;
+  setPortName: (name: string, sessionId?: string) => void;
 
   setInputBuffer: (buffer: string) => void;
   setSendMode: (mode: DataMode) => void;
@@ -248,11 +248,31 @@ export const createSessionSlice: StateCreator<
   setConnectionType: (type) =>
     set((state) => updateActiveSession(state, { connectionType: type })),
 
-  setIsConnected: (connected) =>
-    set((state) => updateActiveSession(state, { isConnected: connected })),
+  setIsConnected: (connected, sessionId) =>
+    set((state) => {
+      const targetId = sessionId || state.activeSessionId;
+      const session = state.sessions[targetId];
+      if (!session) return {};
+      return {
+        sessions: {
+          ...state.sessions,
+          [targetId]: { ...session, isConnected: connected },
+        },
+      };
+    }),
 
-  setPortName: (name) =>
-    set((state) => updateActiveSession(state, { portName: name })),
+  setPortName: (name, sessionId) =>
+    set((state) => {
+      const targetId = sessionId || state.activeSessionId;
+      const session = state.sessions[targetId];
+      if (!session) return {};
+      return {
+        sessions: {
+          ...state.sessions,
+          [targetId]: { ...session, portName: name },
+        },
+      };
+    }),
 
   setInputBuffer: (buffer) =>
     set((state) => updateActiveSession(state, { inputBuffer: buffer })),

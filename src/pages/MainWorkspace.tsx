@@ -114,10 +114,12 @@ const MainWorkspace: React.FC = () => {
         handleData(chunk);
       },
       (sessionId) => {
-        // onDisconnect
+        // onDisconnect - always update the specific session's connection state
+        setIsConnected(false, sessionId);
+
+        // Clear active sequence only if this is the active session
         const currentActive = useStore.getState().activeSessionId;
         if (sessionId === currentActive) {
-          setIsConnected(false);
           setActiveSequenceId(null);
         }
         addSystemLog(
@@ -347,20 +349,23 @@ const MainWorkspace: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 bg-background relative">
           <ControlPanel
             onConnect={async (port) => {
+              // Capture sessionId at handler start to ensure correct session is updated
+              const sessionIdToConnect = activeSessionId;
               try {
                 const connectedPortName = await connect(
-                  activeSessionId,
+                  sessionIdToConnect,
                   config,
                   networkConfig,
                   port,
                 );
-                setIsConnected(true);
+                // Explicitly pass sessionId to ensure correct session state is updated
+                setIsConnected(true, sessionIdToConnect);
                 // Save the port name to the session state for log retrieval
                 if (
                   connectedPortName &&
                   typeof connectedPortName === "string"
                 ) {
-                  setPortName(connectedPortName);
+                  setPortName(connectedPortName, sessionIdToConnect);
                 }
 
                 addToast(
@@ -394,9 +399,12 @@ const MainWorkspace: React.FC = () => {
               }
             }}
             onDisconnect={async () => {
+              // Capture sessionId at handler start to ensure correct session is updated
+              const sessionIdToDisconnect = activeSessionId;
               try {
-                await disconnect(activeSessionId);
-                setIsConnected(false);
+                await disconnect(sessionIdToDisconnect);
+                // Explicitly pass sessionId to ensure correct session state is updated
+                setIsConnected(false, sessionIdToDisconnect);
                 addSystemLog(
                   "INFO",
                   "CONNECTION",
