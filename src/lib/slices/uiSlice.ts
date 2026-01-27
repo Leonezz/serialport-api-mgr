@@ -23,6 +23,9 @@ export interface UISliceState {
   themeMode: ThemeMode;
   themeColor: ThemeColor;
 
+  // AI Settings
+  geminiApiKey: string;
+
   // System Logs & Toasts
   systemLogs: SystemLogEntry[];
   toasts: ToastMessage[];
@@ -53,6 +56,9 @@ export interface UISliceActions {
   // Appearance
   setThemeMode: (mode: ThemeMode) => void;
   setThemeColor: (color: ThemeColor) => void;
+
+  // AI Settings
+  setGeminiApiKey: (key: string) => void;
 
   // System Logs
   addSystemLog: (
@@ -104,6 +110,9 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
   themeColor: "zinc",
   setThemeMode: (mode) => set({ themeMode: mode }),
   setThemeColor: (color) => set({ themeColor: color }),
+
+  geminiApiKey: "",
+  setGeminiApiKey: (key) => set({ geminiApiKey: key }),
 
   systemLogs: [],
   addSystemLog: (level, category, message, details) =>
