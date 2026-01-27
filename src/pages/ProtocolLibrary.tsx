@@ -5,7 +5,7 @@
  * Provides navigation to protocol editor for each protocol.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -45,8 +45,15 @@ const getProtocolIcon = (iconName?: string) => {
 
 const ProtocolLibrary: React.FC = () => {
   const navigate = useNavigate();
-  const { protocols, addProtocol, deleteProtocol, duplicateProtocol } =
-    useStore();
+  const {
+    protocols,
+    addProtocol,
+    deleteProtocol,
+    duplicateProtocol,
+    addToast,
+  } = useStore();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -113,13 +120,64 @@ const ProtocolLibrary: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const imported = JSON.parse(content);
+
+        // Validate basic protocol structure
+        if (!imported.name || !imported.version) {
+          throw new Error("Invalid protocol format");
+        }
+
+        // Strip id and timestamps to create as new
+        const {
+          id: _id,
+          createdAt: _ca,
+          updatedAt: _ua,
+          ...protocolData
+        } = imported;
+        addProtocol(protocolData);
+        addToast(
+          "success",
+          "Protocol Imported",
+          `Protocol "${imported.name}" has been imported.`,
+        );
+      } catch (error) {
+        addToast(
+          "error",
+          "Import Failed",
+          "The file does not contain a valid protocol.",
+        );
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset input to allow importing the same file again
+    event.target.value = "";
+  };
+
   return (
     <div className="flex flex-col h-full bg-background">
       <PageHeader
         title="Protocol Library"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleImport}
+            >
               <Upload className="w-4 h-4" />
               Import
             </Button>
@@ -279,6 +337,15 @@ const ProtocolLibrary: React.FC = () => {
           onCancel={() => setDeleteConfirm(null)}
         />
       )}
+
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </div>
   );
 };
