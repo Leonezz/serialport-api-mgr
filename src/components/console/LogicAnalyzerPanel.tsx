@@ -94,6 +94,9 @@ const ByteAnnotations: React.FC<ByteAnnotationsProps> = ({
   const rxLineY = yScale(RX_HIGH) - 20;
   const txLineY = yScale(TX_HIGH) - 20;
 
+  // Guard against NaN values in Y calculations
+  if (!Number.isFinite(rxLineY) || !Number.isFinite(txLineY)) return null;
+
   return (
     <g className="byte-annotations">
       {visibleAnnotations.map((anno, idx) => {
@@ -103,6 +106,15 @@ const ByteAnnotations: React.FC<ByteAnnotationsProps> = ({
         const lineY = anno.channel === "RX" ? rxLineY : txLineY;
         const color = anno.channel === "RX" ? RX_COLOR : TX_COLOR;
         const colorFaded = anno.channel === "RX" ? "#10b98140" : "#3b82f640";
+
+        // Skip rendering if any coordinate is NaN
+        if (
+          !Number.isFinite(xStart) ||
+          !Number.isFinite(xEnd) ||
+          !Number.isFinite(xMid)
+        ) {
+          return null;
+        }
 
         return (
           <g key={`anno-${anno.channel}-${idx}`}>
