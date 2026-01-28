@@ -800,8 +800,8 @@ const LogicAnalyzerPanel: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
               stroke="#3b82f6"
               fill="transparent"
               tickFormatter={() => ""}
-              startIndex={domain?.min}
-              endIndex={domain?.max}
+              startIndex={domain?.min ?? 0}
+              endIndex={domain?.max ?? Math.max(0, chartData.length - 1)}
               onChange={handleBrushChange}
               alwaysShowText={false}
               className="text-[9px] [&_.recharts-brush-slide]:fill-zinc-200/50 dark:[&_.recharts-brush-slide]:fill-zinc-700/50 [&_.recharts-brush-traveller]:fill-zinc-400 dark:[&_.recharts-brush-traveller]:fill-zinc-500"
