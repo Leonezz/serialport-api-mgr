@@ -5,7 +5,7 @@
  * Provides card-based layout similar to other library pages.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -28,9 +28,17 @@ import { EmptyState } from "../components/ui/EmptyState";
 import type { SerialSequence } from "../types";
 
 const SequenceLibrary: React.FC = () => {
+  const {
+    sequences,
+    commands,
+    devices,
+    addSequence,
+    deleteSequence,
+    addToast,
+  } = useStore();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { sequences, commands, devices, addSequence, deleteSequence } =
-    useStore();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -96,13 +104,64 @@ const SequenceLibrary: React.FC = () => {
     return sequence.steps.reduce((acc, step) => acc + step.delay, 0);
   };
 
+  const handleImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const imported = JSON.parse(content);
+
+        // Validate basic sequence structure
+        if (!imported.name || !Array.isArray(imported.steps)) {
+          throw new Error("Invalid sequence format");
+        }
+
+        // Strip id and timestamps to create as new
+        const {
+          id: _id,
+          createdAt: _ca,
+          updatedAt: _ua,
+          ...sequenceData
+        } = imported;
+        addSequence(sequenceData);
+        addToast(
+          "success",
+          "Sequence Imported",
+          `Sequence "${imported.name}" has been imported.`,
+        );
+      } catch (error) {
+        addToast(
+          "error",
+          "Import Failed",
+          "The file does not contain a valid sequence.",
+        );
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset input to allow importing the same file again
+    event.target.value = "";
+  };
+
   return (
     <div className="flex flex-col h-full bg-background">
       <PageHeader
         title="Sequence Library"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleImport}
+            >
               <Upload className="w-4 h-4" />
               Import
             </Button>
@@ -290,6 +349,15 @@ const SequenceLibrary: React.FC = () => {
           }}
         />
       )}
+
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </div>
   );
 };
