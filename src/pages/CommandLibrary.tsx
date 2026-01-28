@@ -328,7 +328,13 @@ const CommandLibrary: React.FC = () => {
           initialData={editingCommand || undefined}
           sequences={sequences}
           contexts={contexts}
-          onSave={() => {
+          onSave={(command) => {
+            addCommand(command);
+            addToast(
+              "success",
+              "Command Saved",
+              `Command "${command.name}" has been saved.`,
+            );
             setShowAddModal(false);
             setEditingCommand(null);
           }}
