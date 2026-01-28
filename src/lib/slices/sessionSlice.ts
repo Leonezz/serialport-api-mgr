@@ -71,6 +71,9 @@ const createSession = (name: string): Session => ({
   sendMode: "TEXT",
   encoding: "UTF-8",
   checksum: "NONE",
+  // Protocol integration defaults
+  protocolFramingEnabled: false,
+  activeProtocolId: undefined,
   aiMessages: [],
   aiTokenUsage: { prompt: 0, response: 0, total: 0 },
 });
@@ -165,6 +168,10 @@ export interface SessionSliceActions {
   // AI Chat State
   setAiMessages: (messages: ChatMessage[]) => void;
   addTokenUsage: (usage: { prompt: number; response: number }) => void;
+
+  // Protocol Integration
+  setProtocolFramingEnabled: (enabled: boolean) => void;
+  setActiveProtocolId: (protocolId: string | undefined) => void;
 }
 
 // Complete slice: State & Actions
@@ -665,4 +672,15 @@ export const createSessionSlice: StateCreator<
         },
       };
     }),
+
+  // Protocol Integration Actions
+  setProtocolFramingEnabled: (enabled) =>
+    set((state) =>
+      updateActiveSession(state, { protocolFramingEnabled: enabled }),
+    ),
+
+  setActiveProtocolId: (protocolId) =>
+    set((state) =>
+      updateActiveSession(state, { activeProtocolId: protocolId }),
+    ),
 });

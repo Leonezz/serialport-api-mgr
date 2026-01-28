@@ -35,6 +35,7 @@ import { Checkbox } from "../ui/Checkbox";
 import { Radio, RadioGroup } from "../ui/Radio";
 import { NumberInput } from "../ui/NumberInput";
 import { useTranslation } from "react-i18next";
+import ProtocolCommandCustomizer from "./ProtocolCommandCustomizer";
 
 interface Props {
   activeTab: RightSidebarTab;
@@ -243,6 +244,19 @@ const CommandEditor: React.FC<Props> = ({ activeTab }) => {
   const updateCmd = (updates: Partial<SavedCommand>) => {
     setEditingCommand({ ...editingCommand, ...updates });
   };
+
+  // Protocol-sourced commands use the ProtocolCommandCustomizer instead of tabs
+  const isProtocolCommand =
+    editingCommand.source === "PROTOCOL" && !!editingCommand.protocolLayer;
+
+  if (isProtocolCommand) {
+    return (
+      <ProtocolCommandCustomizer
+        command={editingCommand}
+        onUpdate={updateCmd}
+      />
+    );
+  }
 
   // Helper for parameters
   const updateParam = (idx: number, updates: Partial<CommandParameter>) => {

@@ -28,12 +28,6 @@ pub enum PortStatus {
     Closed,
 }
 
-impl PortStatus {
-    pub fn is_open(&self) -> bool {
-        matches!(self, Self::Opened(..))
-    }
-}
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PortInfo {
     pub port_name: String,
@@ -41,12 +35,6 @@ pub struct PortInfo {
     pub port_status: PortStatus,
     pub bytes_read: u128,
     pub bytes_write: u128,
-}
-
-impl PortInfo {
-    pub fn is_open(&self) -> bool {
-        self.port_status.is_open()
-    }
 }
 
 #[derive(Debug)]

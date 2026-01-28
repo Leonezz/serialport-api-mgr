@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -28,6 +29,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import type { SavedCommand } from "../types";
 
 const CommandLibrary: React.FC = () => {
+  const navigate = useNavigate();
   const {
     commands,
     sequences,
@@ -63,8 +65,7 @@ const CommandLibrary: React.FC = () => {
   };
 
   const handleEditCommand = (command: SavedCommand) => {
-    setEditingCommand(command);
-    setShowAddModal(true);
+    navigate(`/commands/${command.id}/edit`);
   };
 
   const handleDuplicate = (command: SavedCommand) => {

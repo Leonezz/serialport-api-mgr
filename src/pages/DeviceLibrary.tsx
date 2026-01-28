@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Cpu, Edit, Trash2 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { Button } from "../components/ui/Button";
@@ -15,6 +16,7 @@ import DeviceFormModal from "../components/DeviceFormModal";
 import { EmptyState } from "../components/ui/EmptyState";
 
 const DeviceLibrary: React.FC = () => {
+  const navigate = useNavigate();
   const { devices, setShowDeviceModal, setEditingDevice, deleteDevice } =
     useStore();
 
@@ -26,11 +28,7 @@ const DeviceLibrary: React.FC = () => {
   };
 
   const handleEditDevice = (deviceId: string) => {
-    const device = devices.find((d) => d.id === deviceId);
-    if (device) {
-      setEditingDevice(device);
-      setShowDeviceModal(true);
-    }
+    navigate(`/devices/${deviceId}/edit`);
   };
 
   const handleDeleteDevice = (id: string) => {

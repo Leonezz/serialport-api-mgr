@@ -16,6 +16,17 @@ import {
 } from "../lib/parameterUtils";
 import { generateId, getErrorMessage } from "../lib/utils";
 import { TIMING } from "../lib/constants";
+import { getEffectiveCommand } from "../lib/protocolIntegration";
+import {
+  buildStructuredMessage,
+  type BuildOptions,
+} from "../lib/messageBuilder";
+import type {
+  Protocol,
+  StructuredCommand,
+  ElementBinding,
+  StaticBinding,
+} from "../lib/protocolTypes";
 
 interface ActiveValidation {
   sessionId: string;
@@ -29,6 +40,48 @@ interface ActiveValidation {
   cmdName: string;
   resolve?: () => void;
   reject?: (err: Error) => void;
+}
+
+/**
+ * Build binary message for a STRUCTURED protocol command
+ */
+function buildProtocolCommandMessage(
+  command: StructuredCommand,
+  protocol: Protocol,
+  params: Record<string, unknown>,
+  payload?: Uint8Array,
+): Uint8Array {
+  // Find the message structure
+  const structure = protocol.messageStructures.find(
+    (s) => s.id === command.messageStructureId,
+  );
+  if (!structure) {
+    throw new Error(
+      `Message structure "${command.messageStructureId}" not found in protocol "${protocol.name}"`,
+    );
+  }
+
+  // Prepare bindings
+  const bindings: ElementBinding[] = command.bindings || [];
+
+  // Convert staticValues to StaticBinding format
+  const staticBindings: StaticBinding[] = (command.staticValues || []).map(
+    (sv) => ({
+      elementId: sv.elementId,
+      value: sv.value,
+    }),
+  );
+
+  // Build options
+  const buildOpts: BuildOptions = {
+    params,
+    bindings,
+    staticBindings,
+    payload,
+  };
+
+  const result = buildStructuredMessage(structure, buildOpts);
+  return result.data;
 }
 
 /**
@@ -56,6 +109,7 @@ export function useCommandExecution(
     addSystemLog,
     addToast,
     commands,
+    protocols,
     setActiveSequenceId,
   } = useStore();
 
@@ -86,6 +140,93 @@ export function useCommandExecution(
       console.groupEnd();
       throw new Error("Port not connected");
     }
+
+    // =========================================================================
+    // Protocol-based STRUCTURED Command Handling
+    // For commands synced from protocols, we use binary message building
+    // =========================================================================
+    if (cmdInfo?.source === "PROTOCOL" && cmdInfo.protocolLayer?.protocolId) {
+      const effectiveCmd = getEffectiveCommand(cmdInfo, protocols);
+
+      // Check if this is a STRUCTURED command (binary protocol)
+      if (
+        effectiveCmd &&
+        "type" in effectiveCmd &&
+        effectiveCmd.type === "STRUCTURED" &&
+        effectiveCmd.messageStructureId
+      ) {
+        const protocol = protocols.find(
+          (p) => p.id === cmdInfo.protocolLayer!.protocolId,
+        );
+        if (!protocol) {
+          const errorMsg = `Protocol "${cmdInfo.protocolLayer.protocolId}" not found`;
+          addToast("error", "Protocol Error", errorMsg);
+          addSystemLog("ERROR", "COMMAND", errorMsg);
+          console.groupEnd();
+          throw new Error(errorMsg);
+        }
+
+        try {
+          // Build binary message using protocol structure
+          const binaryMessage = buildProtocolCommandMessage(
+            effectiveCmd as StructuredCommand,
+            protocol,
+            params,
+          );
+
+          addSystemLog(
+            "INFO",
+            "COMMAND",
+            `Built STRUCTURED message for "${cmdInfo.name}"`,
+            {
+              protocol: protocol.name,
+              structure: effectiveCmd.messageStructureId,
+              length: binaryMessage.length,
+              params,
+            },
+          );
+
+          // Write directly - STRUCTURED commands bypass text encoding
+          await write(activeSessionId, binaryMessage);
+          addLog(
+            binaryMessage,
+            "TX",
+            cmdInfo.contextIds,
+            activeSessionId,
+            params,
+          );
+
+          addSystemLog(
+            "INFO",
+            "COMMAND",
+            `Sent: ${cmdInfo.name} (STRUCTURED)`,
+            {
+              mode: "BINARY",
+              length: binaryMessage.length,
+              params,
+            },
+          );
+
+          console.groupEnd();
+          return; // Early return - STRUCTURED commands don't use validation/scripting (yet)
+        } catch (e: unknown) {
+          const errorMsg = getErrorMessage(e);
+          addToast("error", "Protocol Build Error", errorMsg);
+          addSystemLog(
+            "ERROR",
+            "COMMAND",
+            `Failed to build STRUCTURED message for "${cmdInfo.name}"`,
+            { error: errorMsg, params },
+          );
+          console.groupEnd();
+          throw e;
+        }
+      }
+    }
+
+    // =========================================================================
+    // Standard Command Handling (TEXT/HEX/BINARY modes)
+    // =========================================================================
 
     // Apply parameters to payload using the new parameter system
     let processedData = data;

@@ -28,7 +28,10 @@ export const RightSidebarTabSchema = z.enum([
   "params",
   "validation",
   "scripting",
-  "device",
+  "device-info",
+  "device-connections",
+  "device-attachments",
+  "device-contexts",
 ]);
 
 // ============================================================================
@@ -166,6 +169,9 @@ export const SessionSchema = z.object({
   encoding: TextEncodingSchema,
   checksum: ChecksumAlgorithmSchema,
   framingOverride: FramingConfigSchema.optional(),
+  // Protocol integration fields
+  protocolFramingEnabled: z.boolean().optional(),
+  activeProtocolId: z.string().optional(),
   aiMessages: z.array(ChatMessageSchema),
   aiTokenUsage: z.object({
     prompt: z.number(),

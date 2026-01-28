@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { ErrorBoundary } from "react-error-boundary";
 import { invoke } from "@tauri-apps/api/core";
+import { Agentation } from "agentation";
 import App from "./App";
 import { ErrorFallback } from "./components/ErrorFallback";
 import { ThemeProvider } from "./components/ThemeProvider";
@@ -32,6 +33,7 @@ root.render(
     >
       <ThemeProvider>
         <App />
+        {import.meta.env.DEV && <Agentation />}
       </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>,

@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "./Button";
 import { cn } from "../../lib/utils";
@@ -92,11 +93,11 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div
       className={cn(
         "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overscroll-contain",
-        zIndex === 100 ? "z-[100]" : "z-50",
+        zIndex === 100 ? "z-100" : "z-60",
       )}
       onClick={closeOnClickOutside ? onClose : undefined}
       style={{ overscrollBehavior: "contain" }}
@@ -114,7 +115,7 @@ export const Modal: React.FC<ModalProps> = ({
         {/* Header - 56px */}
         <div
           className={cn(
-            "flex items-center justify-between px-4 h-14 flex-shrink-0",
+            "flex items-center justify-between px-4 h-14 shrink-0",
             "border-b border-border-default bg-bg-muted/30",
             headerClassName,
           )}
@@ -141,7 +142,7 @@ export const Modal: React.FC<ModalProps> = ({
         {footer && (
           <div
             className={cn(
-              "flex items-center justify-end gap-2 px-4 h-16 flex-shrink-0",
+              "flex items-center justify-end gap-2 px-4 h-16 shrink-0",
               "border-t border-border-default bg-bg-muted/30",
               footerClassName,
             )}
@@ -152,6 +153,9 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  // Use portal to render at document body level, escaping parent stacking contexts
+  return createPortal(modalContent, document.body);
 };
 
 export default Modal;

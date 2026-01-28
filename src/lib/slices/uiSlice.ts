@@ -46,6 +46,7 @@ export interface UISliceState {
   leftSidebarCollapsed: boolean;
   rightSidebarCollapsed: boolean;
   sidebarSectionsCollapsed: Record<string, boolean>;
+  lastProtocolSyncTimestamp: number | null;
 }
 
 // Actions interface (all methods)
@@ -94,6 +95,7 @@ export interface UISliceActions {
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
   setRightSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarSection: (section: string) => void;
+  setLastProtocolSyncTimestamp: (timestamp: number | null) => void;
 }
 
 // Complete slice: State & Actions
@@ -165,6 +167,7 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
     commands: false,
     sequences: false,
   },
+  lastProtocolSyncTimestamp: null,
 
   setEditingCommand: (cmd) => set({ editingCommand: cmd }),
   setIsCommandModalOpen: (open) => set({ isCommandModalOpen: open }),
@@ -192,4 +195,6 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
         [section]: !state.sidebarSectionsCollapsed[section],
       },
     })),
+  setLastProtocolSyncTimestamp: (timestamp) =>
+    set({ lastProtocolSyncTimestamp: timestamp }),
 });
