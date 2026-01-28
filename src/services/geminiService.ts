@@ -20,7 +20,78 @@ import { useStore } from "../lib/store";
 import { AIProjectResultSchema } from "../lib/schemas"; // Import Zod schema
 import { getErrorMessage } from "../lib/utils";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to get the API key (store takes priority over env var)
+const getApiKey = (): string | undefined => {
+  const storeKey = useStore.getState().geminiApiKey;
+  if (storeKey && storeKey.trim()) {
+    return storeKey.trim();
+  }
+  return process.env.API_KEY;
+};
+
+// Helper to parse API errors and return user-friendly messages
+const parseApiError = (error: unknown): string => {
+  const errorStr = error instanceof Error ? error.message : String(error);
+
+  // Try to parse JSON error from Gemini API
+  try {
+    // Check if it contains JSON error structure
+    const jsonMatch = errorStr.match(/\{[\s\S]*"error"[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.error?.message) {
+        const msg = parsed.error.message.toLowerCase();
+        if (
+          msg.includes("api key not valid") ||
+          msg.includes("api_key_invalid")
+        ) {
+          return "Gemini API key is invalid. Please check your API key in Settings.";
+        }
+        if (msg.includes("quota") || msg.includes("rate limit")) {
+          return "API quota exceeded. Please try again later or check your API plan.";
+        }
+        if (msg.includes("permission") || msg.includes("denied")) {
+          return "API permission denied. Please verify your API key has access to the Gemini API.";
+        }
+        return `API Error: ${parsed.error.message}`;
+      }
+    }
+  } catch {
+    // Not JSON, continue with string parsing
+  }
+
+  // Check for common error patterns in string
+  if (
+    errorStr.toLowerCase().includes("api key") ||
+    errorStr.toLowerCase().includes("invalid")
+  ) {
+    return "Gemini API key is invalid or missing. Please configure your API key in Settings.";
+  }
+  if (errorStr.toLowerCase().includes("network")) {
+    return "Network error. Please check your internet connection.";
+  }
+
+  return getErrorMessage(error);
+};
+
+// Create a lazy-initialized GoogleGenAI instance
+let aiInstance: GoogleGenAI | null = null;
+let lastApiKey: string | undefined = undefined;
+
+const getAIInstance = (): GoogleGenAI => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error(
+      "Gemini API key not configured. Please add your API key in Settings.",
+    );
+  }
+  // Re-create instance if API key changed
+  if (!aiInstance || lastApiKey !== apiKey) {
+    aiInstance = new GoogleGenAI({ apiKey });
+    lastApiKey = apiKey;
+  }
+  return aiInstance;
+};
 
 // --- Function Declarations (Tools) ---
 
@@ -361,7 +432,7 @@ export const getGeminiChatModel = () => {
 };
 
 export const createChatSession = (projectState?: ProjectSummary) => {
-  if (!process.env.API_KEY) throw new Error("API Key missing");
+  const ai = getAIInstance(); // Throws user-friendly error if no API key
 
   let resourceContext = "";
   if (projectState) {
@@ -424,8 +495,11 @@ export const analyzeSerialLog = async (
   logs: LogEntry[],
   contexts: Map<string, ProjectContext>,
 ): Promise<string> => {
-  if (!process.env.API_KEY) {
-    return "API Key not configured. Please check your environment variables.";
+  let ai: GoogleGenAI;
+  try {
+    ai = getAIInstance();
+  } catch {
+    return "Gemini API key not configured. Please add your API key in Settings.";
   }
 
   try {
@@ -495,7 +569,7 @@ export const analyzeSerialLog = async (
     return response.text || "No analysis generated.";
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    return "Failed to analyze logs. The model might be overloaded or the logs are too large.";
+    return parseApiError(error);
   }
 };
 
@@ -503,9 +577,7 @@ export const generateProjectFromDescription = async (
   text: string,
   attachment?: { name: string; mimeType: string; data: string },
 ): Promise<AIProjectResult> => {
-  if (!process.env.API_KEY) {
-    throw new Error("API Key not configured.");
-  }
+  const ai = getAIInstance(); // Throws user-friendly error if no API key
 
   const promptText = `
     You are an expert embedded systems engineer.
@@ -613,8 +685,6 @@ export const generateProjectFromDescription = async (
         `AI generated invalid configuration structure: ${zodError.issues.map((i) => i.message).join(", ")}`,
       );
     }
-    throw new Error(
-      "Failed to generate project configuration: " + getErrorMessage(error),
-    );
+    throw new Error(parseApiError(error));
   }
 };

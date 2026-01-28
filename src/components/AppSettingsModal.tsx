@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -10,6 +10,10 @@ import {
   Monitor,
   Trash2,
   Database,
+  Sparkles,
+  Eye,
+  EyeOff,
+  ExternalLink,
   Palette,
 } from "lucide-react";
 import { useStore } from "../lib/store";
@@ -33,9 +37,14 @@ const AppSettingsModal: React.FC = () => {
     presets,
     commands,
     sequences,
+    geminiApiKey,
+    setGeminiApiKey,
   } = useStore();
 
   const { t, i18n } = useTranslation();
+
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState(geminiApiKey || "");
 
   const handleClearAllData = () => {
     if (confirm(t("settings.clear_confirm"))) {
@@ -131,6 +140,67 @@ const AppSettingsModal: React.FC = () => {
                   onChange={(value) => setThemeColor(value)}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* AI Settings */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Sparkles className="w-4 h-4" /> AI Settings
+            </h3>
+            <div className="bg-muted/20 p-4 rounded-lg border border-border space-y-3">
+              <div className="space-y-2">
+                <Label className="text-xs">Gemini API Key</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={showApiKey ? "text" : "password"}
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                      placeholder="Enter your Gemini API key..."
+                      className="w-full h-9 px-3 pr-10 text-xs font-mono rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showApiKey ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => setGeminiApiKey(apiKeyInput)}
+                    disabled={apiKeyInput === geminiApiKey}
+                  >
+                    Save
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {geminiApiKey ? (
+                    <span className="text-green-600 dark:text-green-400">
+                      API key configured
+                    </span>
+                  ) : (
+                    <span className="text-amber-600 dark:text-amber-400">
+                      No API key configured
+                    </span>
+                  )}
+                </p>
+              </div>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                Get a free API key from Google AI Studio
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           </div>
 

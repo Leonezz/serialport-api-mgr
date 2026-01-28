@@ -223,6 +223,9 @@ export const PersistedStoreStateSchema = z
     themeMode: ThemeModeSchema.optional(),
     themeColor: ThemeColorSchema.optional(),
 
+    // AI Settings
+    geminiApiKey: z.string().optional(),
+
     // Legacy project data (for backward compatibility)
     devices: z.array(DeviceSchema).optional(),
     presets: z.array(SerialPresetSchema).optional(),
@@ -256,6 +259,7 @@ export const DEFAULT_PERSISTED_STATE: z.infer<
 > = {
   themeMode: "system" as const,
   themeColor: "zinc" as const,
+  geminiApiKey: "",
   devices: [
     {
       id: "dev-arduino-uno",
