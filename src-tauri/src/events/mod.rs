@@ -19,9 +19,6 @@ pub mod event_names {
 
     /// Emitted when an error occurs on a serial port.
     pub const PORT_ERROR: &str = "port_error";
-
-    /// Emitted when modem status changes.
-    pub const PORT_STATUS: &str = "port_status";
 }
 
 // Re-export event types for convenience

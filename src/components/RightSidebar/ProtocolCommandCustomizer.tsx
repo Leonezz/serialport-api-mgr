@@ -148,7 +148,7 @@ const ProtocolCommandCustomizer: React.FC<Props> = ({ command, onUpdate }) => {
         error: err instanceof Error ? err.message : "Build failed",
       };
     }
-  }, [protocol, command.protocolLayer?.messageStructureId]);
+  }, [protocol, command.protocolLayer]);
 
   // Copy hex to clipboard
   const handleCopyHex = useCallback(() => {
@@ -157,7 +157,7 @@ const ProtocolCommandCustomizer: React.FC<Props> = ({ command, onUpdate }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [binaryPreview?.hex]);
+  }, [binaryPreview]);
 
   // Get the command layer (create empty if not exists)
   const commandLayer = command.commandLayer || {};
