@@ -1,9 +1,8 @@
 import * as React from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Palette } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/Button";
 import { SegmentedControl } from "../ui/SegmentedControl";
-import { Toggle } from "../ui/Toggle";
 import { Tooltip } from "../ui/Tooltip";
 
 /**
@@ -100,8 +99,8 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
       {/* Separator */}
       <div className="w-px h-5 bg-border-default" />
 
-      {/* Display Mode Switcher */}
-      {!hideDisplayMode && (
+      {/* Display Mode Switcher - only shown in List view */}
+      {!hideDisplayMode && view === "list" && (
         <>
           <SegmentedControl
             value={displayMode}
@@ -115,22 +114,24 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
         </>
       )}
 
-      {/* ANSI Toggle */}
-      {!hideAnsiToggle && onAnsiToggle && (
-        <>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-text-secondary">ANSI</span>
-            <Toggle
-              checked={ansiEnabled}
-              onChange={(e) => onAnsiToggle(e.target.checked)}
-              size="sm"
-              aria-label="Toggle ANSI rendering"
-            />
-          </div>
-
-          {/* Separator */}
-          <div className="w-px h-5 bg-border-default" />
-        </>
+      {/* ANSI Color Toggle - only shown in List view */}
+      {!hideAnsiToggle && onAnsiToggle && view === "list" && (
+        <Tooltip
+          content={ansiEnabled ? "Disable ANSI colors" : "Enable ANSI colors"}
+        >
+          <button
+            onClick={() => onAnsiToggle(!ansiEnabled)}
+            aria-label="Toggle ANSI color rendering"
+            className={cn(
+              "w-7 h-7 flex items-center justify-center rounded-lg transition-all",
+              ansiEnabled
+                ? "bg-gradient-to-br from-rose-500 via-purple-500 to-cyan-500 text-white shadow-md"
+                : "text-text-secondary hover:text-text-primary hover:bg-bg-hover",
+            )}
+          >
+            <Palette className="w-4 h-4" />
+          </button>
+        </Tooltip>
       )}
 
       {/* Spacer */}

@@ -23,13 +23,4 @@ impl PortReadEvent {
             data,
         }
     }
-
-    /// Create a new PortReadEvent with a specific timestamp.
-    pub fn with_timestamp(port_name: String, data: Vec<u8>, timestamp_ms: u128) -> Self {
-        Self {
-            port_name,
-            timestamp_ms,
-            data,
-        }
-    }
 }

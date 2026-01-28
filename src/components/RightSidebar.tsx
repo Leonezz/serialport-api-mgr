@@ -12,6 +12,10 @@ import {
   ArrowLeft,
   X,
   Trash2,
+  Info,
+  Link2,
+  FileText,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -64,7 +68,7 @@ const RightSidebar: React.FC = () => {
   // Sync: When selectedDeviceId changes, switch to device tab if not collapsed
   useEffect(() => {
     if (selectedDeviceId) {
-      setRightSidebarTab("device");
+      setRightSidebarTab("device-info");
       if (rightSidebarCollapsed) setRightSidebarCollapsed(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,34 +107,53 @@ const RightSidebar: React.FC = () => {
     }
   };
 
-  // Group tabs: main tabs (AI, Device) and command editor tabs
-  const mainTabs: { id: RightSidebarTab; icon: LucideIcon; label: string }[] = [
-    { id: "ai", icon: MessageSquare, label: "AI Assistant" },
-    { id: "device", icon: Cpu, label: "Device Info" },
+  // Command Editor tabs matching FIGMA-DESIGN.md spec - now shown in vertical rail
+  const commandEditorTabs: {
+    id: RightSidebarTab;
+    icon: LucideIcon;
+    label: string;
+  }[] = [
+    { id: "basic", icon: Settings, label: t("cmd.tab.basic") },
+    { id: "params", icon: Sliders, label: t("cmd.tab.params") },
+    { id: "validation", icon: CheckCircle2, label: t("cmd.tab.validation") },
+    { id: "scripting", icon: FileCode, label: t("cmd.tab.scripting") },
   ];
 
-  // Command Editor tabs matching FIGMA-DESIGN.md spec
-  const editorTabs: { id: RightSidebarTab; icon: LucideIcon; label: string }[] =
+  // Device Panel tabs - shown in vertical rail when device is selected
+  const deviceTabs: { id: RightSidebarTab; icon: LucideIcon; label: string }[] =
     [
-      { id: "basic", icon: Settings, label: t("cmd.tab.basic") },
-      { id: "params", icon: Sliders, label: t("cmd.tab.params") },
-      { id: "validation", icon: CheckCircle2, label: t("cmd.tab.validation") },
-      { id: "scripting", icon: FileCode, label: t("cmd.tab.scripting") },
+      { id: "device-info", icon: Info, label: "Info" },
+      { id: "device-connections", icon: Link2, label: "Connections" },
+      { id: "device-attachments", icon: FileText, label: "Attachments" },
+      { id: "device-contexts", icon: BookOpen, label: "Contexts" },
     ];
 
-  const isEditorTab = rightSidebarTab !== "ai" && rightSidebarTab !== "device";
+  const isCommandEditorTab = [
+    "basic",
+    "params",
+    "validation",
+    "scripting",
+  ].includes(rightSidebarTab);
+  const isDeviceTab = rightSidebarTab.startsWith("device-");
 
-  // Auto-switch to AI tab if no command is selected and currently on editor tab
+  // Auto-switch to AI tab if no command is selected and currently on command editor tab
   useEffect(() => {
-    if (!selectedCommandId && isEditorTab) {
+    if (!selectedCommandId && isCommandEditorTab) {
       setRightSidebarTab("ai");
     }
-  }, [selectedCommandId, isEditorTab, setRightSidebarTab]);
+  }, [selectedCommandId, isCommandEditorTab, setRightSidebarTab]);
+
+  // Auto-switch to AI tab if no device is selected and currently on device tab
+  useEffect(() => {
+    if (!selectedDeviceId && isDeviceTab) {
+      setRightSidebarTab("ai");
+    }
+  }, [selectedDeviceId, isDeviceTab, setRightSidebarTab]);
 
   return (
     <div
       style={{ width: rightSidebarCollapsed ? 48 : width }}
-      className="bg-bg-surface border-l border-border-default flex flex-row shadow-xl h-full relative shrink-0 transition-[width] duration-200 ease-in-out z-40 overflow-hidden"
+      className="bg-bg-surface border-l border-border-default flex flex-row shadow-xl h-full relative shrink-0 transition-[width] duration-200 ease-in-out z-10 overflow-hidden"
     >
       {/* Resize Handle */}
       {!rightSidebarCollapsed && (
@@ -146,7 +169,7 @@ const RightSidebar: React.FC = () => {
       )}
 
       {/* Vertical Tab Rail */}
-      <div className="w-12 flex flex-col items-center py-3 gap-3 bg-bg-muted/20 border-r border-border-default shrink-0 z-10">
+      <div className="w-12 flex flex-col items-center py-3 gap-1 bg-bg-muted/20 border-r border-border-default shrink-0 z-10">
         <IconButton
           variant="ghost"
           size="md"
@@ -164,19 +187,56 @@ const RightSidebar: React.FC = () => {
           )}
         </IconButton>
 
-        {/* Main Tabs: AI & Device */}
-        {mainTabs.map((tab) => (
-          <TabRailButton
-            key={tab.id}
-            icon={tab.icon}
-            label={tab.label}
-            isActive={rightSidebarTab === tab.id && !rightSidebarCollapsed}
-            onClick={() => {
-              setRightSidebarTab(tab.id);
-              if (rightSidebarCollapsed) setRightSidebarCollapsed(false);
-            }}
-          />
-        ))}
+        {/* AI Assistant Tab - always visible */}
+        <TabRailButton
+          icon={MessageSquare}
+          label="AI Assistant"
+          isActive={rightSidebarTab === "ai" && !rightSidebarCollapsed}
+          onClick={() => {
+            setRightSidebarTab("ai");
+            if (rightSidebarCollapsed) setRightSidebarCollapsed(false);
+          }}
+        />
+
+        {/* Divider when command is selected */}
+        {selectedCommandId && (
+          <div className="w-6 h-px bg-border-default my-2" />
+        )}
+
+        {/* Command Editor Tabs - shown in rail when command is selected */}
+        {selectedCommandId &&
+          commandEditorTabs.map((tab) => (
+            <TabRailButton
+              key={tab.id}
+              icon={tab.icon}
+              label={tab.label}
+              isActive={rightSidebarTab === tab.id && !rightSidebarCollapsed}
+              onClick={() => {
+                setRightSidebarTab(tab.id);
+                if (rightSidebarCollapsed) setRightSidebarCollapsed(false);
+              }}
+            />
+          ))}
+
+        {/* Divider when device is selected */}
+        {selectedDeviceId && (
+          <div className="w-6 h-px bg-border-default my-2" />
+        )}
+
+        {/* Device Tabs - shown in rail when device is selected */}
+        {selectedDeviceId &&
+          deviceTabs.map((tab) => (
+            <TabRailButton
+              key={tab.id}
+              icon={tab.icon}
+              label={tab.label}
+              isActive={rightSidebarTab === tab.id && !rightSidebarCollapsed}
+              onClick={() => {
+                setRightSidebarTab(tab.id);
+                if (rightSidebarCollapsed) setRightSidebarCollapsed(false);
+              }}
+            />
+          ))}
       </div>
 
       {/* Content Area */}
@@ -189,7 +249,7 @@ const RightSidebar: React.FC = () => {
         )}
       >
         {/* 48px Header - Section 8.4 */}
-        {isEditorTab && selectedCommand && (
+        {isCommandEditorTab && selectedCommand && (
           <div className="shrink-0">
             {/* 48px Header Row */}
             <div className="h-12 flex items-center justify-between px-3 border-b border-border-default bg-bg-surface">
@@ -236,54 +296,28 @@ const RightSidebar: React.FC = () => {
                   : "Never"}
               </span>
             </div>
-            {/* 44px Horizontal Tab Bar - Section 8.4 (Icons only for narrow sidebar) */}
-            <div className="h-11 flex items-center justify-start px-3 gap-1 border-b border-border-default bg-bg-surface">
-              {editorTabs.map((tab) => {
-                const isActive = rightSidebarTab === tab.id;
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setRightSidebarTab(tab.id)}
-                    title={tab.label}
-                    className={cn(
-                      "flex items-center justify-center w-9 h-9 rounded-radius-sm transition-colors relative",
-                      isActive
-                        ? "text-accent-primary bg-accent-primary/10"
-                        : "text-text-muted hover:text-text-primary hover:bg-bg-hover",
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {/* Active indicator dot */}
-                    {isActive && (
-                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-accent-primary rounded-full" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
           </div>
         )}
 
         <div className="flex-1 overflow-hidden relative flex flex-col">
           {rightSidebarTab === "ai" ? (
             <AIAssistantContent />
-          ) : rightSidebarTab === "device" ? (
-            <DevicePanel />
-          ) : // Render shared Editor but tell it which tab is active
-          // If no command selected, show placeholder
-          selectedCommand ? (
+          ) : isDeviceTab ? (
+            <DevicePanel activeTab={rightSidebarTab} />
+          ) : isCommandEditorTab && selectedCommand ? (
             <CommandEditor activeTab={rightSidebarTab} />
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-4 text-center p-8">
               <Settings className="w-12 h-12 opacity-10" />
-              <p className="text-sm">Select a command to configure.</p>
+              <p className="text-sm">
+                Select a command or device to configure.
+              </p>
             </div>
           )}
         </div>
 
         {/* 64px Action Bar - Section 8.4 */}
-        {isEditorTab && selectedCommand && (
+        {isCommandEditorTab && selectedCommand && (
           <div className="h-16 px-4 border-t border-border-default bg-bg-surface flex items-center justify-between shrink-0 z-10">
             {/* Delete button on left */}
             <Button

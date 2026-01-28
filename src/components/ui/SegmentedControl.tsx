@@ -75,8 +75,8 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
               fullWidth && "flex-1",
               isActive
-                ? "bg-bg-surface text-text-primary shadow-xs"
-                : "bg-transparent text-text-secondary hover:text-text-primary",
+                ? "bg-bg-surface text-accent-primary font-semibold shadow-sm ring-1 ring-accent-primary/20"
+                : "bg-transparent text-text-secondary hover:text-text-primary hover:bg-bg-hover/50",
               option.disabled && "opacity-50 cursor-not-allowed",
             )}
           >

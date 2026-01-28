@@ -11,6 +11,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- Vite will process this link in dev mode and replace it with the bundled CSS in production -->
+
+    <!-- Early CSS injection for WebKit/WKWebView text selection -->
+    <style>
+      /* Multiple approaches for WKWebView compatibility */
+      ::selection {
+        background-color: rgba(59, 130, 246, 0.3) !important;
+        color: inherit !important;
+      }
+      ::-webkit-selection {
+        background-color: rgba(59, 130, 246, 0.3) !important;
+        color: inherit !important;
+      }
+      ::-moz-selection {
+        background-color: rgba(59, 130, 246, 0.3) !important;
+        color: inherit !important;
+      }
+      /* Try highlight pseudo-element for Safari 17.2+ */
+      ::highlight(selection) {
+        background-color: rgba(59, 130, 246, 0.3) !important;
+      }
+      /* Force selection styling on inputs */
+      input::selection, textarea::selection, [contenteditable]::selection {
+        background-color: rgba(59, 130, 246, 0.3) !important;
+        color: inherit !important;
+      }
+      input::-webkit-selection, textarea::-webkit-selection, [contenteditable]::-webkit-selection {
+        background-color: rgba(59, 130, 246, 0.3) !important;
+        color: inherit !important;
+      }
+    </style>
 </head>
   <body class="bg-background text-foreground h-screen overflow-hidden font-sans antialiased selection:bg-primary/30">
     <div id="root" class="h-full flex flex-col"></div>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import {
   SavedCommand,
   DataMode,
@@ -222,9 +223,15 @@ const CommandFormModal: React.FC<Props> = ({
     setParameters(newParams);
   };
 
-  return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl shadow-2xl border-border flex flex-col max-h-[90vh]">
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-60 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <Card
+        className="w-full max-w-4xl shadow-2xl border-border flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border bg-muted/20">
           <CardTitle className="text-lg flex items-center gap-2">
             {initialData?.id ? t("cmd.edit") : t("cmd.new")}
@@ -1020,7 +1027,8 @@ return { frames: [], remaining: chunks };`;
           </CardFooter>
         </form>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

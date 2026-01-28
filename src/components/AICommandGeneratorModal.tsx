@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   AIProjectResult,
   generateProjectFromDescription,
@@ -196,8 +197,8 @@ const AICommandGeneratorModal: React.FC<Props> = ({
     );
   };
 
-  return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-60 flex items-center justify-center p-4">
       <Card className="w-full max-w-4xl shadow-2xl border-border animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] relative">
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border bg-muted/20">
           <div className="flex items-center gap-2">
@@ -661,7 +662,8 @@ const AICommandGeneratorModal: React.FC<Props> = ({
           />
         )}
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

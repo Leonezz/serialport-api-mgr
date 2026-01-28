@@ -93,8 +93,6 @@ impl From<usb_port_info::UsbPortInfo> for tokio_serial::UsbPortInfo {
             serial_number: value.serial_number,
             manufacturer: value.manufacturer,
             product: value.product,
-            #[cfg(feature = "usbportinfo-interface")]
-            interface: value.interface,
         }
     }
 }
@@ -107,9 +105,6 @@ impl From<tokio_serial::UsbPortInfo> for usb_port_info::UsbPortInfo {
             serial_number: value.serial_number,
             manufacturer: value.manufacturer,
             product: value.product,
-            #[cfg(feature = "usbportinfo-interface")]
-            interface: value.interface,
-            #[cfg(not(feature = "usbportinfo-interface"))]
             interface: None,
         }
     }

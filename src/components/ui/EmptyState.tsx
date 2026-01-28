@@ -134,7 +134,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       </h3>
 
       {/* Description */}
-      <p className="text-sm text-text-muted max-w-[280px] mb-6">
+      <p className="text-base text-text-muted max-w-[280px] mb-6">
         {description}
       </p>
 

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Search,
@@ -91,9 +92,9 @@ const SystemLogViewer: React.FC = () => {
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-60 flex items-center justify-center p-4"
       onClick={() => setShowSystemLogs(false)}
     >
       <Card
@@ -246,7 +247,8 @@ const SystemLogViewer: React.FC = () => {
           Showing {filteredLogs.length} / {systemLogs.length} events
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

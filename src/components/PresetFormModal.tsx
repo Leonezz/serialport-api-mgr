@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import {
   SerialPreset,
   SerialConfig,
@@ -83,9 +84,9 @@ const PresetFormModal: React.FC<Props> = ({
     onClose();
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-60 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <Card
@@ -287,7 +288,8 @@ const PresetFormModal: React.FC<Props> = ({
           </CardFooter>
         </form>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

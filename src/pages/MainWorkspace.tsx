@@ -29,6 +29,7 @@ import { useSerialConnection } from "../hooks/useSerialConnection";
 import { useValidation } from "../hooks/useValidation";
 import { useFraming } from "../hooks/useFraming";
 import { useCommandExecution } from "../hooks/useCommandExecution";
+import { useDeviceProtocolSync } from "../hooks/useDeviceProtocolSync";
 import { useStore } from "../lib/store";
 import { cn } from "../lib/utils";
 
@@ -101,6 +102,9 @@ const MainWorkspace: React.FC = () => {
   // --- Custom Hooks for Business Logic ---
   const validation = useValidation();
   const framing = useFraming();
+
+  // Auto-apply protocol framing when device is selected
+  useDeviceProtocolSync();
 
   // Connection Hook
   const { connect, disconnect, write, toggleSignal, isWebSerialSupported } =
@@ -281,7 +285,7 @@ const MainWorkspace: React.FC = () => {
 
   // Session tabs as center content for TopBar
   const sessionTabsContent = (
-    <div className="flex items-end gap-1 h-full overflow-x-auto overflow-y-hidden [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
+    <div className="flex items-center gap-1 h-full overflow-x-auto overflow-y-hidden [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
       {Object.values(sessions).map((session: Session) => (
         <div
           key={session.id}
@@ -326,13 +330,6 @@ const MainWorkspace: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-full min-w-225 min-h-150 bg-background text-foreground font-sans overflow-hidden">
-      {/* Top Bar - 48px */}
-      <TopBar
-        title="SerialMan AI"
-        centerContent={sessionTabsContent}
-        onSettingsClick={() => useStore.getState().setShowAppSettings(true)}
-      />
-
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -345,6 +342,51 @@ const MainWorkspace: React.FC = () => {
         />
 
         <div className="flex-1 flex flex-col min-w-0 bg-background relative">
+          {/* Session Tabs - Top Edge */}
+          <div className="flex items-center gap-2 px-4 py-2 bg-bg-surface border-b border-border-default shrink-0">
+            <div className="flex items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
+              {Object.values(sessions).map((session: Session) => (
+                <div
+                  key={session.id}
+                  className={cn(
+                    "group flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border cursor-pointer select-none transition-all max-w-37.5 shrink-0",
+                    activeSessionId === session.id
+                      ? "bg-accent-primary/10 border-accent-primary text-accent-primary shadow-sm font-semibold"
+                      : "bg-bg-muted border-border-default text-text-secondary hover:bg-bg-hover hover:text-foreground",
+                  )}
+                  onClick={() => setActiveSessionId(session.id)}
+                  onDoubleClick={() => setRenamingSessionId(session.id)}
+                >
+                  {session.connectionType === "SERIAL" ? (
+                    <Usb className="w-3 h-3 opacity-70" />
+                  ) : (
+                    <Wifi className="w-3 h-3 opacity-70" />
+                  )}
+                  <span className="truncate">{session.name}</span>
+                  {Object.keys(sessions).length > 1 && (
+                    <div
+                      role="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSessionToDelete(session.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded-sm hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <X className="w-3 h-3" />
+                    </div>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={addSession}
+                className="ml-1 h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                title="New Session"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
           <ControlPanel
             onConnect={async (port) => {
               try {

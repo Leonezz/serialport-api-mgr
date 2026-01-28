@@ -57,15 +57,6 @@ const TABS: { id: EditorTab; label: string; icon: React.ElementType }[] = [
   { id: "bindings", label: "Bindings", icon: Link2 },
 ];
 
-const ATTACHMENT_CATEGORY_OPTIONS = [
-  { label: "Datasheet", value: "DATASHEET" },
-  { label: "Manual", value: "MANUAL" },
-  { label: "Schematic", value: "SCHEMATIC" },
-  { label: "Protocol", value: "PROTOCOL" },
-  { label: "Image", value: "IMAGE" },
-  { label: "Other", value: "OTHER" },
-];
-
 const ICON_OPTIONS = [
   { label: "Default (Cpu)", value: "" },
   { label: "Chip", value: "chip" },
@@ -119,11 +110,12 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
   const [showAllProtocolCommands, setShowAllProtocolCommands] = useState(false);
 
   // Protocol sync
-  const { syncNow, getSyncStatus, lastSyncTimestamp } = useProtocolSync();
+  const { syncNow, lastSyncTimestamp } = useProtocolSync();
 
   // Format relative time for last sync
   const formatLastSync = (timestamp: number | null): string => {
     if (!timestamp) return "Never synced";
+    // eslint-disable-next-line react-hooks/purity -- Date.now() is intentionally called for time display
     const now = Date.now();
     const diff = now - timestamp;
     const seconds = Math.floor(diff / 1000);

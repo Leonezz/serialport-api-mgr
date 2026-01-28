@@ -9,9 +9,6 @@ pub mod serial {
 
     /// Interval for polling modem status in milliseconds.
     pub const STATUS_POLL_INTERVAL_MS: u64 = 1000;
-
-    /// Default timeout for serial operations in milliseconds.
-    pub const DEFAULT_TIMEOUT_MS: u64 = 1000;
 }
 
 /// Channel capacity constants.

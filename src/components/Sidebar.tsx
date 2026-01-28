@@ -471,13 +471,21 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
                   </button>
 
                   {devices.map((device) => (
-                    <button
+                    <div
                       key={device.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() =>
                         useStore.getState().setSelectedDeviceId(device.id)
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          useStore.getState().setSelectedDeviceId(device.id);
+                        }
+                      }}
                       className={cn(
-                        "group flex items-center justify-between px-2 py-1.5 rounded-radius-sm text-body-sm transition-colors",
+                        "group flex items-center justify-between px-2 py-1.5 rounded-radius-sm text-body-sm transition-colors cursor-pointer",
                         selectedDeviceId === device.id
                           ? "bg-accent-primary/10 text-accent-primary border-l-2 border-accent-primary"
                           : "hover:bg-bg-hover",
@@ -497,7 +505,7 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
                       >
                         <Pencil className="w-3 h-3" />
                       </IconButton>
-                    </button>
+                    </div>
                   ))}
 
                   {devices.length === 0 && (
