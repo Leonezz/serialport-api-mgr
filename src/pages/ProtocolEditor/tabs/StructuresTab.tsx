@@ -136,11 +136,21 @@ export const StructuresTab: React.FC<StructuresTabProps> = ({
               key={structure.id}
               className="border border-border rounded-lg overflow-hidden"
             >
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() =>
                   setExpanded(expanded === structure.id ? null : structure.id)
                 }
-                className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/50"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpanded(
+                      expanded === structure.id ? null : structure.id,
+                    );
+                  }
+                }}
+                className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/50 cursor-pointer"
               >
                 {expanded === structure.id ? (
                   <ChevronDown className="w-4 h-4" />
@@ -176,7 +186,7 @@ export const StructuresTab: React.FC<StructuresTabProps> = ({
                 >
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>
-              </button>
+              </div>
               {expanded === structure.id && (
                 <div className="border-t border-border p-4 bg-muted/30">
                   <div className="flex items-center justify-between mb-3">
