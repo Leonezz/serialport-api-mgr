@@ -18,7 +18,7 @@ use serial_mgr::{
     write_port::{write_data_terminal_ready, write_port, write_request_to_send},
 };
 use std::collections::HashMap;
-use tauri::{self, Manager};
+use tauri::{self, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_fs::FsExt;
 use time::macros::{format_description, offset};
 #[cfg(all(desktop, not(debug_assertions)))]
@@ -120,6 +120,61 @@ pub fn run() {
                 storage,
             };
             app.manage(app_state);
+
+            // Create main window with initialization script for text selection styling
+            // This injects CSS before the page loads to work around WKWebView ::selection limitations
+            let init_script = r#"
+                (function() {
+                    // Inject selection CSS as early as possible
+                    const style = document.createElement('style');
+                    style.id = 'tauri-selection-fix';
+                    style.textContent = `
+                        /* Text selection highlighting for WKWebView */
+                        ::selection {
+                            background-color: rgba(59, 130, 246, 0.3) !important;
+                            color: inherit !important;
+                        }
+                        ::-webkit-selection {
+                            background-color: rgba(59, 130, 246, 0.3) !important;
+                            color: inherit !important;
+                        }
+                        *::selection {
+                            background-color: rgba(59, 130, 246, 0.3) !important;
+                            color: inherit !important;
+                        }
+                        *::-webkit-selection {
+                            background-color: rgba(59, 130, 246, 0.3) !important;
+                            color: inherit !important;
+                        }
+                        input::selection, textarea::selection, [contenteditable]::selection {
+                            background-color: rgba(59, 130, 246, 0.3) !important;
+                            color: inherit !important;
+                        }
+                        input::-webkit-selection, textarea::-webkit-selection, [contenteditable]::-webkit-selection {
+                            background-color: rgba(59, 130, 246, 0.3) !important;
+                            color: inherit !important;
+                        }
+                    `;
+
+                    // Try to inject immediately
+                    if (document.head) {
+                        document.head.insertBefore(style, document.head.firstChild);
+                    } else if (document.documentElement) {
+                        document.documentElement.insertBefore(style, document.documentElement.firstChild);
+                    } else {
+                        // Wait for DOM
+                        document.addEventListener('DOMContentLoaded', function() {
+                            document.head.insertBefore(style, document.head.firstChild);
+                        });
+                    }
+                })();
+            "#;
+
+            WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+                .title("SerialMan AI")
+                .min_inner_size(1720.0, 800.0)
+                .initialization_script(init_script)
+                .build()?;
 
             Ok(())
         })

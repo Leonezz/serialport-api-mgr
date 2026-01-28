@@ -1,5 +1,5 @@
 use crate::constants::{channels, serial};
-use crate::util::{AckReceiver, AckSender};
+use crate::util::AckSender;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_serial::SerialPort;
 
@@ -27,15 +27,8 @@ pub struct WritePortDataTerminalReady {
 }
 
 pub type WritePortSender = AckSender<WriteCmd>;
-pub type WritePortReceiver = AckReceiver<WriteCmd>;
 
 use crate::events::PortReadEvent;
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ReadPortMessage {
-    pub timestamp_ms: u128,
-    pub data: Vec<u8>,
-}
 
 pub enum SerialEvent {
     Message(PortReadEvent),

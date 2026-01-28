@@ -29,10 +29,10 @@ export interface TabProps {
 }
 
 // Props for GeneralTab
-export interface GeneralTabProps extends TabProps {}
+export type GeneralTabProps = TabProps;
 
 // Props for FramingTab
-export interface FramingTabProps extends TabProps {}
+export type FramingTabProps = TabProps;
 
 // Props for StructuresTab
 export interface StructuresTabProps extends TabProps {

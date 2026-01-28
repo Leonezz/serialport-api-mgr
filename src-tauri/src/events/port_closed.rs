@@ -48,22 +48,4 @@ impl PortClosedEvent {
             timestamp_ms: timestamp_now_ms(),
         }
     }
-
-    /// Create a new error close event.
-    pub fn error(port_name: String, message: &str) -> Self {
-        Self {
-            port_name,
-            reason: format!("{}: {}", PortCloseReason::Error, message),
-            timestamp_ms: timestamp_now_ms(),
-        }
-    }
-
-    /// Create a new connection lost event.
-    pub fn connection_lost(port_name: String) -> Self {
-        Self {
-            port_name,
-            reason: PortCloseReason::ConnectionLost.to_string(),
-            timestamp_ms: timestamp_now_ms(),
-        }
-    }
 }

@@ -28,7 +28,10 @@ export const RightSidebarTabSchema = z.enum([
   "params",
   "validation",
   "scripting",
-  "device",
+  "device-info",
+  "device-connections",
+  "device-attachments",
+  "device-contexts",
 ]);
 
 // ============================================================================
@@ -166,6 +169,9 @@ export const SessionSchema = z.object({
   encoding: TextEncodingSchema,
   checksum: ChecksumAlgorithmSchema,
   framingOverride: FramingConfigSchema.optional(),
+  // Protocol integration fields
+  protocolFramingEnabled: z.boolean().optional(),
+  activeProtocolId: z.string().optional(),
   aiMessages: z.array(ChatMessageSchema),
   aiTokenUsage: z.object({
     prompt: z.number(),
@@ -217,6 +223,9 @@ export const PersistedStoreStateSchema = z
     themeMode: ThemeModeSchema.optional(),
     themeColor: ThemeColorSchema.optional(),
 
+    // AI Settings
+    geminiApiKey: z.string().optional(),
+
     // Legacy project data (for backward compatibility)
     devices: z.array(DeviceSchema).optional(),
     presets: z.array(SerialPresetSchema).optional(),
@@ -250,6 +259,7 @@ export const DEFAULT_PERSISTED_STATE: z.infer<
 > = {
   themeMode: "system" as const,
   themeColor: "zinc" as const,
+  geminiApiKey: "",
   devices: [
     {
       id: "dev-arduino-uno",

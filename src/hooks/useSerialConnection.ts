@@ -85,6 +85,7 @@ export const useSerialConnection = (
     sessionId: string,
     config: SerialConfig,
     networkConfig: NetworkConfig,
+    connectionType: "SERIAL" | "NETWORK",
     requestedPort?: ISerialPort | string,
   ) => {
     try {
@@ -95,7 +96,16 @@ export const useSerialConnection = (
 
       let newPort: GenericPort;
 
-      if (
+      // Check connection type first to handle NETWORK mode correctly
+      if (connectionType === "NETWORK") {
+        // Network/WebSocket connection
+        const url = `ws://${networkConfig.host}:${networkConfig.port}`;
+        const netPort = new NetworkPort(url, () => {
+          disconnect(sessionId);
+        });
+        await netPort.waitForOpen();
+        newPort = netPort;
+      } else if (
         typeof requestedPort === "string" &&
         requestedPort.startsWith("mock")
       ) {
@@ -113,7 +123,7 @@ export const useSerialConnection = (
         });
         newPort = selectedPort;
       } else if (!requestedPort && serialService.isSupported()) {
-        // Request Port (UI Prompt)
+        // Request Port (UI Prompt) - only for SERIAL mode
         const selectedPort = await serialService.requestPort();
         if (!selectedPort) throw new Error("No port selected");
 
@@ -126,13 +136,7 @@ export const useSerialConnection = (
         });
         newPort = selectedPort;
       } else {
-        // Network
-        const url = `ws://${networkConfig.host}:${networkConfig.port}`;
-        const netPort = new NetworkPort(url, () => {
-          disconnect(sessionId);
-        });
-        await netPort.waitForOpen();
-        newPort = netPort;
+        throw new Error("Serial ports not supported in this browser");
       }
 
       portsRef.current.set(sessionId, newPort);

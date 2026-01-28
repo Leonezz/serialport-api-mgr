@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, Info, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "./Button";
@@ -80,9 +81,9 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
   const Icon = iconMap[type];
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={() => !loading && onClose()}
     >
       <div
@@ -120,7 +121,8 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

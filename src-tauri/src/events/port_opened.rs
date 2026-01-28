@@ -21,6 +21,3 @@ impl PortOpenedEvent {
         }
     }
 }
-
-// Keep backward compatibility with existing code that uses PortOpenEvent
-pub type PortOpenEvent = PortOpenedEvent;

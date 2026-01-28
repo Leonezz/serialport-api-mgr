@@ -19,10 +19,11 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-border-default shadow-xs",
+        default: "border-border-default/60 shadow-md hover:shadow-lg",
         interactive:
-          "border-border-default cursor-pointer hover:shadow-sm hover:border-border-hover",
-        selected: "border-accent-primary bg-bg-selected shadow-xs",
+          "border-border-default/60 cursor-pointer hover:shadow-lg hover:border-border-hover hover:-translate-y-0.5",
+        selected:
+          "border-accent-primary bg-bg-selected shadow-md ring-2 ring-accent-primary/20",
       },
     },
     defaultVariants: {

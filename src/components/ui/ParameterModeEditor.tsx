@@ -1,6 +1,7 @@
 import React from "react";
 import { Input } from "./Input";
-import { Select } from "./Select";
+import { SelectDropdown } from "./Select";
+import { DropdownOption } from "./Dropdown";
 import { Label } from "./Label";
 import { Checkbox } from "./Checkbox";
 import { Radio } from "./Radio";
@@ -33,7 +34,7 @@ const MODE_OPTIONS: { value: ParameterApplicationMode; label: string }[] = [
   { value: "POSITION", label: "Position" },
 ];
 
-const SUBSTITUTE_TYPE_OPTIONS: { value: SubstituteType; label: string }[] = [
+const SUBSTITUTE_TYPE_OPTIONS: DropdownOption<SubstituteType>[] = [
   { value: "DIRECT", label: "Direct (raw value)" },
   { value: "QUOTED", label: "Quoted (wrap in quotes)" },
   { value: "ESCAPED", label: "Escaped (special chars)" },
@@ -41,13 +42,13 @@ const SUBSTITUTE_TYPE_OPTIONS: { value: SubstituteType; label: string }[] = [
   { value: "BASE64", label: "Base64" },
 ];
 
-const QUOTE_STYLE_OPTIONS: { value: QuoteStyle; label: string }[] = [
+const QUOTE_STYLE_OPTIONS: DropdownOption<QuoteStyle>[] = [
   { value: "DOUBLE", label: 'Double quotes (")' },
   { value: "SINGLE", label: "Single quotes (')" },
   { value: "BACKTICK", label: "Backtick (`)" },
 ];
 
-const TRANSFORM_PRESET_OPTIONS: { value: TransformPreset; label: string }[] = [
+const TRANSFORM_PRESET_OPTIONS: DropdownOption<TransformPreset>[] = [
   { value: "CUSTOM", label: "Custom Expression" },
   { value: "UPPERCASE", label: "Uppercase" },
   { value: "LOWERCASE", label: "Lowercase" },
@@ -62,47 +63,47 @@ const TRANSFORM_PRESET_OPTIONS: { value: TransformPreset; label: string }[] = [
   { value: "TRIM", label: "Trim" },
 ];
 
-const FORMAT_TYPE_OPTIONS: { value: FormatType; label: string }[] = [
+const FORMAT_TYPE_OPTIONS: DropdownOption<FormatType>[] = [
   { value: "NUMBER", label: "Number" },
   { value: "STRING", label: "String" },
   { value: "DATE", label: "Date" },
   { value: "BYTES", label: "Bytes" },
 ];
 
-const NUMBER_RADIX_OPTIONS: { value: NumberRadix; label: string }[] = [
+const NUMBER_RADIX_OPTIONS: DropdownOption<NumberRadix>[] = [
   { value: "2", label: "Binary (2)" },
   { value: "8", label: "Octal (8)" },
   { value: "10", label: "Decimal (10)" },
   { value: "16", label: "Hex (16)" },
 ];
 
-const PADDING_OPTIONS: { value: PaddingType; label: string }[] = [
+const PADDING_OPTIONS: DropdownOption<PaddingType>[] = [
   { value: "NONE", label: "None" },
   { value: "SPACE", label: "Space" },
   { value: "ZERO", label: "Zero" },
 ];
 
-const ALIGNMENT_OPTIONS: { value: Alignment; label: string }[] = [
+const ALIGNMENT_OPTIONS: DropdownOption<Alignment>[] = [
   { value: "LEFT", label: "Left" },
   { value: "CENTER", label: "Center" },
   { value: "RIGHT", label: "Right" },
 ];
 
-const DATE_FORMAT_OPTIONS: { value: DateFormat; label: string }[] = [
+const DATE_FORMAT_OPTIONS: DropdownOption<DateFormat>[] = [
   { value: "ISO", label: "ISO 8601" },
   { value: "UNIX", label: "Unix Timestamp" },
   { value: "UNIX_MS", label: "Unix (ms)" },
   { value: "CUSTOM", label: "Custom Pattern" },
 ];
 
-const BYTE_SIZE_OPTIONS: { value: ByteSize; label: string }[] = [
+const BYTE_SIZE_OPTIONS: DropdownOption<ByteSize>[] = [
   { value: "1", label: "1 byte" },
   { value: "2", label: "2 bytes" },
   { value: "4", label: "4 bytes" },
   { value: "8", label: "8 bytes" },
 ];
 
-const BYTE_OUTPUT_OPTIONS: { value: ByteOutput; label: string }[] = [
+const BYTE_OUTPUT_OPTIONS: DropdownOption<ByteOutput>[] = [
   { value: "RAW", label: "Raw bytes" },
   { value: "ARRAY", label: "Array" },
   { value: "HEX_STRING", label: "Hex string" },
@@ -143,37 +144,23 @@ const SubstituteModeEditor: React.FC<{
     <div className="space-y-3">
       <div className="space-y-1">
         <Label className="text-[10px]">Replace Type</Label>
-        <Select
+        <SelectDropdown
+          options={SUBSTITUTE_TYPE_OPTIONS}
           value={current.type}
-          onChange={(e) =>
-            onChange({ ...current, type: e.target.value as SubstituteType })
-          }
-          className="h-7 text-xs"
-        >
-          {SUBSTITUTE_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
+          onChange={(value) => onChange({ ...current, type: value })}
+          size="sm"
+        />
       </div>
 
       {current.type === "QUOTED" && (
         <div className="space-y-1 animate-in slide-in-from-top-1">
           <Label className="text-[10px]">Quote Style</Label>
-          <Select
+          <SelectDropdown
+            options={QUOTE_STYLE_OPTIONS}
             value={current.quoteStyle || "DOUBLE"}
-            onChange={(e) =>
-              onChange({ ...current, quoteStyle: e.target.value as QuoteStyle })
-            }
-            className="h-7 text-xs"
-          >
-            {QUOTE_STYLE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
+            onChange={(value) => onChange({ ...current, quoteStyle: value })}
+            size="sm"
+          />
         </div>
       )}
 
@@ -205,19 +192,12 @@ const TransformModeEditor: React.FC<{
     <div className="space-y-3">
       <div className="space-y-1">
         <Label className="text-[10px]">Preset Transform</Label>
-        <Select
+        <SelectDropdown
+          options={TRANSFORM_PRESET_OPTIONS}
           value={current.preset}
-          onChange={(e) =>
-            onChange({ ...current, preset: e.target.value as TransformPreset })
-          }
-          className="h-7 text-xs"
-        >
-          {TRANSFORM_PRESET_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
+          onChange={(value) => onChange({ ...current, preset: value })}
+          size="sm"
+        />
       </div>
 
       {current.preset === "CUSTOM" && (
@@ -251,19 +231,12 @@ const FormatModeEditor: React.FC<{
     <div className="space-y-3">
       <div className="space-y-1">
         <Label className="text-[10px]">Format Type</Label>
-        <Select
+        <SelectDropdown
+          options={FORMAT_TYPE_OPTIONS}
           value={current.type}
-          onChange={(e) =>
-            onChange({ ...current, type: e.target.value as FormatType })
-          }
-          className="h-7 text-xs"
-        >
-          {FORMAT_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
+          onChange={(value) => onChange({ ...current, type: value })}
+          size="sm"
+        />
       </div>
 
       {/* Number Format Options */}
@@ -272,25 +245,20 @@ const FormatModeEditor: React.FC<{
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-[9px]">Radix</Label>
-              <Select
+              <SelectDropdown
+                options={NUMBER_RADIX_OPTIONS}
                 value={current.number?.radix || "10"}
-                onChange={(e) =>
+                onChange={(value) =>
                   onChange({
                     ...current,
                     number: {
                       ...current.number,
-                      radix: e.target.value as NumberRadix,
+                      radix: value,
                     },
                   })
                 }
-                className="h-6 text-[10px]"
-              >
-                {NUMBER_RADIX_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
+                size="sm"
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-[9px]">Width</Label>
@@ -316,25 +284,20 @@ const FormatModeEditor: React.FC<{
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-[9px]">Padding</Label>
-              <Select
+              <SelectDropdown
+                options={PADDING_OPTIONS}
                 value={current.number?.padding || "NONE"}
-                onChange={(e) =>
+                onChange={(value) =>
                   onChange({
                     ...current,
                     number: {
                       ...current.number,
-                      padding: e.target.value as PaddingType,
+                      padding: value,
                     },
                   })
                 }
-                className="h-6 text-[10px]"
-              >
-                {PADDING_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
+                size="sm"
+              />
             </div>
             <div className="flex items-end gap-2 pb-0.5">
               <Checkbox
@@ -425,25 +388,20 @@ const FormatModeEditor: React.FC<{
             </div>
             <div className="space-y-1">
               <Label className="text-[9px]">Alignment</Label>
-              <Select
+              <SelectDropdown
+                options={ALIGNMENT_OPTIONS}
                 value={current.string?.alignment || "LEFT"}
-                onChange={(e) =>
+                onChange={(value) =>
                   onChange({
                     ...current,
                     string: {
                       ...current.string,
-                      alignment: e.target.value as Alignment,
+                      alignment: value,
                     },
                   })
                 }
-                className="h-6 text-[10px]"
-              >
-                {ALIGNMENT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
+                size="sm"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -499,25 +457,20 @@ const FormatModeEditor: React.FC<{
         <div className="space-y-2 animate-in slide-in-from-top-1 p-2 bg-muted/30 rounded-md">
           <div className="space-y-1">
             <Label className="text-[9px]">Format</Label>
-            <Select
+            <SelectDropdown
+              options={DATE_FORMAT_OPTIONS}
               value={current.date?.format || "ISO"}
-              onChange={(e) =>
+              onChange={(value) =>
                 onChange({
                   ...current,
                   date: {
                     ...current.date,
-                    format: e.target.value as DateFormat,
+                    format: value,
                   },
                 })
               }
-              className="h-6 text-[10px]"
-            >
-              {DATE_FORMAT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </Select>
+              size="sm"
+            />
           </div>
           {current.date?.format === "CUSTOM" && (
             <div className="space-y-1">
@@ -558,68 +511,61 @@ const FormatModeEditor: React.FC<{
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-[9px]">Byte Size</Label>
-              <Select
+              <SelectDropdown
+                options={BYTE_SIZE_OPTIONS}
                 value={current.bytes?.byteSize || "1"}
-                onChange={(e) =>
+                onChange={(value) =>
                   onChange({
                     ...current,
                     bytes: {
                       ...current.bytes,
-                      byteSize: e.target.value as ByteSize,
+                      byteSize: value,
                     },
                   })
                 }
-                className="h-6 text-[10px]"
-              >
-                {BYTE_SIZE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
+                size="sm"
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-[9px]">Endianness</Label>
-              <Select
+              <SelectDropdown
+                options={
+                  [
+                    { value: "LE", label: "Little Endian" },
+                    { value: "BE", label: "Big Endian" },
+                  ] as DropdownOption<"LE" | "BE">[]
+                }
                 value={current.bytes?.endianness || "LE"}
-                onChange={(e) =>
+                onChange={(value) =>
                   onChange({
                     ...current,
                     bytes: {
                       ...current.bytes,
-                      endianness: e.target.value as "LE" | "BE",
+                      endianness: value,
                     },
                   })
                 }
-                className="h-6 text-[10px]"
-              >
-                <option value="LE">Little Endian</option>
-                <option value="BE">Big Endian</option>
-              </Select>
+                size="sm"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-[9px]">Output</Label>
-              <Select
+              <SelectDropdown
+                options={BYTE_OUTPUT_OPTIONS}
                 value={current.bytes?.output || "RAW"}
-                onChange={(e) =>
+                onChange={(value) =>
                   onChange({
                     ...current,
                     bytes: {
                       ...current.bytes,
-                      output: e.target.value as ByteOutput,
+                      output: value,
                     },
                   })
                 }
-                className="h-6 text-[10px]"
-              >
-                {BYTE_OUTPUT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
+                size="sm"
+              />
             </div>
             <div className="flex items-end pb-0.5">
               <Checkbox
@@ -673,19 +619,12 @@ const PositionModeEditor: React.FC<{
         </div>
         <div className="space-y-1">
           <Label className="text-[9px]">Byte Size</Label>
-          <Select
+          <SelectDropdown
+            options={BYTE_SIZE_OPTIONS}
             value={current.byteSize}
-            onChange={(e) =>
-              onChange({ ...current, byteSize: e.target.value as ByteSize })
-            }
-            className="h-7 text-xs"
-          >
-            {BYTE_SIZE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
+            onChange={(value) => onChange({ ...current, byteSize: value })}
+            size="sm"
+          />
         </div>
       </div>
 

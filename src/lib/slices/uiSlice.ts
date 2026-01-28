@@ -23,6 +23,9 @@ export interface UISliceState {
   themeMode: ThemeMode;
   themeColor: ThemeColor;
 
+  // AI Settings
+  geminiApiKey: string;
+
   // System Logs & Toasts
   systemLogs: SystemLogEntry[];
   toasts: ToastMessage[];
@@ -46,6 +49,7 @@ export interface UISliceState {
   leftSidebarCollapsed: boolean;
   rightSidebarCollapsed: boolean;
   sidebarSectionsCollapsed: Record<string, boolean>;
+  lastProtocolSyncTimestamp: number | null;
 }
 
 // Actions interface (all methods)
@@ -53,6 +57,9 @@ export interface UISliceActions {
   // Appearance
   setThemeMode: (mode: ThemeMode) => void;
   setThemeColor: (color: ThemeColor) => void;
+
+  // AI Settings
+  setGeminiApiKey: (key: string) => void;
 
   // System Logs
   addSystemLog: (
@@ -94,6 +101,7 @@ export interface UISliceActions {
   setLeftSidebarCollapsed: (collapsed: boolean) => void;
   setRightSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarSection: (section: string) => void;
+  setLastProtocolSyncTimestamp: (timestamp: number | null) => void;
 }
 
 // Complete slice: State & Actions
@@ -104,6 +112,9 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
   themeColor: "zinc",
   setThemeMode: (mode) => set({ themeMode: mode }),
   setThemeColor: (color) => set({ themeColor: color }),
+
+  geminiApiKey: "",
+  setGeminiApiKey: (key) => set({ geminiApiKey: key }),
 
   systemLogs: [],
   addSystemLog: (level, category, message, details) =>
@@ -165,6 +176,7 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
     commands: false,
     sequences: false,
   },
+  lastProtocolSyncTimestamp: null,
 
   setEditingCommand: (cmd) => set({ editingCommand: cmd }),
   setIsCommandModalOpen: (open) => set({ isCommandModalOpen: open }),
@@ -192,4 +204,6 @@ export const createUISlice: StateCreator<UISlice> = (set) => ({
         [section]: !state.sidebarSectionsCollapsed[section],
       },
     })),
+  setLastProtocolSyncTimestamp: (timestamp) =>
+    set({ lastProtocolSyncTimestamp: timestamp }),
 });

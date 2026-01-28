@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -37,12 +38,10 @@ const SequenceLibrary: React.FC = () => {
   } = useStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [editingSequence, setEditingSequence] = useState<SerialSequence | null>(
-    null,
-  );
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Filter sequences based on search
@@ -57,13 +56,11 @@ const SequenceLibrary: React.FC = () => {
   }, [sequences, searchQuery]);
 
   const handleAddSequence = () => {
-    setEditingSequence(null);
     setShowAddModal(true);
   };
 
-  const handleEditSequence = (sequence: SerialSequence) => {
-    setEditingSequence(sequence);
-    setShowAddModal(true);
+  const handleEditSequence = (sequenceId: string) => {
+    navigate(`/sequences/${sequenceId}/edit`);
   };
 
   const handleDuplicate = (sequence: SerialSequence) => {
@@ -274,7 +271,7 @@ const SequenceLibrary: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="flex-1 gap-2"
-                      onClick={() => handleEditSequence(sequence)}
+                      onClick={() => handleEditSequence(sequence.id)}
                     >
                       <Edit className="w-3.5 h-3.5" />
                       Edit
@@ -340,18 +337,15 @@ const SequenceLibrary: React.FC = () => {
         />
       )}
 
-      {/* Sequence Form Modal */}
+      {/* Sequence Form Modal (for creating new sequences) */}
       {showAddModal && (
         <SequenceFormModal
-          initialData={editingSequence || undefined}
           availableCommands={commands}
           onSave={() => {
             setShowAddModal(false);
-            setEditingSequence(null);
           }}
           onClose={() => {
             setShowAddModal(false);
-            setEditingSequence(null);
           }}
         />
       )}
