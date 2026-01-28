@@ -110,7 +110,6 @@ export function useFraming() {
     onValidate?: (data: Uint8Array, sessionId: string, logId: string) => void,
   ) => {
     return (chunk: Uint8Array) => {
-      console.log(`[${sessionId}] Data received:`, chunk);
       let framer = framersRef.current.get(sessionId);
 
       const session = useStore.getState().sessions[sessionId];
