@@ -456,9 +456,10 @@ export function useCommandExecution(
         dataBytes = newData;
       }
 
-      await write(activeSessionId, dataBytes);
-      // Pass command parameters to log
+      // Log TX before write to ensure correct chronological ordering
+      // (echo devices respond immediately, RX would appear before TX otherwise)
       addLog(dataBytes, "TX", cmdInfo?.contextIds, activeSessionId, params);
+      await write(activeSessionId, dataBytes);
 
       // System Log
       const displayPayload =
