@@ -427,15 +427,13 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
                   className="flex items-center gap-1"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Link to="/devices">
-                    <IconButton
-                      variant="ghost"
-                      size="xs"
-                      aria-label="Open Device Library"
-                      title="Open Device Library"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </IconButton>
+                  <Link
+                    to="/devices"
+                    className="inline-flex items-center justify-center rounded-radius-sm transition-colors h-6 w-6 p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="Open Device Library"
+                    title="Open Device Library"
+                  >
+                    <ExternalLink className="w-4 h-4" />
                   </Link>
                   <IconButton
                     variant="ghost"
@@ -545,15 +543,13 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
                   className="flex items-center gap-1"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Link to="/protocols">
-                    <IconButton
-                      variant="ghost"
-                      size="xs"
-                      aria-label="Open Protocol Library"
-                      title="Open Protocol Library"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </IconButton>
+                  <Link
+                    to="/protocols"
+                    className="inline-flex items-center justify-center rounded-radius-sm transition-colors h-6 w-6 p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="Open Protocol Library"
+                    title="Open Protocol Library"
+                  >
+                    <ExternalLink className="w-4 h-4" />
                   </Link>
                   <IconButton
                     variant="ghost"
@@ -613,15 +609,13 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
                   className="flex items-center gap-1"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Link to="/commands">
-                    <IconButton
-                      variant="ghost"
-                      size="xs"
-                      aria-label="Open Command Library"
-                      title="Open Command Library"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </IconButton>
+                  <Link
+                    to="/commands"
+                    className="inline-flex items-center justify-center rounded-radius-sm transition-colors h-6 w-6 p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="Open Command Library"
+                    title="Open Command Library"
+                  >
+                    <ExternalLink className="w-4 h-4" />
                   </Link>
                   <IconButton
                     variant="ghost"
@@ -845,15 +839,13 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
                   className="flex items-center gap-1"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Link to="/sequences">
-                    <IconButton
-                      variant="ghost"
-                      size="xs"
-                      aria-label="Open Sequence Library"
-                      title="Open Sequence Library"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </IconButton>
+                  <Link
+                    to="/sequences"
+                    className="inline-flex items-center justify-center rounded-radius-sm transition-colors h-6 w-6 p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="Open Sequence Library"
+                    title="Open Sequence Library"
+                  >
+                    <ExternalLink className="w-4 h-4" />
                   </Link>
                   <IconButton
                     variant="ghost"
