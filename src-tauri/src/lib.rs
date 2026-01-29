@@ -27,7 +27,8 @@ use tracing_subscriber::fmt::time::OffsetTime;
 
 use crate::state::AppState;
 
-pub fn setup_logging(_app: &tauri::App) {
+#[allow(unused_variables)]
+pub fn setup_logging(app: &tauri::App) {
     let fmt = if cfg!(debug_assertions) {
         format_description!("[hour]:[minute]:[second].[subsecond digits:3]")
     } else {
