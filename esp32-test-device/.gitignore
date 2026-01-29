@@ -1,0 +1,29 @@
+# Rust / Cargo
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# ESP-IDF
+/build/
+/managed_components/
+sdkconfig
+sdkconfig.old
+
+.embuild/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+*.log
+
+# Secrets (don't commit WiFi credentials)
+secrets.toml
