@@ -214,7 +214,7 @@ const ConsoleViewer: React.FC = () => {
 
           <div
             className={cn(
-              "flex flex-col w-full mx-auto",
+              "flex flex-col w-full mx-auto pb-8",
               view === "list" ? "max-w-5xl" : "w-full max-w-[98%] items-center",
             )}
           >
