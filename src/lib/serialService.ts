@@ -8,9 +8,11 @@ import { GenericPort } from "./connection";
 import { TauriSerialAPI, TauriEventNames, listenToTauriEvent } from "./tauri";
 import { UnlistenFn } from "@tauri-apps/api/event";
 import { IS_TAURI, logTauriEnvInfo } from "./tauriEnv";
+import type { WebSerialOptions } from "./webSerialConfig";
 
 export interface ISerialPort extends GenericPort {
-  open(options: SerialOptions): Promise<void>;
+  // Accept both app's SerialOptions (for TauriPort) and native WebSerial options
+  open(options: SerialOptions | WebSerialOptions): Promise<void>;
   getInfo(): Partial<SerialPortInfo>;
   getSignals(): Promise<SerialInputSignals>;
   getRustPortInfo?(): SerialPortInfo | null; // Optional: only for Tauri ports

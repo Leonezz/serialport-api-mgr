@@ -577,12 +577,26 @@ declare global {
     readonly port: SerialPort;
   }
 
+  /**
+   * Native WebSerial API options (uses numeric/lowercase values)
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/SerialPort/open
+   */
+  interface NativeSerialOptions {
+    baudRate: number;
+    dataBits?: 7 | 8;
+    stopBits?: 1 | 2;
+    parity?: "none" | "even" | "odd";
+    flowControl?: "none" | "hardware";
+    bufferSize?: number;
+  }
+
   interface SerialPort {
     onconnect: ((this: SerialPort, ev: Event) => void) | null;
     ondisconnect: ((this: SerialPort, ev: Event) => void) | null;
     readonly readable: ReadableStream<Uint8Array> | null;
     readonly writable: WritableStream<Uint8Array> | null;
-    open(options: SerialOptions): Promise<void>;
+    // Accept both app's SerialOptions (for TauriPort) and native WebSerial options
+    open(options: SerialOptions | NativeSerialOptions): Promise<void>;
     close(): Promise<void>;
     forget(): Promise<void>;
     getInfo(): SerialPortInfo;
