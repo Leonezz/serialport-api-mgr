@@ -21,9 +21,10 @@ root.render(
       FallbackComponent={ErrorFallback}
       onError={(error, errorInfo) => {
         // Log errors to Tauri backend
+        const message = error instanceof Error ? error.message : String(error);
         invoke("error", {
           prefix: "React Error Boundary",
-          content: `${error.message}\n\nComponent Stack:${errorInfo.componentStack}`,
+          content: `${message}\n\nComponent Stack:${errorInfo.componentStack}`,
         }).catch(console.error);
       }}
       onReset={() => {
