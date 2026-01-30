@@ -3,6 +3,7 @@ import { GenericPort, NetworkPort } from "../lib/connection";
 import { serialService, ISerialPort } from "../lib/serialService";
 import { MockPort } from "../lib/mockPort";
 import { SerialConfig, NetworkConfig, SerialOutputSignals } from "../types";
+import { toWebSerialOptions } from "../lib/webSerialConfig";
 
 export const useSerialConnection = (
   onDataReceived: (data: Uint8Array, sessionId: string) => void,
@@ -112,28 +113,48 @@ export const useSerialConnection = (
         // Use the refactored MockPort class
         newPort = new MockPort(requestedPort);
       } else if (requestedPort && typeof requestedPort !== "string") {
-        // Provided Serial Port
+        // Provided Serial Port (could be TauriPort or WebSerial)
         const selectedPort = requestedPort;
-        await selectedPort.open({
-          baudRate: config.baudRate,
-          dataBits: config.dataBits,
-          stopBits: config.stopBits,
-          parity: config.parity,
-          flowControl: config.flowControl,
-        });
+        // Check if it's a TauriPort (has portName property) or native WebSerial
+        const isTauriPort = "portName" in selectedPort;
+        if (isTauriPort) {
+          // TauriPort expects string enum values
+          await selectedPort.open({
+            baudRate: config.baudRate,
+            dataBits: config.dataBits,
+            stopBits: config.stopBits,
+            parity: config.parity,
+            flowControl: config.flowControl,
+          });
+        } else {
+          // Native WebSerial expects numeric/lowercase values
+          // Use 'any' cast because our global SerialPort type uses app's SerialOptions,
+          // but native WebSerial API expects different types (numbers for dataBits/stopBits)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (selectedPort.open as any)(toWebSerialOptions(config));
+        }
         newPort = selectedPort;
       } else if (!requestedPort && serialService.isSupported()) {
         // Request Port (UI Prompt) - only for SERIAL mode
+        // This returns a native WebSerial port in browser mode
         const selectedPort = await serialService.requestPort();
         if (!selectedPort) throw new Error("No port selected");
 
-        await selectedPort.open({
-          baudRate: config.baudRate,
-          dataBits: config.dataBits,
-          stopBits: config.stopBits,
-          parity: config.parity,
-          flowControl: config.flowControl,
-        });
+        // Check if it's a TauriPort or native WebSerial
+        const isTauriPort = "portName" in selectedPort;
+        if (isTauriPort) {
+          await selectedPort.open({
+            baudRate: config.baudRate,
+            dataBits: config.dataBits,
+            stopBits: config.stopBits,
+            parity: config.parity,
+            flowControl: config.flowControl,
+          });
+        } else {
+          // Native WebSerial expects numeric/lowercase values
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (selectedPort.open as any)(toWebSerialOptions(config));
+        }
         newPort = selectedPort;
       } else {
         throw new Error("Serial ports not supported in this browser");
