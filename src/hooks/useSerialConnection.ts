@@ -3,6 +3,32 @@ import { GenericPort, NetworkPort } from "../lib/connection";
 import { serialService, ISerialPort } from "../lib/serialService";
 import { MockPort } from "../lib/mockPort";
 import { SerialConfig, NetworkConfig, SerialOutputSignals } from "../types";
+import { toWebSerialOptions } from "../lib/webSerialConfig";
+import { IS_TAURI } from "../lib/tauriEnv";
+
+/**
+ * Open a serial port with the appropriate config format.
+ * - Tauri environment: uses app's string enum values (e.g., "Eight", "One")
+ * - Browser WebSerial: uses native numeric/lowercase values (e.g., 8, 1, "none")
+ */
+async function openSerialPort(
+  port: ISerialPort,
+  config: SerialConfig,
+): Promise<void> {
+  if (IS_TAURI) {
+    // TauriPort expects string enum values
+    await port.open({
+      baudRate: config.baudRate,
+      dataBits: config.dataBits,
+      stopBits: config.stopBits,
+      parity: config.parity,
+      flowControl: config.flowControl,
+    });
+  } else {
+    // Native WebSerial expects numeric/lowercase values
+    await port.open(toWebSerialOptions(config));
+  }
+}
 
 export const useSerialConnection = (
   onDataReceived: (data: Uint8Array, sessionId: string) => void,
@@ -112,28 +138,15 @@ export const useSerialConnection = (
         // Use the refactored MockPort class
         newPort = new MockPort(requestedPort);
       } else if (requestedPort && typeof requestedPort !== "string") {
-        // Provided Serial Port
-        const selectedPort = requestedPort;
-        await selectedPort.open({
-          baudRate: config.baudRate,
-          dataBits: config.dataBits,
-          stopBits: config.stopBits,
-          parity: config.parity,
-          flowControl: config.flowControl,
-        });
-        newPort = selectedPort;
+        // Provided Serial Port (TauriPort or WebSerial)
+        await openSerialPort(requestedPort, config);
+        newPort = requestedPort;
       } else if (!requestedPort && serialService.isSupported()) {
         // Request Port (UI Prompt) - only for SERIAL mode
         const selectedPort = await serialService.requestPort();
         if (!selectedPort) throw new Error("No port selected");
 
-        await selectedPort.open({
-          baudRate: config.baudRate,
-          dataBits: config.dataBits,
-          stopBits: config.stopBits,
-          parity: config.parity,
-          flowControl: config.flowControl,
-        });
+        await openSerialPort(selectedPort, config);
         newPort = selectedPort;
       } else {
         throw new Error("Serial ports not supported in this browser");
