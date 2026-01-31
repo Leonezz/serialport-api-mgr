@@ -25,10 +25,8 @@ import {
   Upload,
   Terminal,
   Zap,
-  Layers,
   LayoutGrid,
   List,
-  Edit,
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { Button } from "../components/ui/Button";
@@ -47,6 +45,7 @@ import { Breadcrumb, workspaceItem } from "../components/ui/Breadcrumb";
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import CommandFormModal from "../components/CommandFormModal";
+import { CommandCard, CommandListItem } from "../components/CommandViews";
 import { cn, generateId } from "../lib/utils";
 import type { Device, DeviceAttachment } from "../types";
 
@@ -610,142 +609,35 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
                       {/* LIST VIEW */}
                       {commandsViewMode === "list" && (
                         <div className="space-y-2">
-                          {deviceCommands.map((cmd) => {
-                            const isProtocolCommand = cmd.source === "PROTOCOL";
-                            const protocolName =
-                              isProtocolCommand && cmd.protocolLayer
-                                ? protocols.find(
-                                    (p) =>
-                                      p.id === cmd.protocolLayer?.protocolId,
-                                  )?.name
-                                : null;
-
-                            return (
-                              <div
-                                key={cmd.id}
-                                className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50"
-                              >
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  {/* Protocol Icon + Badge */}
-                                  {isProtocolCommand && (
-                                    <>
-                                      <Layers className="w-4 h-4 text-blue-500 shrink-0" />
-                                      {protocolName && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
-                                          {protocolName}
-                                        </Badge>
-                                      )}
-                                    </>
-                                  )}
-
-                                  {/* Command Name */}
-                                  <span className="font-medium truncate">
-                                    {cmd.name}
-                                  </span>
-
-                                  {/* Group */}
-                                  {cmd.group && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {cmd.group}
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Edit Button */}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    // TODO: Open command edit modal
-                                    console.log("Edit command:", cmd.id);
-                                  }}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            );
-                          })}
+                          {deviceCommands.map((cmd) => (
+                            <CommandListItem
+                              key={cmd.id}
+                              command={cmd}
+                              protocols={protocols}
+                              onEdit={(command) => {
+                                // TODO: Open command edit modal
+                                console.log("Edit command:", command.id);
+                              }}
+                            />
+                          ))}
                         </div>
                       )}
 
                       {/* CARD VIEW */}
                       {commandsViewMode === "card" && (
                         <div className="grid grid-cols-2 gap-4">
-                          {deviceCommands.map((cmd) => {
-                            const isProtocolCommand = cmd.source === "PROTOCOL";
-                            const protocolName =
-                              isProtocolCommand && cmd.protocolLayer
-                                ? protocols.find(
-                                    (p) =>
-                                      p.id === cmd.protocolLayer?.protocolId,
-                                  )?.name
-                                : null;
-
-                            return (
-                              <Card
-                                key={cmd.id}
-                                className="hover:shadow-md transition-shadow"
-                              >
-                                <CardHeader>
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      {isProtocolCommand && (
-                                        <Layers className="w-4 h-4 text-blue-500" />
-                                      )}
-                                      <CardTitle className="text-sm">
-                                        {cmd.name}
-                                      </CardTitle>
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        // TODO: Open command edit modal
-                                        console.log("Edit command:", cmd.id);
-                                      }}
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                  {/* Protocol Badge */}
-                                  {isProtocolCommand && protocolName && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {protocolName}
-                                    </Badge>
-                                  )}
-
-                                  {/* Description */}
-                                  {cmd.description && (
-                                    <p className="text-sm text-muted-foreground line-clamp-2">
-                                      {cmd.description}
-                                    </p>
-                                  )}
-
-                                  {/* Metadata */}
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{cmd.mode}</span>
-                                    {cmd.parameters &&
-                                      cmd.parameters.length > 0 && (
-                                        <>
-                                          <span>•</span>
-                                          <span>
-                                            {cmd.parameters.length} params
-                                          </span>
-                                        </>
-                                      )}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
+                          {deviceCommands.map((cmd) => (
+                            <CommandCard
+                              key={cmd.id}
+                              command={cmd}
+                              protocols={protocols}
+                              onEdit={(command) => {
+                                // TODO: Open command edit modal
+                                console.log("Edit command:", command.id);
+                              }}
+                              editOnly
+                            />
+                          ))}
                         </div>
                       )}
                     </>
