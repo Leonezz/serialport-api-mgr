@@ -47,3 +47,6 @@ docs/
 
 # E2E test screenshots
 e2e/screenshots/
+.playwright-cli/
+playwright-report/
+test-results/
