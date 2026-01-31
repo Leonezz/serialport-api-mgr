@@ -770,7 +770,7 @@ export const CMD_MARLIN_SET_HOTEND_TEMP: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "{gcode} S{{value}}",
+    payload: "{gcode} S{value}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -826,7 +826,7 @@ export const CMD_MARLIN_SET_BED_TEMP: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "{gcode} S{{value}}",
+    payload: "{gcode} S{value}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -882,7 +882,7 @@ export const CMD_MARLIN_SET_FAN_SPEED: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "{gcode} S{{value}}",
+    payload: "{gcode} S{value}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -938,7 +938,7 @@ export const CMD_MARLIN_SET_FEEDRATE: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "{gcode} S{{value}}",
+    payload: "{gcode} S{value}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -1001,7 +1001,7 @@ export const CMD_GPS_GET_GGA: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "${{talker}}{{sentence}}",
+    payload: "${talker}{sentence}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -1058,7 +1058,7 @@ export const CMD_GPS_GET_RMC: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "${{talker}}{{sentence}}",
+    payload: "${talker}{sentence}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -1115,7 +1115,7 @@ export const CMD_GPS_GET_GSA: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "${{talker}}{{sentence}}",
+    payload: "${talker}{sentence}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -1172,7 +1172,7 @@ export const CMD_GPS_GET_GSV: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "${{talker}}{{sentence}}",
+    payload: "${talker}{sentence}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -1229,7 +1229,7 @@ export const CMD_GPS_GET_VTG: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "${{talker}}{{sentence}}",
+    payload: "${talker}{sentence}",
     mode: "TEXT",
     encoding: "UTF-8",
 
@@ -1286,7 +1286,7 @@ export const CMD_GPS_GET_GLL: SavedCommand = {
     protocolVersion: "1.0",
     protocolCommandUpdatedAt: now,
 
-    payload: "${{talker}}{{sentence}}",
+    payload: "${talker}{sentence}",
     mode: "TEXT",
     encoding: "UTF-8",
 
