@@ -298,6 +298,12 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
       createdAt: timestamp,
       updatedAt: timestamp,
     });
+
+    // If the command is linked to a device, add it to the device's commandIds
+    if (data.deviceId) {
+      useStore.getState().addCommandToDevice(data.deviceId, newId);
+    }
+
     setSelectedCommandId(newId);
     setRightSidebarTab("basic");
     setShowAI(true);
@@ -727,6 +733,9 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
                                     >
                                       <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-1.5 overflow-hidden">
+                                          {cmd.source === "PROTOCOL" && (
+                                            <Layers className="w-3 h-3 text-blue-500 shrink-0" />
+                                          )}
                                           <span
                                             className={cn(
                                               "font-medium text-body-sm truncate",

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import {
   SavedCommand,
   DataMode,
@@ -12,6 +13,7 @@ import {
   FramingStrategy,
   FramingConfig,
 } from "../types";
+import { useStore } from "../lib/store";
 import {
   X,
   Check,
@@ -22,7 +24,12 @@ import {
   FileCode,
   Search,
   Terminal,
+  Cpu,
+  Layers,
+  ExternalLink,
+  Info,
 } from "lucide-react";
+import { substituteParameters } from "../lib/commandBuilder";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Textarea } from "./ui/Textarea";
@@ -68,6 +75,8 @@ const CommandFormModal: React.FC<Props> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
+  const { devices, protocols } = useStore();
+
   const [activeTab, setActiveTab] = useState<
     "basic" | "params" | "protocol" | "processing" | "framing" | "context"
   >("basic");
@@ -85,6 +94,60 @@ const CommandFormModal: React.FC<Props> = ({
   const [parameters, setParameters] = useState<CommandParameter[]>(
     initialData?.parameters || [],
   );
+
+  // Device and Protocol selection
+  const [deviceId, setDeviceId] = useState<string>(initialData?.deviceId || "");
+  const [protocolId, setProtocolId] = useState<string>(
+    initialData?.protocolLayer?.protocolId || "",
+  );
+
+  // Command source: CUSTOM (user-created) or PROTOCOL (from template)
+  const [source, setSource] = useState<"CUSTOM" | "PROTOCOL">(
+    initialData?.source || "CUSTOM",
+  );
+  const [templateId, setTemplateId] = useState<string>(
+    initialData?.protocolLayer?.protocolCommandId || "",
+  );
+  const [parameterValues, setParameterValues] = useState<Record<string, any>>(
+    // Initialize from commandLayer.parameterEnhancements if editing PROTOCOL command
+    initialData?.commandLayer?.parameterEnhancements
+      ? Object.entries(initialData.commandLayer.parameterEnhancements).reduce(
+          (acc, [name, enhancement]) => ({
+            ...acc,
+            [name]: enhancement.customDefault,
+          }),
+          {},
+        )
+      : {},
+  );
+
+  // Get protocols available for the selected device
+  const availableProtocols = useMemo(() => {
+    if (!deviceId) {
+      // No device selected, show all protocols
+      return protocols;
+    }
+    const device = devices.find((d) => d.id === deviceId);
+    if (!device || !device.protocols?.length) {
+      // Device has no protocols, show all
+      return protocols;
+    }
+    // Filter protocols to only those linked to device
+    const linkedProtocolIds = device.protocols.map((p) => p.protocolId);
+    return protocols.filter((p) => linkedProtocolIds.includes(p.id));
+  }, [deviceId, devices, protocols]);
+
+  // Get templates available for the selected protocol
+  // Filter to only SIMPLE type templates (Phase 2 focuses on simple commands)
+  const availableTemplates = useMemo(() => {
+    if (!protocolId) return [];
+    const protocol = protocols.find((p) => p.id === protocolId);
+    const allTemplates = protocol?.commands || [];
+    // Only show SIMPLE templates for now
+    return allTemplates.filter((t) => t.type === "SIMPLE");
+  }, [protocolId, protocols]);
+
+  const selectedTemplate = availableTemplates.find((t) => t.id === templateId);
 
   const [contextIds, setContextIds] = useState<string[]>(
     initialData?.contextIds || [],
@@ -167,34 +230,120 @@ const CommandFormModal: React.FC<Props> = ({
         title: contextTitle,
       });
 
-    onSave({
-      name,
-      description,
-      payload,
-      group: group.trim() || undefined,
-      mode,
-      encoding: mode === "TEXT" ? encoding : undefined,
-      parameters,
-      validation:
-        postResponseEnabled && responseMode === "PATTERN"
-          ? { enabled: true, mode: "PATTERN", matchType, pattern, timeout }
-          : undefined,
-      scripting: {
-        enabled:
-          preRequestEnabled ||
-          (postResponseEnabled && responseMode === "SCRIPT"),
-        preRequestScript: preRequestEnabled ? preRequestScript : undefined,
-        postResponseScript:
-          postResponseEnabled && responseMode === "SCRIPT"
-            ? postResponseScript
+    // Capture timestamp once at start of handler
+    // eslint-disable-next-line react-hooks/purity -- Date.now() is fine in event handlers
+    const now = Date.now();
+
+    let commandData: Omit<SavedCommand, "id">;
+
+    if (source === "PROTOCOL") {
+      // Validate: protocol and template must be selected
+      if (!protocolId || !templateId) {
+        alert("Please select both a protocol and a command template");
+        return;
+      }
+
+      if (!selectedTemplate) {
+        alert("Selected template not found");
+        return;
+      }
+
+      // Validate required parameters
+      const missingParams = selectedTemplate.parameters?.filter(
+        (p) => p.required && !parameterValues[p.name],
+      );
+      if (missingParams && missingParams.length > 0) {
+        alert(
+          `Missing required parameters: ${missingParams.map((p) => p.name).join(", ")}`,
+        );
+        return;
+      }
+
+      // Build PROTOCOL command with protocolLayer + commandLayer
+      commandData = {
+        name,
+        description,
+        group: group.trim() || undefined,
+        deviceId: deviceId || undefined,
+        source: "PROTOCOL",
+
+        // Protocol Layer (L1) - from template
+        protocolLayer: {
+          protocolId,
+          protocolCommandId: templateId,
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+
+          // Copy from template
+          payload: selectedTemplate.payload,
+          mode: selectedTemplate.mode,
+          encoding: selectedTemplate.encoding,
+          parameters: selectedTemplate.parameters,
+          validation: selectedTemplate.validation,
+        },
+
+        // Command Layer (L2) - user customizations
+        commandLayer: {
+          group: group.trim() || undefined,
+          parameterEnhancements: Object.entries(parameterValues).reduce(
+            (acc, [name, value]) => ({
+              ...acc,
+              [name]: { customDefault: value },
+            }),
+            {},
+          ),
+        },
+
+        createdAt: initialData?.createdAt || now,
+        updatedAt: now,
+        contextIds,
+      };
+    } else {
+      // CUSTOM source - existing logic
+      commandData = {
+        name,
+        description,
+        payload,
+        group: group.trim() || undefined,
+        mode,
+        encoding: mode === "TEXT" ? encoding : undefined,
+        parameters,
+        deviceId: deviceId || undefined,
+        source: "CUSTOM",
+        validation:
+          postResponseEnabled && responseMode === "PATTERN"
+            ? {
+                enabled: true,
+                mode: "PATTERN" as const,
+                matchType,
+                pattern,
+                timeout,
+              }
             : undefined,
-      },
-      responseFraming: framingEnabled ? framingConfig : undefined,
-      framingPersistence: framingEnabled ? framingPersistence : undefined,
-      createdAt: initialData?.createdAt || Date.now(),
-      updatedAt: Date.now(),
-      contextIds,
-    });
+        scripting: {
+          enabled:
+            preRequestEnabled ||
+            (postResponseEnabled && responseMode === "SCRIPT"),
+          preRequestScript: preRequestEnabled ? preRequestScript : undefined,
+          postResponseScript:
+            postResponseEnabled && responseMode === "SCRIPT"
+              ? postResponseScript
+              : undefined,
+        },
+        responseFraming: framingEnabled ? framingConfig : undefined,
+        framingPersistence: framingEnabled ? framingPersistence : undefined,
+        createdAt: initialData?.createdAt || now,
+        updatedAt: now,
+        contextIds,
+      };
+    }
+
+    onSave(commandData);
+
+    // If a device is selected and this is a new command, add it to the device's commandIds
+    // Note: The parent component will need to handle this coordination since onSave returns the new command ID
+    // This is typically handled by the caller after onSave completes
+
     onClose();
   };
 
@@ -235,6 +384,12 @@ const CommandFormModal: React.FC<Props> = ({
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border bg-muted/20">
           <CardTitle className="text-lg flex items-center gap-2">
             {initialData?.id ? t("cmd.edit") : t("cmd.new")}
+            {source === "PROTOCOL" && (
+              <Badge variant="secondary" className="gap-1 text-[10px]">
+                <Layers className="w-3 h-3" />
+                Template
+              </Badge>
+            )}
           </CardTitle>
           <Button
             variant="ghost"
@@ -290,6 +445,520 @@ const CommandFormModal: React.FC<Props> = ({
           <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
             {activeTab === "basic" && (
               <CardContent className="pt-6 space-y-4">
+                {/* Device & Protocol Selection */}
+                <div className="p-4 bg-muted/20 rounded-lg border border-border/50 space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase">
+                    <Layers className="w-3.5 h-3.5" />
+                    Device & Protocol
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1.5">
+                        <Cpu className="w-3.5 h-3.5 text-muted-foreground" />
+                        Device (Optional)
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <SelectDropdown
+                          options={[
+                            { value: "", label: "Personal Command" },
+                            ...devices.map((d) => ({
+                              value: d.id,
+                              label: d.name,
+                            })),
+                          ]}
+                          value={deviceId}
+                          onChange={(value) => {
+                            setDeviceId(value);
+                            // Clear protocol if it's not available for the new device
+                            if (value) {
+                              const device = devices.find(
+                                (d) => d.id === value,
+                              );
+                              const linkedProtocolIds =
+                                device?.protocols?.map((p) => p.protocolId) ||
+                                [];
+                              if (
+                                protocolId &&
+                                !linkedProtocolIds.includes(protocolId)
+                              ) {
+                                // Set to device's default protocol or clear
+                                setProtocolId(device?.defaultProtocolId || "");
+                              }
+                            }
+                          }}
+                          placeholder="Select device..."
+                        />
+                        {deviceId && (
+                          <Link
+                            to={`/devices/${deviceId}/edit`}
+                            className="shrink-0"
+                            title="Edit device"
+                          >
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                        Protocol
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <SelectDropdown
+                          options={[
+                            { value: "", label: "None" },
+                            ...availableProtocols.map((p) => ({
+                              value: p.id,
+                              label: `${p.name} (v${p.version})`,
+                            })),
+                          ]}
+                          value={protocolId}
+                          onChange={setProtocolId}
+                          placeholder="Select protocol..."
+                        />
+                        {protocolId && (
+                          <Link
+                            to={`/protocols/${protocolId}/edit`}
+                            className="shrink-0"
+                            title="Edit protocol"
+                          >
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {deviceId && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Commands linked to a device appear in that device&apos;s
+                      command list.
+                    </p>
+                  )}
+                </div>
+
+                {/* Command Source Selection */}
+                <div className="p-4 bg-muted/20 rounded-lg border border-border/50 space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase">
+                    <FileCode className="w-3.5 h-3.5" />
+                    Command Source
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSource("CUSTOM");
+                        setTemplateId("");
+                      }}
+                      className={cn(
+                        "p-4 border rounded-xl flex flex-col items-center gap-2 cursor-pointer transition-all hover:bg-muted/30",
+                        source === "CUSTOM"
+                          ? "bg-primary/5 border-primary shadow-sm"
+                          : "bg-card border-border/50",
+                      )}
+                    >
+                      <FileCode className="w-5 h-5 text-orange-500" />
+                      <span className="font-semibold text-sm">
+                        Custom Command
+                      </span>
+                      <span className="text-[10px] text-muted-foreground text-center">
+                        Manually define payload
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSource("PROTOCOL")}
+                      className={cn(
+                        "p-4 border rounded-xl flex flex-col items-center gap-2 cursor-pointer transition-all hover:bg-muted/30",
+                        source === "PROTOCOL"
+                          ? "bg-primary/5 border-primary shadow-sm"
+                          : "bg-card border-border/50",
+                      )}
+                    >
+                      <Layers className="w-5 h-5 text-blue-500" />
+                      <span className="font-semibold text-sm">
+                        From Template
+                      </span>
+                      <span className="text-[10px] text-muted-foreground text-center">
+                        Use protocol template
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Template Picker - shown when PROTOCOL source is selected */}
+                  {source === "PROTOCOL" && (
+                    <div className="space-y-3 pt-2 border-t border-border/50">
+                      {!protocolId ? (
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>
+                            Please select a protocol first to see available
+                            templates
+                          </span>
+                        </div>
+                      ) : availableTemplates.length === 0 ? (
+                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-600 dark:text-yellow-400 flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>
+                            No command templates available for{" "}
+                            {protocols.find((p) => p.id === protocolId)?.name}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-xs">
+                              Command Template{" "}
+                              <span className="text-destructive">*</span>
+                            </Label>
+                            <SelectDropdown
+                              options={availableTemplates.map((t) => ({
+                                value: t.id,
+                                label: `${t.name} - ${t.description || ""}`,
+                              }))}
+                              value={templateId}
+                              onChange={(value) => {
+                                setTemplateId(value);
+                                // Initialize parameter values from template defaults
+                                const template = availableTemplates.find(
+                                  (t) => t.id === value,
+                                );
+                                if (template?.parameters) {
+                                  const defaultValues: Record<string, any> = {};
+                                  template.parameters.forEach((param) => {
+                                    if (param.defaultValue !== undefined) {
+                                      defaultValues[param.name] =
+                                        param.defaultValue;
+                                    }
+                                  });
+                                  setParameterValues(defaultValues);
+                                }
+                              }}
+                              placeholder="Select a template..."
+                            />
+                          </div>
+
+                          {/* Template Preview */}
+                          {selectedTemplate && (
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground">
+                                Template Payload
+                              </Label>
+                              <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                                <code className="text-xs font-mono text-blue-600 dark:text-blue-400">
+                                  {selectedTemplate.payload}
+                                </code>
+                              </div>
+                              {selectedTemplate.description && (
+                                <p className="text-[10px] text-muted-foreground">
+                                  {selectedTemplate.description}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Computed Payload Preview */}
+                          {selectedTemplate &&
+                            Object.keys(parameterValues).length > 0 && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-xs text-muted-foreground">
+                                    Computed Payload
+                                  </Label>
+                                  <Info className="w-3 h-3 text-muted-foreground" />
+                                </div>
+                                <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                                  <code className="text-xs font-mono text-green-600 dark:text-green-400">
+                                    {(() => {
+                                      try {
+                                        return substituteParameters(
+                                          selectedTemplate.payload,
+                                          parameterValues,
+                                          selectedTemplate.parameters || [],
+                                        );
+                                      } catch (e) {
+                                        return "Error computing payload";
+                                      }
+                                    })()}
+                                  </code>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">
+                                  This is the final payload that will be sent
+                                  with your current parameter values
+                                </p>
+                              </div>
+                            )}
+
+                          {/* Dynamic Parameter Inputs */}
+                          {selectedTemplate?.parameters &&
+                            selectedTemplate.parameters.length > 0 && (
+                              <div className="space-y-3 pt-2 border-t border-border/50">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-xs font-semibold">
+                                    Template Parameters
+                                  </Label>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px]"
+                                  >
+                                    {selectedTemplate.parameters.length}{" "}
+                                    parameter
+                                    {selectedTemplate.parameters.length !== 1
+                                      ? "s"
+                                      : ""}
+                                  </Badge>
+                                </div>
+
+                                {selectedTemplate.parameters.map((param) => (
+                                  <div key={param.name} className="space-y-2">
+                                    <Label className="text-xs">
+                                      {param.label || param.name}
+                                      {param.required && (
+                                        <span className="text-destructive">
+                                          {" "}
+                                          *
+                                        </span>
+                                      )}
+                                    </Label>
+
+                                    {/* STRING input */}
+                                    {param.type === "STRING" && (
+                                      <div className="relative">
+                                        <Input
+                                          value={
+                                            parameterValues[param.name] ??
+                                            param.defaultValue ??
+                                            ""
+                                          }
+                                          onChange={(e) =>
+                                            setParameterValues((prev) => ({
+                                              ...prev,
+                                              [param.name]: e.target.value,
+                                            }))
+                                          }
+                                          placeholder={param.placeholder}
+                                          maxLength={param.maxLength}
+                                          className={cn(
+                                            "h-8 text-xs font-mono pr-8",
+                                            param.required &&
+                                              !parameterValues[param.name] &&
+                                              "border-destructive",
+                                          )}
+                                        />
+                                        {param.required &&
+                                          parameterValues[param.name] && (
+                                            <Check className="absolute right-2 top-2 w-4 h-4 text-green-500" />
+                                          )}
+                                      </div>
+                                    )}
+
+                                    {/* INTEGER input */}
+                                    {param.type === "INTEGER" && (
+                                      <div className="relative">
+                                        <Input
+                                          type="number"
+                                          value={
+                                            parameterValues[param.name] ??
+                                            param.defaultValue ??
+                                            ""
+                                          }
+                                          onChange={(e) =>
+                                            setParameterValues((prev) => ({
+                                              ...prev,
+                                              [param.name]: parseInt(
+                                                e.target.value,
+                                              ),
+                                            }))
+                                          }
+                                          min={param.min}
+                                          max={param.max}
+                                          className={cn(
+                                            "h-8 text-xs font-mono pr-8",
+                                            param.required &&
+                                              parameterValues[param.name] ===
+                                                undefined &&
+                                              "border-destructive",
+                                          )}
+                                        />
+                                        {param.required &&
+                                          parameterValues[param.name] !==
+                                            undefined && (
+                                            <Check className="absolute right-2 top-2 w-4 h-4 text-green-500" />
+                                          )}
+                                      </div>
+                                    )}
+
+                                    {/* FLOAT input */}
+                                    {param.type === "FLOAT" && (
+                                      <div className="relative">
+                                        <Input
+                                          type="number"
+                                          step="any"
+                                          value={
+                                            parameterValues[param.name] ??
+                                            param.defaultValue ??
+                                            ""
+                                          }
+                                          onChange={(e) =>
+                                            setParameterValues((prev) => ({
+                                              ...prev,
+                                              [param.name]: parseFloat(
+                                                e.target.value,
+                                              ),
+                                            }))
+                                          }
+                                          min={param.min}
+                                          max={param.max}
+                                          className={cn(
+                                            "h-8 text-xs font-mono pr-8",
+                                            param.required &&
+                                              parameterValues[param.name] ===
+                                                undefined &&
+                                              "border-destructive",
+                                          )}
+                                        />
+                                        {param.required &&
+                                          parameterValues[param.name] !==
+                                            undefined && (
+                                            <Check className="absolute right-2 top-2 w-4 h-4 text-green-500" />
+                                          )}
+                                      </div>
+                                    )}
+
+                                    {/* ENUM dropdown */}
+                                    {param.type === "ENUM" && param.options && (
+                                      <SelectDropdown
+                                        options={param.options.map((opt) => ({
+                                          label: opt.label || String(opt.value),
+                                          value: opt.value || "",
+                                        }))}
+                                        value={
+                                          parameterValues[param.name] ??
+                                          param.defaultValue ??
+                                          ""
+                                        }
+                                        onChange={(value) =>
+                                          setParameterValues((prev) => ({
+                                            ...prev,
+                                            [param.name]: value,
+                                          }))
+                                        }
+                                      />
+                                    )}
+
+                                    {/* BOOLEAN checkbox */}
+                                    {param.type === "BOOLEAN" && (
+                                      <div className="flex items-center gap-2">
+                                        <Checkbox
+                                          checked={
+                                            parameterValues[param.name] ??
+                                            param.defaultValue ??
+                                            false
+                                          }
+                                          onChange={(e) =>
+                                            setParameterValues((prev) => ({
+                                              ...prev,
+                                              [param.name]: e.target.checked,
+                                            }))
+                                          }
+                                        />
+                                        <span className="text-xs text-muted-foreground">
+                                          {param.description}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Enhanced Parameter Help */}
+                                    {param.type !== "BOOLEAN" && (
+                                      <div className="space-y-1">
+                                        {param.description && (
+                                          <p className="text-[10px] text-muted-foreground">
+                                            {param.description}
+                                          </p>
+                                        )}
+                                        <div className="flex flex-wrap gap-2 text-[9px] text-muted-foreground">
+                                          {param.defaultValue !== undefined && (
+                                            <span className="inline-flex items-center gap-1">
+                                              <span className="font-semibold">
+                                                Default:
+                                              </span>
+                                              <code className="px-1 py-0.5 bg-muted rounded">
+                                                {String(param.defaultValue)}
+                                              </code>
+                                            </span>
+                                          )}
+                                          {param.type === "INTEGER" &&
+                                            (param.min !== undefined ||
+                                              param.max !== undefined) && (
+                                              <span className="inline-flex items-center gap-1">
+                                                <span className="font-semibold">
+                                                  Range:
+                                                </span>
+                                                <code className="px-1 py-0.5 bg-muted rounded">
+                                                  {param.min ?? "-∞"} to{" "}
+                                                  {param.max ?? "∞"}
+                                                </code>
+                                              </span>
+                                            )}
+                                          {param.type === "FLOAT" &&
+                                            (param.min !== undefined ||
+                                              param.max !== undefined) && (
+                                              <span className="inline-flex items-center gap-1">
+                                                <span className="font-semibold">
+                                                  Range:
+                                                </span>
+                                                <code className="px-1 py-0.5 bg-muted rounded">
+                                                  {param.min ?? "-∞"} to{" "}
+                                                  {param.max ?? "∞"}
+                                                </code>
+                                              </span>
+                                            )}
+                                          {param.type === "STRING" &&
+                                            param.maxLength && (
+                                              <span className="inline-flex items-center gap-1">
+                                                <span className="font-semibold">
+                                                  Max length:
+                                                </span>
+                                                <code className="px-1 py-0.5 bg-muted rounded">
+                                                  {param.maxLength}
+                                                </code>
+                                              </span>
+                                            )}
+                                          {param.required && (
+                                            <Badge
+                                              variant="destructive"
+                                              className="text-[8px] h-4 px-1.5"
+                                            >
+                                              Required
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>{t("cmd.name")}</Label>
@@ -308,44 +977,49 @@ const CommandFormModal: React.FC<Props> = ({
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>{t("cmd.format")}</Label>
-                    <SelectDropdown
-                      options={
-                        [
-                          { value: "TEXT", label: "TEXT" },
-                          { value: "HEX", label: "HEX" },
-                        ] as DropdownOption<DataMode>[]
-                      }
-                      value={mode}
-                      onChange={(value) => setMode(value)}
-                    />
-                  </div>
-                  {mode === "TEXT" && (
+                {/* Format and Encoding - only for CUSTOM commands */}
+                {source === "CUSTOM" && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("cmd.format")}</Label>
+                        <SelectDropdown
+                          options={
+                            [
+                              { value: "TEXT", label: "TEXT" },
+                              { value: "HEX", label: "HEX" },
+                            ] as DropdownOption<DataMode>[]
+                          }
+                          value={mode}
+                          onChange={(value) => setMode(value)}
+                        />
+                      </div>
+                      {mode === "TEXT" && (
+                        <div className="space-y-2">
+                          <Label>Encoding</Label>
+                          <SelectDropdown
+                            options={
+                              [
+                                { value: "UTF-8", label: "UTF-8" },
+                                { value: "ASCII", label: "ASCII" },
+                              ] as DropdownOption<TextEncoding>[]
+                            }
+                            value={encoding}
+                            onChange={(value) => setEncoding(value)}
+                          />
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2">
-                      <Label>Encoding</Label>
-                      <SelectDropdown
-                        options={
-                          [
-                            { value: "UTF-8", label: "UTF-8" },
-                            { value: "ASCII", label: "ASCII" },
-                          ] as DropdownOption<TextEncoding>[]
-                        }
-                        value={encoding}
-                        onChange={(value) => setEncoding(value)}
+                      <Label>{t("cmd.payload")}</Label>
+                      <Textarea
+                        value={payload}
+                        onChange={(e) => setPayload(e.target.value)}
+                        className="font-mono text-xs"
                       />
                     </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("cmd.payload")}</Label>
-                  <Textarea
-                    value={payload}
-                    onChange={(e) => setPayload(e.target.value)}
-                    className="font-mono text-xs"
-                  />
-                </div>
+                  </>
+                )}
               </CardContent>
             )}
 
