@@ -24,6 +24,7 @@ import {
   Download,
   Upload,
   RefreshCw,
+  Star,
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { Button } from "../components/ui/Button";
@@ -38,6 +39,7 @@ import {
   CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
+import { Breadcrumb, workspaceItem } from "../components/ui/Breadcrumb";
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import CommandFormModal from "../components/CommandFormModal";
@@ -54,7 +56,7 @@ type EditorTab = "general" | "attachments" | "bindings";
 const TABS: { id: EditorTab; label: string; icon: React.ElementType }[] = [
   { id: "general", label: "General", icon: Settings },
   { id: "attachments", label: "Attachments", icon: Paperclip },
-  { id: "bindings", label: "Bindings", icon: Link2 },
+  { id: "bindings", label: "Configuration", icon: Link2 },
 ];
 
 const ICON_OPTIONS = [
@@ -351,6 +353,17 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
         }
       />
 
+      {/* Breadcrumb */}
+      <div className="px-6 py-3 border-b border-border/50">
+        <Breadcrumb
+          items={[
+            workspaceItem,
+            { label: "Devices", href: "/devices" },
+            { label: editState.name },
+          ]}
+        />
+      </div>
+
       {/* Tabs */}
       <div className="border-b border-border px-4">
         <div className="flex gap-1">
@@ -564,23 +577,58 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
                     </Button>
                   </CardHeader>
                   <CardContent>
-                    {linkedProtocols.map((protocol) => (
-                      <div key={protocol.id} className="mb-4 last:mb-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            {protocol.name}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            v{protocol.version}
-                          </span>
+                    {linkedProtocols.map((protocol) => {
+                      const isDefault =
+                        protocol.id === editState.defaultProtocolId;
+                      return (
+                        <div key={protocol.id} className="mb-4 last:mb-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            {/* Star button for default protocol */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateField("defaultProtocolId", protocol.id);
+                              }}
+                              className={`shrink-0 p-1 rounded transition-colors ${
+                                isDefault
+                                  ? "text-yellow-500"
+                                  : "text-muted-foreground/40 hover:text-yellow-500"
+                              }`}
+                              aria-label={
+                                isDefault
+                                  ? `${protocol.name} is the default protocol`
+                                  : `Set ${protocol.name} as default protocol`
+                              }
+                              title={
+                                isDefault
+                                  ? "Default protocol for new commands"
+                                  : "Click to set as default protocol"
+                              }
+                            >
+                              <Star
+                                className={`w-4 h-4 ${isDefault ? "fill-current" : ""}`}
+                              />
+                            </button>
+                            <Badge variant="outline" className="text-xs">
+                              {protocol.name}
+                            </Badge>
+                            {isDefault && (
+                              <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">
+                                DEFAULT
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              v{protocol.version}
+                            </span>
+                          </div>
+                          {protocol.commands.length === 0 ? (
+                            <p className="text-sm text-muted-foreground pl-2">
+                              No commands defined in this protocol.
+                            </p>
+                          ) : null}
                         </div>
-                        {protocol.commands.length === 0 ? (
-                          <p className="text-sm text-muted-foreground pl-2">
-                            No commands defined in this protocol.
-                          </p>
-                        ) : null}
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {availableProtocolCommands.length > 0 ? (
                       <div className="mt-4 pt-4 border-t border-border">

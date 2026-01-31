@@ -60,6 +60,33 @@ export const DEVICE_ESP32_TEST: Device = {
     },
   ],
 
+  // Default protocol for new commands
+  defaultProtocolId: "proto-esp32-test-device",
+
+  // Commands owned by this device
+  commandIds: [
+    "cmd-esp32-show-help",
+    "cmd-esp32-device-status",
+    "cmd-esp32-wifi-status",
+    "cmd-esp32-set-wifi-ssid",
+    "cmd-esp32-set-wifi-password",
+    "cmd-esp32-connect-wifi",
+    "cmd-esp32-scan-networks",
+    "cmd-esp32-clear-wifi",
+    "cmd-esp32-setup-mode",
+    "cmd-esp32-echo-mode",
+    "cmd-esp32-at-mode",
+    "cmd-esp32-modbus-mode",
+    "cmd-esp32-gps-mode",
+    "cmd-esp32-scpi-mode",
+    "cmd-esp32-marlin-mode",
+    "cmd-esp32-elm327-mode",
+    "cmd-esp32-set-temp",
+    "cmd-esp32-set-humidity",
+    "cmd-esp32-set-rpm",
+    "cmd-esp32-set-speed",
+  ],
+
   // Default serial options for this device
   defaultSerialOptions: {
     baudRate: 115200,
@@ -96,6 +123,18 @@ export const DEVICE_MODBUS_GENERIC: Device = {
     },
   ],
 
+  defaultProtocolId: "proto-modbus-rtu",
+  commandIds: [
+    "cmd-modbus-read-coils",
+    "cmd-modbus-read-discrete",
+    "cmd-modbus-read-holding",
+    "cmd-modbus-read-input",
+    "cmd-modbus-write-coil",
+    "cmd-modbus-write-register",
+    "cmd-modbus-write-multiple-coils",
+    "cmd-modbus-write-multiple-registers",
+  ],
+
   defaultSerialOptions: {
     baudRate: 9600,
     dataBits: "Eight",
@@ -126,6 +165,14 @@ export const DEVICE_AT_GENERIC: Device = {
       protocolId: "proto-at-commands",
       parameterDefaults: {},
     },
+  ],
+
+  defaultProtocolId: "proto-at-commands",
+  commandIds: [
+    "cmd-at-check",
+    "cmd-at-version",
+    "cmd-at-reset",
+    "cmd-at-wifi-scan",
   ],
 
   defaultSerialOptions: {
@@ -159,6 +206,18 @@ export const DEVICE_3D_PRINTER_MARLIN: Device = {
     },
   ],
 
+  defaultProtocolId: "proto-marlin",
+  commandIds: [
+    "cmd-marlin-home",
+    "cmd-marlin-level-bed",
+    "cmd-marlin-set-hotend-temp",
+    "cmd-marlin-set-bed-temp",
+    "cmd-marlin-get-temp",
+    "cmd-marlin-get-position",
+    "cmd-marlin-move",
+    "cmd-marlin-emergency-stop",
+  ],
+
   defaultSerialOptions: {
     baudRate: 115200,
     dataBits: "Eight",
@@ -188,6 +247,18 @@ export const DEVICE_OBD2_ELM327: Device = {
       protocolId: "proto-elm327",
       parameterDefaults: {},
     },
+  ],
+
+  defaultProtocolId: "proto-elm327",
+  commandIds: [
+    "cmd-obd-get-rpm",
+    "cmd-obd-get-speed",
+    "cmd-obd-get-coolant-temp",
+    "cmd-obd-get-fuel-level",
+    "cmd-obd-get-throttle",
+    "cmd-obd-read-dtcs",
+    "cmd-obd-clear-dtcs",
+    "cmd-obd-get-vin",
   ],
 
   defaultSerialOptions: {
@@ -221,6 +292,16 @@ export const DEVICE_GPS_RECEIVER: Device = {
     },
   ],
 
+  defaultProtocolId: "proto-gps-nmea",
+  commandIds: [
+    "cmd-gps-query-position",
+    "cmd-gps-query-rmc",
+    "cmd-gps-query-satellites",
+    "cmd-gps-set-update-rate",
+    "cmd-gps-get-firmware",
+    "cmd-gps-hot-start",
+  ],
+
   defaultSerialOptions: {
     baudRate: 9600,
     dataBits: "Eight",
@@ -251,6 +332,18 @@ export const DEVICE_SCPI_INSTRUMENT: Device = {
       protocolId: "proto-scpi",
       parameterDefaults: {},
     },
+  ],
+
+  defaultProtocolId: "proto-scpi",
+  commandIds: [
+    "cmd-scpi-identify",
+    "cmd-scpi-reset",
+    "cmd-scpi-measure-voltage",
+    "cmd-scpi-measure-current",
+    "cmd-scpi-set-voltage",
+    "cmd-scpi-set-current",
+    "cmd-scpi-output-on",
+    "cmd-scpi-output-off",
   ],
 
   defaultSerialOptions: {

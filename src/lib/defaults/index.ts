@@ -33,3 +33,6 @@ export {
   DEVICE_OBD2_ELM327,
   DEVICE_SCPI_INSTRUMENT,
 } from "./devices";
+
+// Command defaults
+export { DEFAULT_COMMANDS } from "./commands";

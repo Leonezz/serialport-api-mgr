@@ -601,6 +601,8 @@ export const DeviceSchema = BaseEntitySchema.extend({
   attachments: z.array(DeviceAttachmentSchema).default([]),
   defaultSerialOptions: DeviceSerialOptionsSchema.optional(),
   protocols: z.array(DeviceProtocolBindingSchema).default([]),
+  // Default protocol for new commands created for this device
+  defaultProtocolId: z.string().optional(),
 });
 
 // --- Full Profile Export/Import Schema ---
