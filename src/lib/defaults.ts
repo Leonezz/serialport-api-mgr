@@ -1897,3 +1897,29 @@ export const DEFAULT_PRESETS: SerialPreset[] = [
     widgets: [],
   },
 ];
+
+// ============================================================================
+// RE-EXPORT MODULAR DEFAULTS (Protocol System)
+// ============================================================================
+// These are the new Device/Protocol/Command entity system defaults
+export {
+  DEFAULT_PROTOCOLS,
+  PROTOCOL_AT_COMMANDS,
+  PROTOCOL_ELM327,
+  PROTOCOL_ESP32_TEST_DEVICE,
+  PROTOCOL_GPS_NMEA,
+  PROTOCOL_MARLIN,
+  PROTOCOL_MODBUS_RTU,
+  PROTOCOL_SCPI,
+} from "./defaults/protocols";
+
+export {
+  DEFAULT_DEVICES,
+  DEVICE_3D_PRINTER_MARLIN,
+  DEVICE_AT_GENERIC,
+  DEVICE_ESP32_TEST,
+  DEVICE_GPS_RECEIVER,
+  DEVICE_MODBUS_GENERIC,
+  DEVICE_OBD2_ELM327,
+  DEVICE_SCPI_INSTRUMENT,
+} from "./defaults/devices";
