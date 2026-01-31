@@ -1,6 +1,7 @@
 import { StateCreator } from "zustand";
 import { generateId } from "../utils";
-import { DEFAULT_COMMANDS, DEFAULT_PRESETS } from "../defaults";
+import { DEFAULT_COMMANDS } from "../defaults/index";
+import { DEFAULT_PRESETS } from "../defaults";
 import {
   instantiateFromProtocol,
   syncAllProtocolCommands,

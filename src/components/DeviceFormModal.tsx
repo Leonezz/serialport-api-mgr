@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Cpu,
   Radio,
@@ -14,6 +14,9 @@ import {
   Star,
   X,
   Plus,
+  Pencil,
+  Terminal,
+  Layers,
 } from "lucide-react";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
@@ -84,10 +87,13 @@ const DeviceFormModal: React.FC = () => {
     showDeviceModal,
     editingDevice,
     protocols,
+    commands,
     setShowDeviceModal,
     setEditingDevice,
     addDevice,
     updateDevice,
+    addCommandToDevice,
+    removeCommandFromDevice,
     addToast,
   } = useStore();
 
@@ -95,7 +101,7 @@ const DeviceFormModal: React.FC = () => {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<
-    "basic" | "serial" | "protocols" | "attachments"
+    "basic" | "serial" | "protocols" | "commands" | "attachments"
   >("basic");
 
   // Basic info state
@@ -120,9 +126,15 @@ const DeviceFormModal: React.FC = () => {
 
   // Protocol bindings state
   const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
+  const [defaultProtocolId, setDefaultProtocolId] = useState<
+    string | undefined
+  >(undefined);
 
   // Attachments state
   const [attachments, setAttachments] = useState<DeviceAttachment[]>([]);
+
+  // Command IDs state (for new devices, track locally; for existing, managed via store actions)
+  const [localCommandIds, setLocalCommandIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (editingDevice) {
@@ -149,9 +161,13 @@ const DeviceFormModal: React.FC = () => {
       setSelectedProtocols(
         (editingDevice.protocols || []).map((p) => p.protocolId),
       );
+      setDefaultProtocolId(editingDevice.defaultProtocolId);
 
       // Attachments
       setAttachments(editingDevice.attachments || []);
+
+      // Command IDs
+      setLocalCommandIds(editingDevice.commandIds || []);
     } else {
       // Reset all fields
       setName("");
@@ -167,7 +183,9 @@ const DeviceFormModal: React.FC = () => {
       setParity("None");
       setFlowControl("None");
       setSelectedProtocols([]);
+      setDefaultProtocolId(undefined);
       setAttachments([]);
+      setLocalCommandIds([]);
     }
     setActiveTab("basic");
   }, [editingDevice, showDeviceModal]);
@@ -199,6 +217,9 @@ const DeviceFormModal: React.FC = () => {
         protocolId,
         parameterDefaults: {},
       })),
+      defaultProtocolId: defaultProtocolId || undefined,
+      // Only include commandIds for new devices; existing devices manage this via store actions
+      commandIds: editingDevice?.id ? undefined : localCommandIds,
       attachments,
     };
 
@@ -319,10 +340,35 @@ const DeviceFormModal: React.FC = () => {
 
   const IconComponent = DEVICE_ICONS.find((i) => i.value === icon)?.icon || Cpu;
 
+  // Get commands for this device
+  const deviceCommands = useMemo(() => {
+    const commandIds = editingDevice?.commandIds || localCommandIds;
+    return commands.filter((cmd) => commandIds.includes(cmd.id));
+  }, [commands, editingDevice?.commandIds, localCommandIds]);
+
+  // Group commands by category/group
+  const groupedDeviceCommands = useMemo(() => {
+    const groups: Record<string, typeof deviceCommands> = {};
+    deviceCommands.forEach((cmd) => {
+      const key = cmd.group || "Ungrouped";
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(cmd);
+    });
+    return Object.entries(groups).sort(([a], [b]) => {
+      if (a === "Ungrouped") return 1;
+      if (b === "Ungrouped") return -1;
+      return a.localeCompare(b);
+    });
+  }, [deviceCommands]);
+
   const tabs = [
     { id: "basic" as const, label: "Basic Info" },
     { id: "serial" as const, label: "Serial Options" },
     { id: "protocols" as const, label: "Protocols" },
+    {
+      id: "commands" as const,
+      label: `Commands (${deviceCommands.length})`,
+    },
     {
       id: "attachments" as const,
       label: `Attachments (${attachments.length})`,
@@ -536,8 +582,8 @@ const DeviceFormModal: React.FC = () => {
             className="space-y-4"
           >
             <p className="text-sm text-muted-foreground">
-              Link protocols that this device supports. The first protocol (★)
-              is used as the primary for command resolution.
+              Link protocols that this device supports. The default protocol (★)
+              is used for new command creation.
             </p>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -545,52 +591,52 @@ const DeviceFormModal: React.FC = () => {
               {selectedProtocols.map((protocolId, index) => {
                 const protocol = protocols.find((p) => p.id === protocolId);
                 if (!protocol) return null;
-                const isPrimary = index === 0;
+                const isDefault =
+                  protocolId === editingDevice?.defaultProtocolId;
                 const commandCount = protocol.commands?.length ?? 0;
 
                 return (
                   <div
                     key={protocol.id}
                     className={`flex items-center gap-3 p-3 rounded-md border ${
-                      isPrimary
+                      isDefault
                         ? "border-primary/50 bg-primary/5"
                         : "border-border"
                     }`}
                   >
-                    {/* Star button for primary */}
+                    {/* Star button for default protocol */}
                     <button
                       type="button"
                       onClick={() => {
-                        if (!isPrimary) {
-                          // Move to front
-                          setSelectedProtocols((prev) => [
-                            protocolId,
-                            ...prev.filter((id) => id !== protocolId),
-                          ]);
-                        }
+                        setDefaultProtocolId(protocolId);
                       }}
                       className={`shrink-0 p-1 rounded transition-colors ${
-                        isPrimary
+                        isDefault
                           ? "text-yellow-500"
                           : "text-muted-foreground/40 hover:text-yellow-500"
                       }`}
                       aria-label={
-                        isPrimary
-                          ? `${protocol.name} is primary protocol`
-                          : `Set ${protocol.name} as primary protocol`
+                        isDefault
+                          ? `${protocol.name} is the default protocol`
+                          : `Set ${protocol.name} as default protocol`
+                      }
+                      title={
+                        isDefault
+                          ? "Default protocol for new commands"
+                          : "Click to set as default protocol"
                       }
                     >
                       <Star
-                        className={`w-4 h-4 ${isPrimary ? "fill-current" : ""}`}
+                        className={`w-4 h-4 ${isDefault ? "fill-current" : ""}`}
                       />
                     </button>
 
                     <div className="flex-1 min-w-0">
                       <div className="font-medium flex items-center gap-2">
                         {protocol.name}
-                        {isPrimary && (
+                        {isDefault && (
                           <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">
-                            Primary
+                            DEFAULT
                           </span>
                         )}
                       </div>
@@ -668,6 +714,148 @@ const DeviceFormModal: React.FC = () => {
                 {selectedProtocols.length !== 1 ? "s" : ""} linked
               </div>
             )}
+          </div>
+        )}
+
+        {/* Commands Tab */}
+        {activeTab === "commands" && (
+          <div
+            role="tabpanel"
+            id="commands-panel"
+            aria-labelledby="commands-tab"
+            className="space-y-4"
+          >
+            <p className="text-sm text-muted-foreground">
+              Commands owned by this device. These commands are associated with
+              the device and can use its linked protocols.
+            </p>
+
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {deviceCommands.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground border border-dashed rounded-md">
+                  <Terminal className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No commands for this device</p>
+                  <p className="text-xs mt-1">
+                    Commands can be added from the Command Library or created
+                    directly.
+                  </p>
+                </div>
+              ) : (
+                groupedDeviceCommands.map(([groupName, cmds]) => (
+                  <div key={groupName} className="space-y-2">
+                    {groupName !== "Ungrouped" && (
+                      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase">
+                        <Layers className="w-3 h-3" />
+                        {groupName}
+                      </div>
+                    )}
+                    {cmds.map((cmd) => {
+                      // Find which protocol this command uses
+                      const cmdProtocol = cmd.protocolLayer?.protocolId
+                        ? protocols.find(
+                            (p) => p.id === cmd.protocolLayer?.protocolId,
+                          )
+                        : null;
+
+                      return (
+                        <div
+                          key={cmd.id}
+                          className="flex items-center gap-3 p-3 rounded-md border border-border bg-muted/20 group"
+                        >
+                          <Terminal className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm flex items-center gap-2">
+                              {cmd.name}
+                              {cmdProtocol && (
+                                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                  via {cmdProtocol.name}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {cmd.payload || "(no payload)"}
+                            </div>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                              title="Edit command"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editingDevice?.id) {
+                                  removeCommandFromDevice(
+                                    editingDevice.id,
+                                    cmd.id,
+                                  );
+                                } else {
+                                  setLocalCommandIds((prev) =>
+                                    prev.filter((id) => id !== cmd.id),
+                                  );
+                                }
+                              }}
+                              className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                              title="Remove from device"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add command section */}
+            <div className="pt-2 border-t border-border">
+              <div className="text-xs font-medium text-muted-foreground mb-2">
+                Add existing command to device
+              </div>
+              {(() => {
+                const deviceCommandIds =
+                  editingDevice?.commandIds || localCommandIds;
+                const availableCommands = commands.filter(
+                  (cmd) => !deviceCommandIds.includes(cmd.id),
+                );
+                if (availableCommands.length === 0) {
+                  return (
+                    <p className="text-xs text-muted-foreground italic">
+                      All commands are already linked to this device.
+                    </p>
+                  );
+                }
+                return (
+                  <SelectDropdown
+                    options={availableCommands.map((cmd) => ({
+                      value: cmd.id,
+                      label: `${cmd.name}${cmd.group ? ` (${cmd.group})` : ""}`,
+                    }))}
+                    value=""
+                    onChange={(commandId) => {
+                      if (commandId) {
+                        if (editingDevice?.id) {
+                          addCommandToDevice(editingDevice.id, commandId);
+                        } else {
+                          setLocalCommandIds((prev) => [...prev, commandId]);
+                        }
+                      }
+                    }}
+                    placeholder="+ Add command..."
+                  />
+                );
+              })()}
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              {deviceCommands.length} command
+              {deviceCommands.length !== 1 ? "s" : ""} linked
+            </div>
           </div>
         )}
 

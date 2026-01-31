@@ -33,6 +33,46 @@ pnpm build
 ### Package Manager
 This project uses **pnpm** (v10.27.0). Always use `pnpm` instead of npm or yarn.
 
+### Browser Automation Testing
+Use **playwright-cli** for automated UI testing and verification:
+
+```bash
+# Open app in headed browser for manual inspection
+npx playwright-cli open http://localhost:14200 --headed --browser chromium
+
+# Take snapshot of current page state
+npx playwright-cli snapshot
+
+# Click element by ref (from snapshot)
+npx playwright-cli click e49
+
+# Scroll page
+npx playwright-cli mousewheel 0 500
+
+# Clear localStorage (useful for testing fresh state)
+npx playwright-cli run-code "async page => { await page.evaluate(() => localStorage.clear()); }"
+
+# Reload page
+npx playwright-cli reload
+
+# Close browser
+npx playwright-cli close
+```
+
+**Common Testing Workflow:**
+1. Start dev server: `pnpm tauri dev`
+2. Wait for server to start (~25 seconds)
+3. Open in browser: `npx playwright-cli open http://localhost:14200 --headed --browser chromium`
+4. Take snapshot: `npx playwright-cli snapshot`
+5. Read snapshot file: `.playwright-cli/page-YYYY-MM-DD*.yml`
+6. Interact with elements using refs from snapshot
+7. Clear localStorage if testing fresh state: `npx playwright-cli run-code "async page => { await page.evaluate(() => localStorage.clear()); }"`
+
+**Notes:**
+- Snapshot files are saved in `.playwright-cli/` directory
+- Element refs (e.g., `e49`) are found in snapshot YAML files
+- When testing state changes, always clear localStorage first to avoid cached data
+
 ## Architecture Overview
 
 ### Frontend Architecture
@@ -206,10 +246,72 @@ Controlled by zustand UI slice state
 
 ## Plans & Progresses & Other Intermediate Files
 
-- Write plans, progresses and other intermediate files in the `./.claude/` folder under the project folder, instead of the global `~/.claude/` folder.
-- Always update documents after making code changes.
+### Location
+- Store all intermediate documents in `./.claude/` folder under the project root
+- Do NOT use the global `~/.claude/` folder for project-specific documents
+- Plans that may be reused as references go in `./docs/plans/`
 
-- **Quality Assurance:** After making code changes and fixing errors:
+### Naming Conventions
+| Document Type | Pattern | Example |
+|--------------|---------|---------|
+| Plans | `YYYY-MM-DD-<topic>-plan.md` | `2026-01-30-test-plan.md` |
+| Test Results | `test-results-YYYY-MM-DD.md` | `test-results-2026-01-30.md` |
+| Progress Logs | `progress-YYYY-MM-DD.md` | `progress-2026-01-30.md` |
+| Design Docs | `design-<feature>.md` | `design-framing-v2.md` |
+| Investigation | `investigation-<topic>.md` | `investigation-memory-leak.md` |
+| Scratch/Temp | `scratch-<topic>.md` | `scratch-api-notes.md` |
+
+### Status Markers
+Use these status markers in document headers and task tables:
+
+| Marker | Meaning |
+|--------|---------|
+| `[DRAFT]` | Work in progress, not ready for review |
+| `[READY]` | Ready for review or execution |
+| `[IN PROGRESS]` | Currently being executed |
+| `[COMPLETED]` | Finished successfully |
+| `[BLOCKED]` | Waiting on external dependency |
+| `[ABANDONED]` | No longer relevant, kept for reference |
+
+For inline task status:
+- `✅ PASS` or `✅ DONE` - Completed successfully
+- `❌ FAIL` - Failed
+- `⚠️ PARTIAL` or `⚠️ WARNING` - Partially complete or has warnings
+- `🔄 IN PROGRESS` - Currently working
+- `⏳ PENDING` - Not started
+- `🚫 BLOCKED` - Cannot proceed
+- `⏭️ SKIPPED` - Intentionally skipped
+
+### Document Structure
+```markdown
+# [STATUS] Document Title
+
+## Overview
+Brief description of purpose
+
+## Context
+Background information, links to related docs
+
+## Content
+Main content organized by sections
+
+## Issues Found
+Track any issues discovered (for test/investigation docs)
+
+## Summary
+Key takeaways and next steps
+```
+
+### Organization Rules
+1. **One topic per document** - Don't mix unrelated content
+2. **Date prefix for time-sensitive docs** - Plans, results, progress logs
+3. **Update status markers** - Keep them current as work progresses
+4. **Link related documents** - Cross-reference when relevant
+5. **Clean up completed work** - Mark old docs as `[COMPLETED]` or `[ABANDONED]`
+6. **Always update after code changes** - Keep documentation in sync
+
+### Quality Assurance
+After making code changes and fixing errors:
     *   Run `pnpm run lint` to detect ESLint errors.
     *   Run `pnpm run type-check` (or `tsc`) to detect type errors.
     *   Run `pnpm run format` to ensure code style consistency.

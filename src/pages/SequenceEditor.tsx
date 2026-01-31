@@ -40,6 +40,7 @@ import {
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { PageHeader } from "../routes";
+import { Breadcrumb, workspaceItem } from "../components/ui/Breadcrumb";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { cn, generateId } from "../lib/utils";
 import type { SerialSequence, SequenceStep } from "../types";
@@ -185,6 +186,17 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
           </div>
         }
       />
+
+      {/* Breadcrumb */}
+      <div className="px-6 py-3 border-b border-border/50">
+        <Breadcrumb
+          items={[
+            workspaceItem,
+            { label: "Sequences", href: "/sequences" },
+            { label: editState.name },
+          ]}
+        />
+      </div>
 
       {/* Tabs */}
       <div className="border-b border-border px-4">

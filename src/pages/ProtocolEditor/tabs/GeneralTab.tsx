@@ -5,6 +5,8 @@
  */
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
@@ -14,6 +16,8 @@ import type { GeneralTabProps } from "../types";
 export const GeneralTab: React.FC<GeneralTabProps> = ({
   editState,
   onChange,
+  linkedDevices,
+  linkedCommands,
 }) => {
   const [tagInput, setTagInput] = useState("");
 
@@ -151,6 +155,65 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Used By Section */}
+      {(linkedDevices.length > 0 || linkedCommands.length > 0) && (
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">Used By</h2>
+
+          {/* Linked Devices */}
+          {linkedDevices.length > 0 && (
+            <div className="space-y-2">
+              <Label>Devices ({linkedDevices.length})</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {linkedDevices.map((device) => (
+                  <Link
+                    key={device.id}
+                    to={`/devices/${device.id}/edit`}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{device.name}</p>
+                      {device.description && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {device.description}
+                        </p>
+                      )}
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ml-2 shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Linked Commands */}
+          {linkedCommands.length > 0 && (
+            <div className="space-y-2">
+              <Label>Commands ({linkedCommands.length})</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {linkedCommands.map((command) => (
+                  <Link
+                    key={command.id}
+                    to={`/commands/${command.id}/edit`}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{command.name}</p>
+                      {command.description && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {command.description}
+                        </p>
+                      )}
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ml-2 shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 };

@@ -490,6 +490,12 @@ export const DeviceSchema = BaseEntitySchema.extend({
   // Protocol support
   protocols: z.array(DeviceProtocolBindingSchema).default([]),
 
+  // Default protocol for new commands created for this device
+  defaultProtocolId: z.string().optional(),
+
+  // Direct command references (device owns these)
+  commandIds: z.array(z.string()).default([]),
+
   // Default communication settings
   defaultSerialOptions: SerialOptionsSchema.optional(),
 

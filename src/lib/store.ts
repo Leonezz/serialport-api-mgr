@@ -414,13 +414,23 @@ export const useStore = create<AppState>()(
               merged.loadedPresetId = data.loadedPresetId;
 
             // Devices (Manually handled since not in main schema yet)
+            // Only override defaults if persisted data has items
             const anyData = data as Record<string, unknown>;
-            if (anyData.devices && Array.isArray(anyData.devices)) {
+            if (
+              anyData.devices &&
+              Array.isArray(anyData.devices) &&
+              anyData.devices.length > 0
+            ) {
               merged.devices = anyData.devices as AppState["devices"];
             }
 
             // Protocol system data (new)
-            if (anyData.protocols && Array.isArray(anyData.protocols)) {
+            // Only override defaults if persisted data has items
+            if (
+              anyData.protocols &&
+              Array.isArray(anyData.protocols) &&
+              anyData.protocols.length > 0
+            ) {
               merged.protocols = anyData.protocols as AppState["protocols"];
             }
 
