@@ -4,7 +4,8 @@ import { Textarea } from "./ui/Textarea";
 import { HexInput } from "./ui/HexInput";
 import { SelectDropdown } from "./ui/Select";
 import { DropdownOption } from "./ui/Dropdown";
-import { Send, ArrowDownToLine, Zap, Paperclip, X } from "lucide-react";
+import { Send, ArrowDownToLine, Zap, Paperclip, X, Save } from "lucide-react";
+import QuickSaveCommandModal from "./QuickSaveCommandModal";
 import {
   LineEnding,
   DataMode,
@@ -47,6 +48,9 @@ const InputPanel: React.FC<Props> = ({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
+
+  // Quick save modal
+  const [showQuickSaveModal, setShowQuickSaveModal] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -311,15 +315,26 @@ const InputPanel: React.FC<Props> = ({
                 <Paperclip className="w-4 h-4" />
               </Button>
               {inputBuffer.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                  onClick={() => setInputBuffer("")}
-                  title="Clear Input"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg"
+                    onClick={() => setShowQuickSaveModal(true)}
+                    title="Save as Command"
+                  >
+                    <Save className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                    onClick={() => setInputBuffer("")}
+                    title="Clear Input"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </>
               )}
             </div>
             <Button
@@ -333,6 +348,15 @@ const InputPanel: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      {/* Quick Save Command Modal */}
+      {showQuickSaveModal && (
+        <QuickSaveCommandModal
+          payload={inputBuffer}
+          mode={sendMode}
+          onClose={() => setShowQuickSaveModal(false)}
+        />
+      )}
     </div>
   );
 };
