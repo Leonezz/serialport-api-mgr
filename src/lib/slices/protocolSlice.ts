@@ -15,7 +15,7 @@ import type {
   Sequence,
   DeviceProtocolBinding,
 } from "../protocolTypes";
-import { DEFAULT_PROTOCOLS, DEFAULT_DEVICES } from "../defaults";
+import { DEFAULT_PROTOCOLS, DEFAULT_DEVICES } from "../defaults/index";
 
 // ============================================================================
 // STATE INTERFACE
@@ -88,6 +88,14 @@ export interface ProtocolSliceActions {
   ) => string;
   updateSequence: (id: string, updates: Partial<Sequence>) => void;
   deleteSequence: (id: string) => void;
+
+  // Device-Command relationship management
+  addCommandToDevice: (deviceId: string, commandId: string) => void;
+  removeCommandFromDevice: (deviceId: string, commandId: string) => void;
+  setDeviceDefaultProtocol: (
+    deviceId: string,
+    protocolId: string | null,
+  ) => void;
 
   // Bulk setters for import/migration
   setProtocols: (
@@ -378,6 +386,48 @@ export const createProtocolSlice: StateCreator<ProtocolSlice> = (set, get) => ({
   deleteSequence: (id) =>
     set((state) => ({
       sequences: state.sequences.filter((s) => s.id !== id),
+    })),
+
+  // Device-Command relationship management
+  addCommandToDevice: (deviceId, commandId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              commandIds: d.commandIds?.includes(commandId)
+                ? d.commandIds
+                : [...(d.commandIds || []), commandId],
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
+    })),
+
+  removeCommandFromDevice: (deviceId, commandId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              commandIds: (d.commandIds || []).filter((id) => id !== commandId),
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
+    })),
+
+  setDeviceDefaultProtocol: (deviceId, protocolId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              defaultProtocolId: protocolId || undefined,
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
     })),
 
   // Bulk setters

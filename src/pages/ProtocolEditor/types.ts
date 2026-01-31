@@ -11,7 +11,7 @@ import type {
   MessageElement,
   CommandTemplate,
 } from "../../lib/protocolTypes";
-import type { Device } from "../../types";
+import type { Device, SavedCommand } from "../../types";
 
 // Tab definitions
 export type EditorTab = "general" | "framing" | "structures" | "commands";
@@ -29,7 +29,10 @@ export interface TabProps {
 }
 
 // Props for GeneralTab
-export type GeneralTabProps = TabProps;
+export interface GeneralTabProps extends TabProps {
+  linkedDevices: Device[];
+  linkedCommands: SavedCommand[];
+}
 
 // Props for FramingTab
 export type FramingTabProps = TabProps;

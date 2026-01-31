@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { Button } from "../components/ui/Button";
+import { Breadcrumb, workspaceItem } from "../components/ui/Breadcrumb";
 import { PageHeader } from "../routes";
 import type {
   Protocol,
@@ -74,6 +75,7 @@ const ProtocolEditorContent: React.FC<ProtocolEditorContentProps> = ({
     updateCommandTemplate,
     addToast,
     devices,
+    commands,
     addCommand,
   } = useStore();
   const id = protocol.id;
@@ -99,6 +101,13 @@ const ProtocolEditorContent: React.FC<ProtocolEditorContentProps> = ({
       d.protocols?.some((p) => p.protocolId === protocol.id),
     );
   }, [devices, protocol.id]);
+
+  // Get commands that use this protocol
+  const linkedCommands = useMemo(() => {
+    return commands.filter(
+      (cmd) => cmd.protocolLayer?.protocolId === protocol.id,
+    );
+  }, [commands, protocol.id]);
 
   // Handler for adding a command to a device
   const handleAddCommandToDevice = (
@@ -256,6 +265,17 @@ const ProtocolEditorContent: React.FC<ProtocolEditorContentProps> = ({
         }
       />
 
+      {/* Breadcrumb */}
+      <div className="px-6 py-3 border-b border-border/50">
+        <Breadcrumb
+          items={[
+            workspaceItem,
+            { label: "Protocols", href: "/protocols" },
+            { label: editState.name },
+          ]}
+        />
+      </div>
+
       {/* Tabs */}
       <div className="border-b border-border px-4">
         <div className="flex gap-1">
@@ -285,7 +305,12 @@ const ProtocolEditorContent: React.FC<ProtocolEditorContentProps> = ({
         <div className="max-w-4xl mx-auto">
           {/* General Tab - always mounted, hidden when not active */}
           <div className={activeTab !== "general" ? "hidden" : undefined}>
-            <GeneralTab editState={editState} onChange={handleChange} />
+            <GeneralTab
+              editState={editState}
+              onChange={handleChange}
+              linkedDevices={linkedDevices}
+              linkedCommands={linkedCommands}
+            />
           </div>
           {/* Framing Tab - always mounted, hidden when not active */}
           <div className={activeTab !== "framing" ? "hidden" : undefined}>
