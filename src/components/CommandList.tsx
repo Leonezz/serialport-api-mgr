@@ -3,6 +3,7 @@ import { Play, Trash2 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
 import { SavedCommand } from "@/types";
+import { getEffectiveMode, getEffectivePayload } from "@/lib/commandBuilder";
 
 interface Props {
   commands: SavedCommand[];
@@ -50,13 +51,19 @@ const CommandList: React.FC<Props> = ({ commands, onSend, onDelete }) => {
           </div>
           <div className="flex items-center justify-between">
             <code className="text-xs text-muted-foreground font-mono truncate max-w-35 bg-muted px-1.5 py-0.5 rounded">
-              {(cmd.payload || "").replace(/\r/g, "\\r").replace(/\n/g, "\\n")}
+              {getEffectivePayload(cmd)
+                .replace(/\r/g, "\\r")
+                .replace(/\n/g, "\\n")}
             </code>
             <Badge
               variant="secondary"
               className="text-[10px] h-5 px-1 font-mono"
             >
-              {cmd.mode === "HEX" ? "HEX" : "TXT"}
+              {getEffectiveMode(cmd) === "HEX"
+                ? "HEX"
+                : getEffectiveMode(cmd) === "BINARY"
+                  ? "BIN"
+                  : "TXT"}
             </Badge>
           </div>
         </div>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
+import { getEffectiveMode, getEffectivePayload } from "../lib/commandBuilder";
 import type { SavedCommand } from "../types";
 import type { Protocol } from "../lib/protocolTypes";
 
@@ -53,6 +54,10 @@ export const CommandCard: React.FC<CommandCardProps> = ({
       ? protocols.find((p) => p.id === command.protocolLayer?.protocolId)?.name
       : null;
 
+  // Use effective mode/payload which handles both CUSTOM and PROTOCOL commands
+  const commandMode = getEffectiveMode(command);
+  const commandPayload = getEffectivePayload(command);
+
   return (
     <div className="group relative bg-card border border-border rounded-lg p-4 hover:border-primary/50 hover:shadow-md transition-all flex flex-col h-full">
       {/* Command Icon & Name */}
@@ -68,7 +73,7 @@ export const CommandCard: React.FC<CommandCardProps> = ({
           <h3 className="font-semibold truncate">{command.name}</h3>
           <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             <Badge variant="secondary" className="text-[10px]">
-              {command.mode}
+              {commandMode}
             </Badge>
             {protocolName && (
               <Badge variant="outline" className="text-[10px]">
@@ -93,9 +98,9 @@ export const CommandCard: React.FC<CommandCardProps> = ({
       )}
 
       {/* Payload Preview */}
-      {command.payload && (
+      {commandPayload && (
         <div className="bg-muted/50 rounded px-2 py-1 mb-3 font-mono text-xs text-muted-foreground truncate">
-          {command.payload}
+          {commandPayload}
         </div>
       )}
 
@@ -208,6 +213,9 @@ export const CommandListItem: React.FC<CommandListItemProps> = ({
       ? protocols.find((p) => p.id === command.protocolLayer?.protocolId)?.name
       : null;
 
+  // Use effective mode which handles both CUSTOM and PROTOCOL commands
+  const commandMode = getEffectiveMode(command);
+
   return (
     <div className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50">
       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -233,7 +241,7 @@ export const CommandListItem: React.FC<CommandListItemProps> = ({
 
         {/* Mode Badge */}
         <Badge variant="secondary" className="text-[10px] ml-auto shrink-0">
-          {command.mode}
+          {commandMode}
         </Badge>
       </div>
 
