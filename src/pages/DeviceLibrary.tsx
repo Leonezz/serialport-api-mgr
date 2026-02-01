@@ -17,8 +17,13 @@ import { EmptyState } from "../components/ui/EmptyState";
 
 const DeviceLibrary: React.FC = () => {
   const navigate = useNavigate();
-  const { devices, setShowDeviceModal, setEditingDevice, deleteDevice } =
-    useStore();
+  const {
+    devices,
+    commands,
+    setShowDeviceModal,
+    setEditingDevice,
+    deleteDevice,
+  } = useStore();
 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
