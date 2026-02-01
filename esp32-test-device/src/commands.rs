@@ -4,7 +4,7 @@ use esp_idf_svc::http::server::EspHttpServer;
 use log::*;
 
 use crate::http::start_http_server;
-use crate::protocols;
+use crate::protocols::{self, EscPosEmulator, ModbusServer};
 use crate::serial::send_line;
 use crate::types::{ProtocolMode, SharedState};
 use crate::wifi::{clear_wifi_config, save_wifi_config, try_connect_wifi, WifiManager};
@@ -35,8 +35,11 @@ pub fn process_line(
         ProtocolMode::Echo => line.to_string(),
         ProtocolMode::AtCommand => protocols::process_at_command(line),
         ProtocolMode::ModbusRtu => {
-            // Modbus is binary, this is for debugging
-            "Modbus RTU mode - send binary data".to_string()
+            // Modbus is binary - if we get text here, it's likely a debug/test message
+            format!(
+                "Modbus RTU mode active (slave addr {}). Send binary Modbus frames.\r\nUse MODE=AT to return to text mode.",
+                protocols::SLAVE_ADDRESS
+            )
         }
         ProtocolMode::NmeaGps => {
             let sim_data = &state.lock().unwrap().simulated_data;
@@ -51,7 +54,10 @@ pub fn process_line(
         ProtocolMode::Elm327 => {
             protocols::process_elm327_command(line, &state.lock().unwrap().simulated_data)
         }
-        ProtocolMode::EscPos => "ESC/POS mode - send binary commands".to_string(),
+        ProtocolMode::EscPos => {
+            // ESC/POS is binary - if we get text here, it's likely a debug/test message
+            "ESC/POS thermal printer mode active. Send binary ESC/POS commands.\r\nUse MODE=AT to return to text mode.".to_string()
+        }
     }
 }
 
@@ -250,6 +256,63 @@ pub fn show_welcome_message() {
     send_line("");
 }
 
+/// Binary protocol state for stateful protocol emulators
+pub struct BinaryProtocolState {
+    pub modbus_server: ModbusServer,
+    pub escpos_emulator: EscPosEmulator,
+}
+
+impl BinaryProtocolState {
+    pub fn new() -> Self {
+        Self {
+            modbus_server: ModbusServer::new(),
+            escpos_emulator: EscPosEmulator::new(),
+        }
+    }
+}
+
+impl Default for BinaryProtocolState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Process binary data for Modbus RTU and ESC/POS protocols
+/// Returns Some(response_bytes) if the protocol produces a response
+pub fn process_binary_data(
+    data: &[u8],
+    mode: ProtocolMode,
+    state: &SharedState,
+    binary_state: &mut BinaryProtocolState,
+) -> Option<Vec<u8>> {
+    let sim_data = &state.lock().unwrap().simulated_data;
+
+    match mode {
+        ProtocolMode::ModbusRtu => {
+            log::debug!("Modbus RTU: Received {} bytes: {:02X?}", data.len(), data);
+            let response = binary_state.modbus_server.process_frame(data, sim_data);
+            if let Some(ref resp) = response {
+                log::debug!("Modbus RTU: Sending {} bytes: {:02X?}", resp.len(), resp);
+            }
+            response
+        }
+        ProtocolMode::EscPos => {
+            log::debug!("ESC/POS: Received {} bytes", data.len());
+            let response = binary_state.escpos_emulator.process(data, sim_data);
+            if let Some(ref resp) = response {
+                log::debug!("ESC/POS: Sending {} bytes: {:02X?}", resp.len(), resp);
+            }
+            response
+        }
+        _ => None,
+    }
+}
+
+/// Check if the current mode uses binary protocol (not line-based)
+pub fn is_binary_mode(mode: ProtocolMode) -> bool {
+    matches!(mode, ProtocolMode::ModbusRtu | ProtocolMode::EscPos)
+}
+
 const HELP_TEXT: &str = r#"
 === Serial Protocol Tester Commands ===
 
@@ -265,11 +328,12 @@ Protocol Mode:
   MODE=SETUP           WiFi setup mode
   MODE=ECHO            Echo/loopback mode
   MODE=AT              AT command mode (ESP32)
-  MODE=MODBUS          Modbus RTU slave
+  MODE=MODBUS          Modbus RTU slave (binary)
   MODE=GPS             NMEA GPS simulator
   MODE=SCPI            SCPI instrument
   MODE=MARLIN          3D printer (Marlin)
   MODE=ELM327          OBD-II adapter
+  MODE=ESCPOS          Thermal printer (binary)
 
 Simulation:
   SET_TEMP=<value>     Set temperature (°C)
@@ -280,4 +344,8 @@ Simulation:
 Other:
   HELP                 Show this help
   STATUS               Show device status
+
+Binary Protocols (Modbus RTU, ESC/POS):
+  Send raw binary data in these modes.
+  Use MODE=AT or other text mode to return to text commands.
 "#;
