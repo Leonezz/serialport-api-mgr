@@ -47,7 +47,7 @@ import ConfirmationModal from "../components/ConfirmationModal";
 import CommandFormModal from "../components/CommandFormModal";
 import { CommandCard, CommandListItem } from "../components/CommandViews";
 import { cn, generateId } from "../lib/utils";
-import type { Device, DeviceAttachment } from "../types";
+import type { Device, DeviceAttachment, SavedCommand } from "../types";
 
 // Tab definitions
 type EditorTab = "general" | "attachments" | "presets" | "commands";
@@ -90,6 +90,7 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
     assignToDevice,
     addToast,
     addCommand,
+    updateCommand,
     addSequence,
   } = useStore();
   const id = device.id;
@@ -108,6 +109,9 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
 
   // Modals for creating new items
   const [showCommandModal, setShowCommandModal] = useState(false);
+  const [editingCommand, setEditingCommand] = useState<SavedCommand | null>(
+    null,
+  );
 
   // Local edit state
   const [editState, setEditState] = useState<Device>(() => ({ ...device }));
@@ -198,12 +202,20 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
   };
 
   // Data helpers
-  const deviceCommands = commands.filter((c) => c.deviceId === id);
+  // Get commands by commandIds (device stores references) OR by deviceId (direct assignment)
+  const deviceCommandIds = new Set(editState.commandIds || []);
+  const deviceCommands = commands.filter(
+    (c) => deviceCommandIds.has(c.id) || c.deviceId === id,
+  );
   const devicePresets = presets.filter((p) =>
     (device.presetIds || []).includes(p.id),
   );
 
-  const globalCommands = commands.filter((c) => !c.deviceId);
+  // Global commands are those not assigned to any device
+  const assignedCommandIds = new Set(deviceCommands.map((c) => c.id));
+  const globalCommands = commands.filter(
+    (c) => !c.deviceId && !assignedCommandIds.has(c.id),
+  );
   const unlinkedPresets = presets.filter(
     (p) => !(device.presetIds || []).includes(p.id),
   );
@@ -615,8 +627,8 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
                               command={cmd}
                               protocols={protocols}
                               onEdit={(command) => {
-                                // TODO: Open command edit modal
-                                console.log("Edit command:", command.id);
+                                setEditingCommand(command);
+                                setShowCommandModal(true);
                               }}
                             />
                           ))}
@@ -632,8 +644,8 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
                               command={cmd}
                               protocols={protocols}
                               onEdit={(command) => {
-                                // TODO: Open command edit modal
-                                console.log("Edit command:", command.id);
+                                setEditingCommand(command);
+                                setShowCommandModal(true);
                               }}
                               editOnly
                             />
@@ -723,19 +735,34 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
       {/* Command Form Modal */}
       {showCommandModal && (
         <CommandFormModal
-          initialData={{ deviceId: id }}
+          initialData={editingCommand || { deviceId: id }}
           sequences={sequences}
           contexts={contexts}
           onSave={(cmdData) => {
-            addCommand({ ...cmdData, deviceId: id });
+            if (editingCommand) {
+              // Update existing command
+              updateCommand(editingCommand.id, { ...cmdData, deviceId: id });
+              addToast(
+                "success",
+                "Updated",
+                `${cmdData.name} updated successfully.`,
+              );
+            } else {
+              // Create new command
+              addCommand({ ...cmdData, deviceId: id });
+              addToast(
+                "success",
+                "Created",
+                "Command created and assigned to device.",
+              );
+            }
             setShowCommandModal(false);
-            addToast(
-              "success",
-              "Created",
-              "Command created and assigned to device.",
-            );
+            setEditingCommand(null);
           }}
-          onClose={() => setShowCommandModal(false)}
+          onClose={() => {
+            setShowCommandModal(false);
+            setEditingCommand(null);
+          }}
           onCreateContext={(ctx) => setContexts((prev) => [...prev, ctx])}
           onUpdateContext={(ctx) =>
             setContexts((prev) => prev.map((c) => (c.id === ctx.id ? ctx : c)))
