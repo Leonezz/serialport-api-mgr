@@ -307,19 +307,22 @@ export function instantiateFromProtocol(
   protocol: Protocol,
   deviceId?: string,
 ): Omit<SavedCommand, "id" | "createdAt" | "updatedAt"> {
+  const protocolLayer = createProtocolLayerFromTemplate(template, protocol);
+
   return {
     name: template.name,
     description: template.description,
     source: "PROTOCOL",
     creator: "PROTOCOL",
     deviceId,
-    protocolLayer: createProtocolLayerFromTemplate(template, protocol),
+    protocolLayer,
     commandLayer: {
       // Empty by default - user can add customizations later
     },
-    // Legacy fields set to defaults for backward compatibility
-    payload: "",
-    mode: "TEXT",
+    // Legacy fields copied from protocol layer for backward compatibility and display
+    payload: protocolLayer.payload,
+    mode: protocolLayer.mode,
+    encoding: protocolLayer.encoding,
   };
 }
 

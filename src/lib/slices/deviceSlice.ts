@@ -26,6 +26,9 @@ export interface DeviceSlice {
     entityId: string,
     deviceId: string | null,
   ) => void;
+  // Device-Command relationship management (single-direction linking)
+  addCommandToDevice: (deviceId: string, commandId: string) => void;
+  removeCommandFromDevice: (deviceId: string, commandId: string) => void;
 }
 
 export const createDeviceSlice: StateCreator<
@@ -89,66 +92,10 @@ export const createDeviceSlice: StateCreator<
       ),
     })),
 
+  // Single-direction linking: only update the entity's deviceId
+  // Device -> Entity relationship is derived by filtering entities by deviceId
   assignToDevice: (entityType, entityId, deviceId) =>
     set((state) => {
-      // Helper to update the device's reference lists
-      const updateDeviceRefs = (
-        devices: Device[],
-        id: string,
-        refId: string,
-        listKey: "commandIds" | "sequenceIds" | "presetIds",
-        action: "add" | "remove",
-      ) => {
-        return devices.map((d) => {
-          if (d.id !== id) return d;
-          const set = new Set(d[listKey]);
-          if (action === "add") set.add(refId);
-          else set.delete(refId);
-          return { ...d, [listKey]: Array.from(set), updatedAt: Date.now() };
-        });
-      };
-
-      let newDevices = [...state.devices];
-
-      // 1. Remove from old device if it was assigned
-      const currentEntity =
-        entityType === "command"
-          ? state.commands.find((c) => c.id === entityId)
-          : entityType === "sequence"
-            ? state.sequences.find((s) => s.id === entityId)
-            : state.presets.find((p) => p.id === entityId);
-
-      const oldDeviceId = currentEntity?.deviceId;
-      if (oldDeviceId) {
-        newDevices = updateDeviceRefs(
-          newDevices,
-          oldDeviceId,
-          entityId,
-          entityType === "command"
-            ? "commandIds"
-            : entityType === "sequence"
-              ? "sequenceIds"
-              : "presetIds",
-          "remove",
-        );
-      }
-
-      // 2. Add to new device if assigned
-      if (deviceId) {
-        newDevices = updateDeviceRefs(
-          newDevices,
-          deviceId,
-          entityId,
-          entityType === "command"
-            ? "commandIds"
-            : entityType === "sequence"
-              ? "sequenceIds"
-              : "presetIds",
-          "add",
-        );
-      }
-
-      // 3. Update the entity itself
       const updateEntity = (items: BaseEntity[]) =>
         items.map((item) =>
           item.id === entityId
@@ -157,7 +104,6 @@ export const createDeviceSlice: StateCreator<
         );
 
       return {
-        devices: newDevices,
         commands:
           entityType === "command"
             ? updateEntity(state.commands)
@@ -170,4 +116,31 @@ export const createDeviceSlice: StateCreator<
           entityType === "preset" ? updateEntity(state.presets) : state.presets,
       };
     }),
+
+  // Device-Command relationship management (many-to-many via device.commandIds)
+  addCommandToDevice: (deviceId, commandId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              commandIds: [...(d.commandIds || []), commandId],
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
+    })),
+
+  removeCommandFromDevice: (deviceId, commandId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              commandIds: (d.commandIds || []).filter((id) => id !== commandId),
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
+    })),
 });

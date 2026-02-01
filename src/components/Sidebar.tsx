@@ -184,9 +184,14 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
   const filteredCommands = useMemo(() => {
     let result = commands;
 
-    // Filter by device if selected
+    // Filter by device if selected (check device.commandIds)
     if (selectedDeviceId) {
-      result = result.filter((cmd) => cmd.deviceId === selectedDeviceId);
+      const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
+      if (selectedDevice) {
+        result = result.filter((cmd) =>
+          selectedDevice.commandIds?.includes(cmd.id),
+        );
+      }
     }
 
     // Filter by search query
@@ -194,22 +199,31 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
     if (query) {
       result = result.filter((cmd) => {
         const nameMatch = cmd.name.toLowerCase().includes(query);
-        const payloadMatch = cmd.payload?.toLowerCase().includes(query);
-        const groupMatch = cmd.group?.toLowerCase().includes(query);
+        const payloadMatch = cmd.protocolLayer?.payload
+          ?.toLowerCase()
+          .includes(query);
+        const groupMatch = cmd.commandLayer?.group
+          ?.toLowerCase()
+          .includes(query);
         return nameMatch || payloadMatch || groupMatch;
       });
     }
 
     return result;
-  }, [commands, selectedDeviceId, searchQuery]);
+  }, [commands, devices, selectedDeviceId, searchQuery]);
 
   // Filter sequences based on selected device and search query
   const filteredSequences = useMemo(() => {
     let result = sequences;
 
-    // Filter by device if selected
+    // Filter by device if selected (check device.sequenceIds)
     if (selectedDeviceId) {
-      result = result.filter((seq) => seq.deviceId === selectedDeviceId);
+      const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
+      if (selectedDevice) {
+        result = result.filter((seq) =>
+          selectedDevice.sequenceIds?.includes(seq.id),
+        );
+      }
     }
 
     // Filter by search query
@@ -222,12 +236,12 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
     }
 
     return result;
-  }, [sequences, selectedDeviceId, searchQuery]);
+  }, [sequences, devices, selectedDeviceId, searchQuery]);
 
   const groupedCommands = useMemo(() => {
     const groups: Record<string, SavedCommand[]> = { Ungrouped: [] };
     filteredCommands.forEach((cmd) => {
-      const key = cmd.group || "Ungrouped";
+      const key = cmd.commandLayer?.group || "Ungrouped";
       if (!groups[key]) groups[key] = [];
       groups[key].push(cmd);
     });
