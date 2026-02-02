@@ -115,6 +115,7 @@ npx playwright-cli close
   - `update_ports.rs` - Enumerate available ports
   - `log.rs` - Logging commands (debug, info, warn, error)
 - `events/` - Tauri event definitions (port_opened, port_closed, message_read)
+- `error.rs` - Error types (SerialError, AppError) using thiserror and anyhow
 
 **Tauri Commands** (callable from frontend):
 - `get_all_port_info()` - List available serial ports

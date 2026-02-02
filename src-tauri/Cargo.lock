@@ -3868,6 +3868,7 @@ dependencies = [
 name = "serialport-api"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "hex",
  "lazy_static",
  "rootcause",
@@ -3880,6 +3881,7 @@ dependencies = [
  "tauri-plugin-log",
  "tauri-plugin-shell",
  "tauri-plugin-store",
+ "thiserror 1.0.63",
  "time",
  "tokio",
  "tokio-serial",
