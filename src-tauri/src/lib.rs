@@ -92,16 +92,19 @@ pub fn run() {
         .setup(|app| {
             setup_logging(app);
             let scope = app.fs_scope();
-            let app_local_data_dir = app.path().app_local_data_dir().unwrap();
+            let app_local_data_dir = app
+                .path()
+                .app_local_data_dir()
+                .map_err(|e| format!("Failed to resolve app local data directory: {}", e))?;
             tracing::trace!(
                 "app local data dir: {}",
                 app_local_data_dir.to_string_lossy()
             );
             if !app_local_data_dir.exists() {
                 std::fs::create_dir_all(&app_local_data_dir)
-                    .expect("error create app local data dir");
+                    .map_err(|e| format!("Failed to create app local data dir: {}", e))?;
             }
-            let _ = scope.allow_directory(app.path().app_local_data_dir().unwrap(), true);
+            let _ = scope.allow_directory(&app_local_data_dir, true);
 
             let db_path = app_local_data_dir.join("serial_logs.db");
             let (tx, rx) = std::sync::mpsc::channel();
@@ -115,7 +118,9 @@ pub fn run() {
                 };
                 let _ = tx.send(storage);
             });
-            let storage = rx.recv().expect("failed to connect local database");
+            let storage = rx
+                .recv()
+                .map_err(|e| format!("Failed to receive storage from async task: {}", e))?;
             let app_state = AppState {
                 ports: tokio::sync::RwLock::new(HashMap::new()),
                 port_handles: tokio::sync::RwLock::new(HashMap::new()),
