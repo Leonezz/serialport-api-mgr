@@ -1,5 +1,12 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { LogEntry, DataMode } from "../types";
 import { ArrowDown, History, Loader2 } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -23,6 +30,9 @@ import PlotterPanel from "./console/PlotterPanel";
 import { ErrorFallback } from "./ErrorFallback";
 import { EmptyState } from "./ui/EmptyState";
 
+// Starting index for virtuoso to handle prepended history logs
+const INITIAL_INDEX = 1_000_000;
+
 const ConsoleViewer: React.FC = () => {
   // Optimized Selectors: Only subscribe to activeSessionId and logs.
   const activeSessionId = useStore((state) => state.activeSessionId);
@@ -32,9 +42,9 @@ const ConsoleViewer: React.FC = () => {
   const clearLogs = useStore((state) => state.clearLogs);
   const addToast = useStore((state) => state.addToast);
 
-  const endRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
+  // Virtuoso ref for programmatic scrolling
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const [atBottom, setAtBottom] = useState(true);
   const [view, setView] = useState<ConsoleView>("list");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("text");
   const [enableAnsi, setEnableAnsi] = useState(true);
@@ -44,10 +54,14 @@ const ConsoleViewer: React.FC = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [hasMoreHistory, setHasMoreHistory] = useState(true);
 
+  // Track first item index for prepending history (virtuoso reverse infinite scroll)
+  const [firstItemIndex, setFirstItemIndex] = useState(INITIAL_INDEX);
+
   // Clear history when session changes or port changes
   useEffect(() => {
     setHistoryLogs([]);
     setHasMoreHistory(true);
+    setFirstItemIndex(INITIAL_INDEX);
   }, [activeSessionId, portName]);
 
   // Combine history and live logs
@@ -58,12 +72,12 @@ const ConsoleViewer: React.FC = () => {
 
   const HISTORY_BATCH_SIZE = 100;
 
-  const loadHistory = async () => {
-    if (!activeSessionId || isLoadingHistory) return;
+  const loadHistory = useCallback(async () => {
+    if (!activeSessionId || isLoadingHistory || !hasMoreHistory) return;
 
     setIsLoadingHistory(true);
     try {
-      const offset = displayLogs.length;
+      const offset = historyLogs.length;
       const limit = HISTORY_BATCH_SIZE;
 
       const newLogs = await TauriSerialAPI.getLogs(
@@ -78,8 +92,9 @@ const ConsoleViewer: React.FC = () => {
 
       if (newLogs.length > 0) {
         const sortedNewLogs = [...newLogs].reverse();
+        // Prepend history logs and adjust firstItemIndex
+        setFirstItemIndex((prev) => prev - sortedNewLogs.length);
         setHistoryLogs((prev) => [...sortedNewLogs, ...prev]);
-        setAutoScroll(false);
       } else {
         addToast(
           "info",
@@ -93,14 +108,13 @@ const ConsoleViewer: React.FC = () => {
     } finally {
       setIsLoadingHistory(false);
     }
-  };
-
-  useEffect(() => {
-    // Only use main autoScroll in list/hex modes
-    if (autoScroll && (view === "list" || view === "hex")) {
-      endRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [logs, autoScroll, view]);
+  }, [
+    activeSessionId,
+    isLoadingHistory,
+    hasMoreHistory,
+    historyLogs.length,
+    addToast,
+  ]);
 
   // Map display mode to DataMode
   const dataMode: DataMode = useMemo(() => {
@@ -119,12 +133,75 @@ const ConsoleViewer: React.FC = () => {
     clearLogs();
     setHistoryLogs([]);
     setHasMoreHistory(true);
+    setFirstItemIndex(INITIAL_INDEX);
     addToast("info", "Cleared", "Console logs cleared");
   };
+
+  // Scroll to bottom handler
+  const scrollToBottom = useCallback(() => {
+    virtuosoRef.current?.scrollToIndex({
+      index: displayLogs.length - 1,
+      behavior: "smooth",
+    });
+  }, [displayLogs.length]);
 
   // Determine if we should hide display mode and ANSI toggles
   const hideDisplayMode = view === "dashboard" || view === "plotter";
   const hideAnsiToggle = displayMode !== "text" || hideDisplayMode;
+
+  // Render item for list view
+  const renderListItem = useCallback(
+    (index: number, log: LogEntry) => (
+      <LogItem
+        key={log.id}
+        log={log}
+        displayMode={dataMode}
+        enableAnsi={enableAnsi}
+        highlighted={true}
+      />
+    ),
+    [dataMode, enableAnsi],
+  );
+
+  // Render item for hex view
+  const renderHexItem = useCallback(
+    (index: number, log: LogEntry) => <HexLogEntry key={log.id} log={log} />,
+    [],
+  );
+
+  // Header component for loading history
+  const HistoryHeader = useMemo(() => {
+    if (!portName || displayLogs.length === 0) return null;
+    return (
+      <div className="flex justify-center py-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={loadHistory}
+          disabled={isLoadingHistory || !hasMoreHistory}
+          leftIcon={
+            isLoadingHistory ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <History className="w-3 h-3" />
+            )
+          }
+        >
+          {isLoadingHistory
+            ? "Loading..."
+            : hasMoreHistory
+              ? "Load older logs"
+              : "No more history"}
+        </Button>
+      </div>
+    );
+  }, [
+    portName,
+    displayLogs.length,
+    loadHistory,
+    isLoadingHistory,
+    hasMoreHistory,
+  ]);
 
   return (
     <div className="flex-1 relative bg-bg-app flex flex-col min-h-0 transition-colors duration-300">
@@ -196,86 +273,42 @@ const ConsoleViewer: React.FC = () => {
             </ErrorBoundary>
           </div>
         </div>
+      ) : displayLogs.length === 0 ? (
+        <EmptyState variant="console" className="flex-1" hideAction />
       ) : (
-        <div
-          ref={containerRef}
-          className="flex-1 overflow-y-auto custom-scrollbar"
-          onScroll={(e) => {
-            const target = e.target as HTMLDivElement;
-            const isNearBottom =
-              target.scrollHeight - target.scrollTop - target.clientHeight <
-              150;
-            setAutoScroll(isNearBottom);
-          }}
-        >
-          {logs.length === 0 && historyLogs.length === 0 && (
-            <EmptyState variant="console" className="h-full" hideAction />
+        <Virtuoso
+          ref={virtuosoRef}
+          className={cn(
+            "flex-1 custom-scrollbar",
+            view === "list" ? "[&>div>div]:max-w-5xl [&>div>div]:mx-auto" : "",
           )}
-
-          <div
-            className={cn(
-              "flex flex-col w-full mx-auto pb-8",
-              view === "list" ? "max-w-5xl" : "w-full max-w-[98%] items-center",
-            )}
-          >
-            {/* History Loader */}
-            {portName && (logs.length > 0 || historyLogs.length > 0) && (
-              <div className="flex justify-center py-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={loadHistory}
-                  disabled={isLoadingHistory || !hasMoreHistory}
-                  leftIcon={
-                    isLoadingHistory ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <History className="w-3 h-3" />
-                    )
-                  }
-                >
-                  {isLoadingHistory
-                    ? "Loading..."
-                    : hasMoreHistory
-                      ? "Load older logs"
-                      : "No more history"}
-                </Button>
-              </div>
-            )}
-
-            {/* List View - Section 9.2 */}
-            {view === "list" &&
-              displayLogs.map((log) => (
-                <LogItem
-                  key={log.id}
-                  log={log}
-                  displayMode={dataMode}
-                  enableAnsi={enableAnsi}
-                  highlighted={true}
-                />
-              ))}
-
-            {/* Hex View - Section 9.3 */}
-            {view === "hex" &&
-              displayLogs.map((log) => <HexLogEntry key={log.id} log={log} />)}
-
-            <div ref={endRef} />
-          </div>
-        </div>
+          data={displayLogs}
+          firstItemIndex={firstItemIndex}
+          initialTopMostItemIndex={displayLogs.length - 1}
+          itemContent={view === "list" ? renderListItem : renderHexItem}
+          components={{
+            Header: () => HistoryHeader,
+          }}
+          followOutput="smooth"
+          atBottomStateChange={setAtBottom}
+          atBottomThreshold={150}
+        />
       )}
 
       {/* Global Auto Scroll Button */}
-      {(view === "list" || view === "hex") && !autoScroll && (
-        <IconButton
-          variant="solid"
-          size="lg"
-          onClick={() => setAutoScroll(true)}
-          aria-label="Scroll to bottom"
-          className="absolute bottom-6 right-6 rounded-full shadow-xl hover:scale-105 z-10 animate-in fade-in zoom-in duration-200"
-        >
-          <ArrowDown className="w-5 h-5" />
-        </IconButton>
-      )}
+      {(view === "list" || view === "hex") &&
+        !atBottom &&
+        displayLogs.length > 0 && (
+          <IconButton
+            variant="solid"
+            size="lg"
+            onClick={scrollToBottom}
+            aria-label="Scroll to bottom"
+            className="absolute bottom-6 right-6 rounded-full shadow-xl hover:scale-105 z-10 animate-in fade-in zoom-in duration-200"
+          >
+            <ArrowDown className="w-5 h-5" />
+          </IconButton>
+        )}
     </div>
   );
 };
