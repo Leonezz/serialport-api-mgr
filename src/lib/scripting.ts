@@ -1,14 +1,19 @@
-export const executeUserScript = (
+import { executeSandboxedScript } from "./sandboxedScripting";
+
+/**
+ * Execute user-provided script in a sandboxed environment
+ *
+ * @param code - JavaScript code to execute
+ * @param context - Context object available to the script
+ * @returns Promise resolving to the script's return value
+ *
+ * @example
+ * const result = await executeUserScript('return value * 2', { value: 21 });
+ * // result === 42
+ */
+export const executeUserScript = async (
   code: string,
   context: Record<string, unknown>,
-) => {
-  try {
-    const keys = Object.keys(context);
-    const values = Object.values(context);
-    const func = new Function(...keys, code);
-    return func(...values);
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    throw new Error(`Script Error: ${message}`);
-  }
+): Promise<unknown> => {
+  return executeSandboxedScript(code, context, { timeout: 5000 });
 };

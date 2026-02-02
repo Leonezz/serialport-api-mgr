@@ -8,7 +8,7 @@
  * Per PRD UI-3: Two-Section Layout
  */
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Lock,
   Pencil,
@@ -115,39 +115,60 @@ const ProtocolCommandCustomizer: React.FC<Props> = ({ command, onUpdate }) => {
   }, [needsSync, command, protocols]);
 
   // Build binary preview for STRUCTURED commands
-  const binaryPreview = useMemo(() => {
-    if (!protocol || !command.protocolLayer?.messageStructureId) {
-      return null;
-    }
+  const [binaryPreview, setBinaryPreview] = useState<{
+    data: Uint8Array | null;
+    hex: string | null;
+    size: number;
+    error: string | null;
+  } | null>(null);
 
-    const structure = protocol.messageStructures?.find(
-      (s) => s.id === command.protocolLayer!.messageStructureId,
-    );
-    if (!structure) {
-      return null;
-    }
+  useEffect(() => {
+    let isCancelled = false;
 
-    try {
-      // Build with empty params (shows default/static values)
-      const result = buildStructuredMessage(structure, {
-        params: {},
-        bindings: [],
-        staticBindings: [],
-      });
-      return {
-        data: result.data,
-        hex: bytesToHex(result.data, true, " "),
-        size: result.data.length,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        data: null,
-        hex: null,
-        size: 0,
-        error: err instanceof Error ? err.message : "Build failed",
-      };
-    }
+    const buildPreview = async () => {
+      if (!protocol || !command.protocolLayer?.messageStructureId) {
+        return null;
+      }
+
+      const structure = protocol.messageStructures?.find(
+        (s) => s.id === command.protocolLayer!.messageStructureId,
+      );
+      if (!structure) {
+        return null;
+      }
+
+      try {
+        // Build with empty params (shows default/static values)
+        const result = await buildStructuredMessage(structure, {
+          params: {},
+          bindings: [],
+          staticBindings: [],
+        });
+        return {
+          data: result.data,
+          hex: bytesToHex(result.data, true, " "),
+          size: result.data.length,
+          error: null,
+        };
+      } catch (err) {
+        return {
+          data: null,
+          hex: null,
+          size: 0,
+          error: err instanceof Error ? err.message : "Build failed",
+        };
+      }
+    };
+
+    buildPreview().then((preview) => {
+      if (!isCancelled) {
+        setBinaryPreview(preview);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [protocol, command.protocolLayer]);
 
   // Copy hex to clipboard

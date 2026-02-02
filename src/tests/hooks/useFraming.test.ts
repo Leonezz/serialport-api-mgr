@@ -54,7 +54,7 @@ describe("useFraming", () => {
       expect(typeof handler).toBe("function");
     });
 
-    it("should process incoming data chunks", () => {
+    it("should process incoming data chunks", async () => {
       const { result } = renderHook(() => useFraming());
 
       const sessionId = useStore.getState().activeSessionId;
@@ -62,8 +62,10 @@ describe("useFraming", () => {
 
       const testData = new Uint8Array([65, 66, 67]); // "ABC"
 
-      act(() => {
+      await act(async () => {
         handler(testData);
+        // Wait for async composeFrames to complete
+        await new Promise((resolve) => setTimeout(resolve, 10));
       });
 
       // Check that data was logged
@@ -71,7 +73,7 @@ describe("useFraming", () => {
       expect(logs.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("should call onValidate callback when provided", () => {
+    it("should call onValidate callback when provided", async () => {
       const { result } = renderHook(() => useFraming());
 
       const sessionId = useStore.getState().activeSessionId;
@@ -80,8 +82,10 @@ describe("useFraming", () => {
 
       const testData = new Uint8Array([65, 66, 67]); // "ABC"
 
-      act(() => {
+      await act(async () => {
         handler(testData);
+        // Wait for async composeFrames to complete
+        await new Promise((resolve) => setTimeout(resolve, 10));
       });
 
       expect(onValidate).toHaveBeenCalled();
@@ -108,7 +112,7 @@ describe("useFraming", () => {
       }).not.toThrow();
     });
 
-    it("should handle binary data with non-printable characters", () => {
+    it("should handle binary data with non-printable characters", async () => {
       const { result } = renderHook(() => useFraming());
 
       const sessionId = useStore.getState().activeSessionId;
@@ -117,11 +121,11 @@ describe("useFraming", () => {
       // Binary data with non-printable characters
       const binaryData = new Uint8Array([0x00, 0x01, 0x02, 0xff, 0xfe]);
 
-      expect(() => {
-        act(() => {
-          handler(binaryData);
-        });
-      }).not.toThrow();
+      await act(async () => {
+        handler(binaryData);
+        // Wait for async composeFrames to complete
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
 
       const logs = useStore.getState().sessions[sessionId].logs;
       expect(logs.length).toBeGreaterThanOrEqual(1);
@@ -176,7 +180,7 @@ describe("useFraming", () => {
   });
 
   describe("framing override behavior", () => {
-    it("should use framing override when set", () => {
+    it("should use framing override when set", async () => {
       const sessionId = useStore.getState().activeSessionId;
 
       // Set framing override to DELIMITER
@@ -201,8 +205,10 @@ describe("useFraming", () => {
       // Send data with delimiter
       const testData = new Uint8Array([65, 66, 10]); // "AB\n"
 
-      act(() => {
+      await act(async () => {
         handler(testData);
+        // Wait for async composeFrames to complete
+        await new Promise((resolve) => setTimeout(resolve, 10));
       });
 
       // Frame should be processed
@@ -210,7 +216,7 @@ describe("useFraming", () => {
       expect(logs.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("should clear framing override after processing frame", () => {
+    it("should clear framing override after processing frame", async () => {
       const sessionId = useStore.getState().activeSessionId;
 
       // Set framing override
@@ -231,8 +237,10 @@ describe("useFraming", () => {
       const { result } = renderHook(() => useFraming());
       const handler = result.current.handleDataReceived(sessionId);
 
-      act(() => {
+      await act(async () => {
         handler(new Uint8Array([65, 66, 67]));
+        // Wait for async composeFrames to complete
+        await new Promise((resolve) => setTimeout(resolve, 10));
       });
 
       // Override should be cleared
@@ -251,7 +259,7 @@ describe("useFraming", () => {
   });
 
   describe("multiple sessions", () => {
-    it("should handle data for different sessions independently", () => {
+    it("should handle data for different sessions independently", async () => {
       const { result } = renderHook(() => useFraming());
 
       // Add a second session
@@ -268,9 +276,11 @@ describe("useFraming", () => {
       const handler1 = result.current.handleDataReceived(session1);
       const handler2 = result.current.handleDataReceived(session2);
 
-      act(() => {
+      await act(async () => {
         handler1(new Uint8Array([65])); // A
         handler2(new Uint8Array([66])); // B
+        // Wait for async composeFrames to complete
+        await new Promise((resolve) => setTimeout(resolve, 10));
       });
 
       // Both sessions should have logs

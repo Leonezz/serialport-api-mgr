@@ -77,13 +77,13 @@ export interface ProtocolFramingActions {
     command: StructuredCommand,
     protocol: Protocol,
     options: BuildMessageOptions,
-  ) => Uint8Array;
+  ) => Promise<Uint8Array>;
   /** Parse binary response using a message structure */
   parseProtocolMessage: (
     data: Uint8Array,
     structure: MessageStructure,
     options?: ParseMessageOptions,
-  ) => ParseResult;
+  ) => ParseResult | Promise<ParseResult>;
   /** Get framing config from active protocol */
   getProtocolFramingConfig: () => Protocol["framing"] | null;
 }
@@ -152,11 +152,11 @@ export function useProtocolFraming(): ProtocolFramingState &
   );
 
   const buildProtocolMessage = useCallback(
-    (
+    async (
       command: StructuredCommand,
       protocol: Protocol,
       options: BuildMessageOptions,
-    ): Uint8Array => {
+    ): Promise<Uint8Array> => {
       // Find the message structure
       const structure = protocol.messageStructures.find(
         (s) => s.id === command.messageStructureId,
@@ -186,7 +186,7 @@ export function useProtocolFraming(): ProtocolFramingState &
         payload: options.payload,
       };
 
-      const result = buildStructuredMessage(structure, buildOpts);
+      const result = await buildStructuredMessage(structure, buildOpts);
       return result.data;
     },
     [],
@@ -197,7 +197,7 @@ export function useProtocolFraming(): ProtocolFramingState &
       data: Uint8Array,
       structure: MessageStructure,
       options?: ParseMessageOptions,
-    ): ParseResult => {
+    ): ParseResult | Promise<ParseResult> => {
       const patterns = options?.patterns || [];
 
       if (patterns.length > 0) {

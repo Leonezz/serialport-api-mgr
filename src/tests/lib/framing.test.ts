@@ -8,13 +8,13 @@ describe("Framing", () => {
       strategy: "NONE",
     };
 
-    it("should merge all chunks into single frame", () => {
+    it("should merge all chunks into single frame", async () => {
       const chunks: TimedChunk[] = [
         { data: new Uint8Array([1, 2]), timestamp: 100 },
         { data: new Uint8Array([3, 4]), timestamp: 200 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data).toEqual(new Uint8Array([1, 2, 3, 4]));
@@ -22,18 +22,18 @@ describe("Framing", () => {
       expect(result.remaining.length).toBe(0);
     });
 
-    it("should handle empty chunks", () => {
-      const result = composeFrames([], config, false);
+    it("should handle empty chunks", async () => {
+      const result = await composeFrames([], config, false);
       expect(result.frames.length).toBe(0);
       expect(result.remaining.length).toBe(0);
     });
 
-    it("should handle single chunk", () => {
+    it("should handle single chunk", async () => {
       const chunks: TimedChunk[] = [
         { data: new Uint8Array([1, 2, 3]), timestamp: 100 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data).toEqual(new Uint8Array([1, 2, 3]));
@@ -42,7 +42,7 @@ describe("Framing", () => {
   });
 
   describe("composeFrames - DELIMITER strategy", () => {
-    it("should split on newline delimiter", () => {
+    it("should split on newline delimiter", async () => {
       const config: FramingConfig = {
         strategy: "DELIMITER",
         delimiter: "\\n",
@@ -52,7 +52,7 @@ describe("Framing", () => {
         { data: new Uint8Array([65, 66, 10, 67, 68]), timestamp: 100 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data).toEqual(new Uint8Array([65, 66, 10]));
@@ -60,7 +60,7 @@ describe("Framing", () => {
       expect(result.remaining[0].data).toEqual(new Uint8Array([67, 68]));
     });
 
-    it("should handle multiple delimiters", () => {
+    it("should handle multiple delimiters", async () => {
       const config: FramingConfig = {
         strategy: "DELIMITER",
         delimiter: "\\n",
@@ -70,7 +70,7 @@ describe("Framing", () => {
         { data: new Uint8Array([65, 10, 66, 10, 67]), timestamp: 100 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(2);
       expect(result.frames[0].data).toEqual(new Uint8Array([65, 10]));
@@ -78,7 +78,7 @@ describe("Framing", () => {
       expect(result.remaining[0].data).toEqual(new Uint8Array([67]));
     });
 
-    it("should buffer incomplete frames across chunks", () => {
+    it("should buffer incomplete frames across chunks", async () => {
       const config: FramingConfig = {
         strategy: "DELIMITER",
         delimiter: "\\n",
@@ -89,14 +89,14 @@ describe("Framing", () => {
         { data: new Uint8Array([67, 10]), timestamp: 200 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data).toEqual(new Uint8Array([65, 66, 67, 10]));
       expect(result.remaining.length).toBe(0);
     });
 
-    it("should handle hex delimiter", () => {
+    it("should handle hex delimiter", async () => {
       const config: FramingConfig = {
         strategy: "DELIMITER",
         delimiter: "0D 0A", // CRLF in hex
@@ -106,14 +106,14 @@ describe("Framing", () => {
         { data: new Uint8Array([65, 66, 13, 10, 67]), timestamp: 100 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data).toEqual(new Uint8Array([65, 66, 13, 10]));
       expect(result.remaining[0].data).toEqual(new Uint8Array([67]));
     });
 
-    it("should handle no delimiter found", () => {
+    it("should handle no delimiter found", async () => {
       const config: FramingConfig = {
         strategy: "DELIMITER",
         delimiter: "\\n",
@@ -123,7 +123,7 @@ describe("Framing", () => {
         { data: new Uint8Array([65, 66, 67]), timestamp: 100 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(0);
       expect(result.remaining.length).toBe(1);
@@ -132,7 +132,7 @@ describe("Framing", () => {
   });
 
   describe("composeFrames - PREFIX_LENGTH strategy", () => {
-    it("should extract frame with 1-byte length prefix (big-endian)", () => {
+    it("should extract frame with 1-byte length prefix (big-endian)", async () => {
       const config: FramingConfig = {
         strategy: "PREFIX_LENGTH",
         prefixLengthSize: 1,
@@ -144,7 +144,7 @@ describe("Framing", () => {
         { data: new Uint8Array([3, 65, 66, 67]), timestamp: 100 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data).toEqual(new Uint8Array([3, 65, 66, 67]));
@@ -153,7 +153,7 @@ describe("Framing", () => {
       expect(result.remaining.length).toBe(0);
     });
 
-    it("should extract frame with 2-byte length prefix (big-endian)", () => {
+    it("should extract frame with 2-byte length prefix (big-endian)", async () => {
       const config: FramingConfig = {
         strategy: "PREFIX_LENGTH",
         prefixLengthSize: 2,
@@ -169,7 +169,7 @@ describe("Framing", () => {
 
       const chunks: TimedChunk[] = [{ data: frame, timestamp: 100 }];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data.length).toBe(258);
@@ -178,7 +178,7 @@ describe("Framing", () => {
       expect(result.remaining.length).toBe(0);
     });
 
-    it("should handle incomplete frame (not enough data)", () => {
+    it("should handle incomplete frame (not enough data)", async () => {
       const config: FramingConfig = {
         strategy: "PREFIX_LENGTH",
         prefixLengthSize: 1,
@@ -190,14 +190,14 @@ describe("Framing", () => {
         { data: new Uint8Array([5, 65, 66, 67]), timestamp: 100 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(0);
       expect(result.remaining.length).toBe(1);
       expect(result.remaining[0].data).toEqual(new Uint8Array([5, 65, 66, 67]));
     });
 
-    it("should handle little-endian byte order", () => {
+    it("should handle little-endian byte order", async () => {
       const config: FramingConfig = {
         strategy: "PREFIX_LENGTH",
         prefixLengthSize: 2,
@@ -213,7 +213,7 @@ describe("Framing", () => {
 
       const chunks: TimedChunk[] = [{ data: frame, timestamp: 100 }];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data.length).toBe(258);
@@ -222,7 +222,7 @@ describe("Framing", () => {
   });
 
   describe("composeFrames - TIMEOUT strategy", () => {
-    it("should buffer chunks without forceFlush", () => {
+    it("should buffer chunks without forceFlush", async () => {
       const config: FramingConfig = {
         strategy: "TIMEOUT",
         timeout: 50,
@@ -232,13 +232,13 @@ describe("Framing", () => {
         { data: new Uint8Array([1, 2, 3]), timestamp: 100 },
       ];
 
-      const result = composeFrames(chunks, config, false);
+      const result = await composeFrames(chunks, config, false);
 
       expect(result.frames.length).toBe(0);
       expect(result.remaining.length).toBe(1);
     });
 
-    it("should emit frame on forceFlush", () => {
+    it("should emit frame on forceFlush", async () => {
       const config: FramingConfig = {
         strategy: "TIMEOUT",
         timeout: 50,
@@ -249,7 +249,7 @@ describe("Framing", () => {
         { data: new Uint8Array([3, 4]), timestamp: 200 },
       ];
 
-      const result = composeFrames(chunks, config, true);
+      const result = await composeFrames(chunks, config, true);
 
       expect(result.frames.length).toBe(1);
       expect(result.frames[0].data).toEqual(new Uint8Array([1, 2, 3, 4]));
@@ -266,7 +266,7 @@ describe("Framing", () => {
       vi.restoreAllMocks();
     });
 
-    it("should emit frames immediately for DELIMITER strategy", () => {
+    it("should emit frames immediately for DELIMITER strategy", async () => {
       const config: FramingConfig = {
         strategy: "DELIMITER",
         delimiter: "\\n",
@@ -277,6 +277,9 @@ describe("Framing", () => {
 
       framer.push({ data: new Uint8Array([65, 10]), timestamp: 100 });
 
+      // Wait for async composeFrames to complete
+      await vi.runOnlyPendingTimersAsync();
+
       expect(onFrames).toHaveBeenCalledTimes(1);
       expect(onFrames).toHaveBeenCalledWith([
         expect.objectContaining({
@@ -285,7 +288,7 @@ describe("Framing", () => {
       ]);
     });
 
-    it("should buffer incomplete frames", () => {
+    it("should buffer incomplete frames", async () => {
       const config: FramingConfig = {
         strategy: "DELIMITER",
         delimiter: "\\n",
@@ -296,10 +299,12 @@ describe("Framing", () => {
 
       framer.push({ data: new Uint8Array([65, 66]), timestamp: 100 });
 
+      await vi.runOnlyPendingTimersAsync();
       expect(onFrames).not.toHaveBeenCalled();
 
       framer.push({ data: new Uint8Array([67, 10]), timestamp: 200 });
 
+      await vi.runOnlyPendingTimersAsync();
       expect(onFrames).toHaveBeenCalledTimes(1);
       expect(onFrames).toHaveBeenCalledWith([
         expect.objectContaining({
@@ -308,7 +313,7 @@ describe("Framing", () => {
       ]);
     });
 
-    it("should emit frame after timeout for TIMEOUT strategy", () => {
+    it("should emit frame after timeout for TIMEOUT strategy", async () => {
       const config: FramingConfig = {
         strategy: "TIMEOUT",
         timeout: 50,
@@ -319,9 +324,14 @@ describe("Framing", () => {
 
       framer.push({ data: new Uint8Array([65, 66, 67]), timestamp: 100 });
 
+      // The initial push schedules a timeout but doesn't emit frames yet
+      // We need to let the initial promise resolve but not trigger the timeout
+      await Promise.resolve();
+      await Promise.resolve();
       expect(onFrames).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(50);
+      // Now advance time to trigger the timeout callback and let it complete
+      await vi.advanceTimersByTimeAsync(50);
 
       expect(onFrames).toHaveBeenCalledTimes(1);
       expect(onFrames).toHaveBeenCalledWith([
@@ -331,7 +341,7 @@ describe("Framing", () => {
       ]);
     });
 
-    it("should reset timer on new data for TIMEOUT strategy", () => {
+    it("should reset timer on new data for TIMEOUT strategy", async () => {
       const config: FramingConfig = {
         strategy: "TIMEOUT",
         timeout: 50,
@@ -341,14 +351,14 @@ describe("Framing", () => {
       const framer = new SerialFramer(config, onFrames);
 
       framer.push({ data: new Uint8Array([1]), timestamp: 100 });
-      vi.advanceTimersByTime(25);
+      await vi.advanceTimersByTimeAsync(25);
 
       framer.push({ data: new Uint8Array([2]), timestamp: 125 });
-      vi.advanceTimersByTime(25);
+      await vi.advanceTimersByTimeAsync(25);
 
       expect(onFrames).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(25);
+      await vi.advanceTimersByTimeAsync(25);
 
       expect(onFrames).toHaveBeenCalledTimes(1);
       expect(onFrames).toHaveBeenCalledWith([
@@ -358,7 +368,7 @@ describe("Framing", () => {
       ]);
     });
 
-    it("should reset buffer", () => {
+    it("should reset buffer", async () => {
       const config: FramingConfig = {
         strategy: "DELIMITER",
         delimiter: "\\n",
@@ -368,9 +378,12 @@ describe("Framing", () => {
       const framer = new SerialFramer(config, onFrames);
 
       framer.push({ data: new Uint8Array([65, 66]), timestamp: 100 });
+      await vi.runOnlyPendingTimersAsync();
+
       framer.reset();
       framer.push({ data: new Uint8Array([67, 10]), timestamp: 200 });
 
+      await vi.runOnlyPendingTimersAsync();
       expect(onFrames).toHaveBeenCalledTimes(1);
       expect(onFrames).toHaveBeenCalledWith([
         expect.objectContaining({
@@ -379,7 +392,7 @@ describe("Framing", () => {
       ]);
     });
 
-    it("should flush buffered data", () => {
+    it("should flush buffered data", async () => {
       const config: FramingConfig = {
         strategy: "TIMEOUT",
         timeout: 50,
@@ -389,10 +402,13 @@ describe("Framing", () => {
       const framer = new SerialFramer(config, onFrames);
 
       framer.push({ data: new Uint8Array([1, 2, 3]), timestamp: 100 });
+      await Promise.resolve();
+      await Promise.resolve();
       expect(onFrames).not.toHaveBeenCalled();
 
       framer.flush();
 
+      await vi.runOnlyPendingTimersAsync();
       expect(onFrames).toHaveBeenCalledTimes(1);
       expect(onFrames).toHaveBeenCalledWith([
         expect.objectContaining({
@@ -401,7 +417,7 @@ describe("Framing", () => {
       ]);
     });
 
-    it("should handle strategy change", () => {
+    it("should handle strategy change", async () => {
       const config: FramingConfig = {
         strategy: "TIMEOUT",
         timeout: 50,
@@ -411,6 +427,8 @@ describe("Framing", () => {
       const framer = new SerialFramer(config, onFrames);
 
       framer.push({ data: new Uint8Array([65, 10]), timestamp: 100 });
+      await Promise.resolve();
+      await Promise.resolve();
       expect(onFrames).not.toHaveBeenCalled();
 
       // Change to DELIMITER strategy
@@ -420,6 +438,7 @@ describe("Framing", () => {
       });
 
       // Should process buffered data with new strategy
+      await vi.runOnlyPendingTimersAsync();
       expect(onFrames).toHaveBeenCalledTimes(1);
       expect(onFrames).toHaveBeenCalledWith([
         expect.objectContaining({

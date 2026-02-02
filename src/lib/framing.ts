@@ -1,4 +1,5 @@
 import { FramingConfig, FramingStrategy } from "../types";
+import { executeSandboxedScript } from "./sandboxedScripting";
 
 export interface TimedChunk {
   data: Uint8Array;
@@ -16,12 +17,13 @@ interface CompositionResult {
 
 /**
  * Pure function to extract frames from a list of timed chunks based on strategy.
+ * Note: This function is async to support sandboxed script execution.
  */
-export const composeFrames = (
+export const composeFrames = async (
   chunks: TimedChunk[],
   config: FramingConfig,
   forceFlush: boolean = false,
-): CompositionResult => {
+): Promise<CompositionResult> => {
   if (chunks.length === 0) {
     return { frames: [], remaining: [] };
   }
@@ -31,18 +33,52 @@ export const composeFrames = (
   // --- Strategy: SCRIPT (Custom Full Control) ---
   if (strategy === "SCRIPT" && config.script) {
     try {
-      // Signature: (chunks: TimedChunk[], forceFlush: boolean) => { frames: TimedChunk[], remaining: TimedChunk[] }
-      // Users must handle Uint8Array concatenation/slicing themselves if they want to merge.
-      const scriptFunc = new Function("chunks", "forceFlush", config.script);
-      const result = scriptFunc(chunks, forceFlush);
+      // Execute script in sandboxed environment
+      // Script receives context.chunks and context.forceFlush
+      // Script must return { frames: [], remaining: [] }
+      const result = await executeSandboxedScript(
+        config.script,
+        { chunks, forceFlush },
+        { timeout: 2000 }, // Shorter timeout for framing
+      );
 
-      // Validate return structure lightly
+      // Validate return structure
       if (
         result &&
-        Array.isArray(result.frames) &&
-        Array.isArray(result.remaining)
+        typeof result === "object" &&
+        "frames" in result &&
+        "remaining" in result &&
+        Array.isArray((result as CompositionResult).frames) &&
+        Array.isArray((result as CompositionResult).remaining)
       ) {
-        return result as CompositionResult;
+        // Convert arrays back to Uint8Array if needed (QuickJS converts to number arrays)
+        const typedResult = result as {
+          frames: Array<{
+            data: number[] | Uint8Array;
+            timestamp: number;
+            payloadStart?: number;
+            payloadLength?: number;
+          }>;
+          remaining: Array<{
+            data: number[] | Uint8Array;
+            timestamp: number;
+            payloadStart?: number;
+            payloadLength?: number;
+          }>;
+        };
+
+        return {
+          frames: typedResult.frames.map((f) => ({
+            ...f,
+            data:
+              f.data instanceof Uint8Array ? f.data : new Uint8Array(f.data),
+          })),
+          remaining: typedResult.remaining.map((r) => ({
+            ...r,
+            data:
+              r.data instanceof Uint8Array ? r.data : new Uint8Array(r.data),
+          })),
+        };
       } else {
         console.warn(
           "Script framing returned invalid structure. Expected { frames: [], remaining: [] }",
@@ -247,6 +283,10 @@ export class SerialFramer {
   private chunks: TimedChunk[] = [];
   // Fix: Using any instead of NodeJS.Timeout to avoid namespace errors in browser environment
   private timer: ReturnType<typeof setTimeout> | null = null;
+  // Prevent race condition: track if composeFrames is currently running
+  private isProcessing = false;
+  private pendingFlush = false;
+  private pendingData = false;
 
   constructor(
     private config: FramingConfig,
@@ -298,11 +338,47 @@ export class SerialFramer {
       }
     }
 
-    const result = composeFrames(this.chunks, this.config, forceFlush);
-
-    if (result.frames.length > 0) {
-      this.onFrames(result.frames);
+    // Prevent race condition: if already processing, queue up the request
+    if (this.isProcessing) {
+      if (forceFlush) {
+        this.pendingFlush = true;
+      }
+      // Mark that new data arrived during processing
+      this.pendingData = true;
+      return;
     }
-    this.chunks = result.remaining;
+
+    this.isProcessing = true;
+    this.pendingData = false;
+    // Capture current chunks to process, avoiding mutation during async operation
+    const chunksToProcess = [...this.chunks];
+    this.chunks = [];
+
+    // composeFrames is now async, handle the promise
+    composeFrames(chunksToProcess, this.config, forceFlush)
+      .then((result) => {
+        if (result.frames.length > 0) {
+          this.onFrames(result.frames);
+        }
+        // Prepend any remaining chunks back, then any new chunks that arrived
+        this.chunks = [...result.remaining, ...this.chunks];
+      })
+      .catch((error) => {
+        console.error("Error in composeFrames:", error);
+        // On error, restore chunks to avoid data loss
+        this.chunks = [...chunksToProcess, ...this.chunks];
+      })
+      .finally(() => {
+        this.isProcessing = false;
+        // Only re-run if new data arrived during processing OR there's a pending flush
+        if (this.pendingFlush || this.pendingData) {
+          const shouldFlush = this.pendingFlush;
+          this.pendingFlush = false;
+          this.pendingData = false;
+          if (this.chunks.length > 0) {
+            this.runCompose(shouldFlush);
+          }
+        }
+      });
   }
 }

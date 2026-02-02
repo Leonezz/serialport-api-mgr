@@ -21,6 +21,7 @@ import type {
   ChecksumAlgorithm,
   ResponsePattern,
 } from "./protocolTypes";
+import { executeSandboxedScript } from "./sandboxedScripting";
 
 // ============================================================================
 // TYPES
@@ -497,10 +498,10 @@ export function parseStructuredMessage(
  * @param patterns - Response patterns defining extraction rules
  * @returns ExtractionResult with extracted variables
  */
-export function extractVariables(
+export async function extractVariables(
   parseResult: ParseResult,
   patterns: ResponsePattern[],
-): ExtractionResult {
+): Promise<ExtractionResult> {
   if (!parseResult.success) {
     return {
       variables: {},
@@ -526,11 +527,11 @@ export function extractVariables(
           // Apply transform if specified
           if (extraction.transform) {
             try {
-              const transformFn = new Function(
-                "value",
+              value = await executeSandboxedScript(
                 `return ${extraction.transform}`,
+                { value },
+                { timeout: 1000 },
               );
-              value = transformFn(value);
             } catch (e) {
               console.warn(
                 `Transform failed for ${extraction.variableName}:`,
@@ -559,12 +560,12 @@ export function extractVariables(
  * @param patterns - Response patterns for extraction
  * @param options - Parse options
  */
-export function parseAndExtract(
+export async function parseAndExtract(
   data: Uint8Array,
   structure: MessageStructure,
   patterns: ResponsePattern[] = [],
   options: ParseOptions = {},
-): ParseResult & ExtractionResult {
+): Promise<ParseResult & ExtractionResult> {
   const parseResult = parseStructuredMessage(data, structure, options);
 
   if (!parseResult.success) {
@@ -574,7 +575,7 @@ export function parseAndExtract(
     };
   }
 
-  const extractResult = extractVariables(parseResult, patterns);
+  const extractResult = await extractVariables(parseResult, patterns);
 
   return {
     ...parseResult,
