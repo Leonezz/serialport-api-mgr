@@ -77,6 +77,90 @@ export function useValidation() {
   };
 
   /**
+   * Handle validation passed - cleanup and run transform script
+   */
+  const handleValidationPassed = async (
+    val: ActiveValidation,
+    key: string,
+    textData: string,
+    data: Uint8Array,
+    sessionId: string,
+    logId?: string,
+  ) => {
+    // Validation passed
+    clearTimeout(val.timer);
+    activeValidationsRef.current.delete(key);
+
+    if (!val.resolve) {
+      addToast(
+        "success",
+        "Passed",
+        `Command "${val.cmdName}" response received.`,
+      );
+    }
+
+    // Execute transform script if present
+    if (val.transformScript) {
+      try {
+        const capturedVars: Record<string, unknown> = {};
+
+        // Inject setVar for telemetry and log for debugging
+        const setVar = (name: string, value: unknown) => {
+          setVariable(name, value as TelemetryVariableValue, sessionId);
+          capturedVars[name] = value;
+        };
+        const log = (msg: string) => {
+          addSystemLog("INFO", "SCRIPT", `[${val.cmdName}] Log: ${msg}`);
+        };
+
+        const scriptArgs = {
+          data: textData,
+          raw: data,
+          setVar,
+          log,
+          params: val.params || {},
+        };
+
+        const result = await executeUserScript(val.transformScript, scriptArgs);
+
+        // If logId exists and we captured vars, update the log entry
+        if (logId && Object.keys(capturedVars).length > 0) {
+          updateLog(logId, { extractedVars: capturedVars }, sessionId);
+        }
+
+        addSystemLog(
+          "SUCCESS",
+          "SCRIPT",
+          `Executed post-response script for ${val.cmdName}`,
+          {
+            arguments: {
+              data: textData,
+              raw: Array.from(data),
+              params: val.params,
+            },
+            returnValue: result === undefined ? "undefined" : result,
+            extractedVars: capturedVars,
+          },
+        );
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err);
+        addToast("error", "Transformation Error", errorMsg);
+        addSystemLog(
+          "ERROR",
+          "SCRIPT",
+          `Post-response script error in ${val.cmdName}: ${errorMsg}`,
+          {
+            arguments: { data: textData },
+          },
+        );
+      }
+    }
+
+    // Resolve the validation promise
+    if (val.resolve) val.resolve();
+  };
+
+  /**
    * Check incoming data against all active validations for a session
    */
   const checkValidation = (
@@ -113,89 +197,31 @@ export function useValidation() {
           }
         }
       } else if (val.mode === "SCRIPT" && val.valScript) {
-        try {
-          const result = executeUserScript(val.valScript, {
-            data: textData,
-            raw: data,
+        // Script validation is async - handle it separately
+        executeUserScript(val.valScript, {
+          data: textData,
+          raw: data,
+        })
+          .then((result) => {
+            if (result === true) {
+              handleValidationPassed(
+                val,
+                key,
+                textData,
+                data,
+                sessionId,
+                logId,
+              );
+            }
+          })
+          .catch((err) => {
+            console.error(`[Validation] Script Error for ${val.cmdName}:`, err);
           });
-          if (result === true) passed = true;
-        } catch (err) {
-          console.error(`[Validation] Script Error for ${val.cmdName}:`, err);
-        }
+        return; // Exit early, async handling takes over
       }
 
       if (passed) {
-        // Validation passed
-        clearTimeout(val.timer);
-        activeValidationsRef.current.delete(key);
-
-        if (!val.resolve) {
-          addToast(
-            "success",
-            "Passed",
-            `Command "${val.cmdName}" response received.`,
-          );
-        }
-
-        // Execute transform script if present
-        if (val.transformScript) {
-          try {
-            const capturedVars: Record<string, unknown> = {};
-
-            // Inject setVar for telemetry and log for debugging
-            const setVar = (name: string, value: unknown) => {
-              setVariable(name, value as TelemetryVariableValue, sessionId);
-              capturedVars[name] = value;
-            };
-            const log = (msg: string) => {
-              addSystemLog("INFO", "SCRIPT", `[${val.cmdName}] Log: ${msg}`);
-            };
-
-            const scriptArgs = {
-              data: textData,
-              raw: data,
-              setVar,
-              log,
-              params: val.params || {},
-            };
-
-            const result = executeUserScript(val.transformScript, scriptArgs);
-
-            // If logId exists and we captured vars, update the log entry
-            if (logId && Object.keys(capturedVars).length > 0) {
-              updateLog(logId, { extractedVars: capturedVars }, sessionId);
-            }
-
-            addSystemLog(
-              "SUCCESS",
-              "SCRIPT",
-              `Executed post-response script for ${val.cmdName}`,
-              {
-                arguments: {
-                  data: textData,
-                  raw: Array.from(data),
-                  params: val.params,
-                },
-                returnValue: result === undefined ? "undefined" : result,
-                extractedVars: capturedVars,
-              },
-            );
-          } catch (err: unknown) {
-            const errorMsg = getErrorMessage(err);
-            addToast("error", "Transformation Error", errorMsg);
-            addSystemLog(
-              "ERROR",
-              "SCRIPT",
-              `Post-response script error in ${val.cmdName}: ${errorMsg}`,
-              {
-                arguments: { data: textData },
-              },
-            );
-          }
-        }
-
-        // Resolve the validation promise
-        if (val.resolve) val.resolve();
+        handleValidationPassed(val, key, textData, data, sessionId, logId);
       }
     });
   };
