@@ -124,7 +124,9 @@ export const createDeviceSlice: StateCreator<
         d.id === deviceId
           ? {
               ...d,
-              commandIds: [...(d.commandIds || []), commandId],
+              commandIds: d.commandIds?.includes(commandId)
+                ? d.commandIds
+                : [...(d.commandIds || []), commandId],
               updatedAt: Date.now(),
             }
           : d,
