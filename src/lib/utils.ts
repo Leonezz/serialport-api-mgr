@@ -60,10 +60,14 @@ export const generateId = (): string => {
  * Convert ZodError to user-friendly message
  */
 export function getZodErrorMessage(error: ZodError): string {
-  const validationError = fromZodError(error, {
-    prefix: "Validation error",
-    includePath: true,
-  });
+  // Use type assertion for compatibility between Zod 3.x and zod-validation-error
+  const validationError = fromZodError(
+    error as unknown as Parameters<typeof fromZodError>[0],
+    {
+      prefix: "Validation error",
+      includePath: true,
+    },
+  );
   return validationError.message;
 }
 
