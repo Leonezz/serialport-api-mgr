@@ -21,6 +21,7 @@ import {
   buildStructuredMessage,
   type BuildOptions,
 } from "../lib/messageBuilder";
+import { getEffectiveMode, getEffectivePayload } from "../lib/commandBuilder";
 import type {
   Protocol,
   StructuredCommand,
@@ -403,7 +404,8 @@ export function useCommandExecution(
         dataBytes = payloadToProcess;
       } else {
         const textPayload = payloadToProcess as string;
-        const currentSendMode = cmdInfo ? cmdInfo.mode : sendMode;
+        // Use effective mode which handles both CUSTOM and PROTOCOL commands
+        const currentSendMode = cmdInfo ? getEffectiveMode(cmdInfo) : sendMode;
         const currentEncoding = cmdInfo?.encoding || encoding;
 
         if (currentSendMode === "HEX") {
@@ -502,11 +504,21 @@ export function useCommandExecution(
     cmd: SavedCommand,
     onShowParamModal: (cmd: SavedCommand) => void,
   ) => {
-    if (cmd.parameters && cmd.parameters.length > 0) {
+    // For PROTOCOL commands with parameters in protocolLayer, check those too
+    const hasLegacyParams = cmd.parameters && cmd.parameters.length > 0;
+    const hasProtocolParams =
+      cmd.source === "PROTOCOL" &&
+      cmd.protocolLayer?.parameters &&
+      cmd.protocolLayer.parameters.length > 0;
+
+    if (hasLegacyParams || hasProtocolParams) {
       onShowParamModal(cmd);
     } else {
-      let finalData = cmd.payload;
-      if (cmd.mode === "TEXT") {
+      // Use effective mode/payload which handles both CUSTOM and PROTOCOL commands
+      const effectiveMode = getEffectiveMode(cmd);
+      let finalData = getEffectivePayload(cmd);
+
+      if (effectiveMode === "TEXT") {
         switch (config.lineEnding) {
           case "LF":
             finalData += "\n";
@@ -519,7 +531,7 @@ export function useCommandExecution(
             break;
         }
       }
-      if (cmd.mode !== sendMode) setSendMode(cmd.mode);
+      if (effectiveMode !== sendMode) setSendMode(effectiveMode);
       if (cmd.encoding && cmd.encoding !== encoding) setEncoding(cmd.encoding);
       sendData(finalData, cmd).catch(() => {});
     }
@@ -541,7 +553,15 @@ export function useCommandExecution(
       const step = seq.steps[i];
       const cmd = commands.find((c) => c.id === step.commandId);
       if (!cmd) continue;
-      if (cmd.parameters && cmd.parameters.length > 0) {
+
+      // Check for parameters in both legacy and protocol layer
+      const hasLegacyParams = cmd.parameters && cmd.parameters.length > 0;
+      const hasProtocolParams =
+        cmd.source === "PROTOCOL" &&
+        cmd.protocolLayer?.parameters &&
+        cmd.protocolLayer.parameters.length > 0;
+
+      if (hasLegacyParams || hasProtocolParams) {
         addToast(
           "warning",
           "Sequence Warning",
@@ -549,8 +569,11 @@ export function useCommandExecution(
         );
       }
       try {
-        let finalData = cmd.payload;
-        if (cmd.mode === "TEXT") {
+        // Use effective mode/payload which handles both CUSTOM and PROTOCOL commands
+        const effectiveMode = getEffectiveMode(cmd);
+        let finalData = getEffectivePayload(cmd);
+
+        if (effectiveMode === "TEXT") {
           switch (config.lineEnding) {
             case "LF":
               finalData += "\n";

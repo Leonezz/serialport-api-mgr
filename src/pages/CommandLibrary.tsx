@@ -6,20 +6,8 @@
  */
 
 import React, { useState, useMemo, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import {
-  Plus,
-  Search,
-  Upload,
-  Download,
-  Copy,
-  Trash2,
-  Edit,
-  Terminal,
-  Folder,
-  LayoutGrid,
-  List,
-} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, Upload, Folder, LayoutGrid, List } from "lucide-react";
 import { useStore } from "../lib/store";
 import { cn } from "../lib/utils";
 import { Button } from "../components/ui/Button";
@@ -34,6 +22,7 @@ import {
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import CommandFormModal from "../components/CommandFormModal";
+import { CommandCard } from "../components/CommandViews";
 import { EmptyState } from "../components/ui/EmptyState";
 import type { SavedCommand } from "../types";
 
@@ -44,6 +33,7 @@ const CommandLibrary: React.FC = () => {
     sequences,
     contexts,
     devices,
+    protocols,
     addCommand,
     deleteCommand,
     setEditingCommand,
@@ -207,114 +197,6 @@ const CommandLibrary: React.FC = () => {
     event.target.value = "";
   };
 
-  // Render a single command card
-  const renderCommandCard = (command: SavedCommand) => {
-    const deviceName = getDeviceName(command.deviceId);
-    return (
-      <div
-        key={command.id}
-        className="group relative bg-card border border-border rounded-lg p-4 hover:border-primary/50 hover:shadow-md transition-all flex flex-col h-full"
-      >
-        {/* Command Icon & Name */}
-        <div className="flex items-start gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Terminal className="w-5 h-5 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold truncate">{command.name}</h3>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="secondary" className="text-[10px]">
-                {command.mode}
-              </Badge>
-              {command.group && (
-                <span className="flex items-center gap-1">
-                  <Folder className="w-3 h-3" />
-                  {command.group}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Description */}
-        {command.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-            {command.description}
-          </p>
-        )}
-
-        {/* Payload Preview */}
-        {command.payload && (
-          <div className="bg-muted/50 rounded px-2 py-1 mb-3 font-mono text-xs text-muted-foreground truncate">
-            {command.payload}
-          </div>
-        )}
-
-        {/* Meta info */}
-        <div className="flex flex-wrap gap-2 mb-3 text-xs text-muted-foreground">
-          {command.parameters && command.parameters.length > 0 && (
-            <span>
-              {command.parameters.length} param
-              {command.parameters.length !== 1 ? "s" : ""}
-            </span>
-          )}
-          {deviceName && command.deviceId && (
-            <Link
-              to={`/devices/${command.deviceId}/edit`}
-              className="text-primary hover:underline hover:text-primary/80 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              • {deviceName}
-            </Link>
-          )}
-        </div>
-
-        {/* Spacer to push actions to bottom */}
-        <div className="flex-1" />
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 pt-3 border-t border-border">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 gap-2"
-            onClick={() => handleEditCommand(command)}
-          >
-            <Edit className="w-3.5 h-3.5" />
-            Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handleDuplicate(command)}
-            title="Duplicate"
-          >
-            <Copy className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handleExport(command)}
-            title="Export"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive"
-            onClick={() => setDeleteConfirm(command.id)}
-            title="Delete"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="flex flex-col h-full bg-background">
       <PageHeader
@@ -419,7 +301,18 @@ const CommandLibrary: React.FC = () => {
           {/* Grid View */}
           {viewMode === "grid" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredCommands.map((command) => renderCommandCard(command))}
+              {filteredCommands.map((command) => (
+                <CommandCard
+                  key={command.id}
+                  command={command}
+                  deviceName={getDeviceName(command.deviceId)}
+                  protocols={protocols}
+                  onEdit={handleEditCommand}
+                  onDuplicate={handleDuplicate}
+                  onExport={handleExport}
+                  onDelete={(cmd) => setDeleteConfirm(cmd.id)}
+                />
+              ))}
 
               {/* Empty state */}
               {filteredCommands.length === 0 && (
@@ -471,9 +364,18 @@ const CommandLibrary: React.FC = () => {
                         </AccordionTrigger>
                         <AccordionContent isOpen={openGroups[groupName]}>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-3">
-                            {commands.map((command) =>
-                              renderCommandCard(command),
-                            )}
+                            {commands.map((command) => (
+                              <CommandCard
+                                key={command.id}
+                                command={command}
+                                deviceName={getDeviceName(command.deviceId)}
+                                protocols={protocols}
+                                onEdit={handleEditCommand}
+                                onDuplicate={handleDuplicate}
+                                onExport={handleExport}
+                                onDelete={(cmd) => setDeleteConfirm(cmd.id)}
+                              />
+                            ))}
                           </div>
                         </AccordionContent>
                       </AccordionItem>

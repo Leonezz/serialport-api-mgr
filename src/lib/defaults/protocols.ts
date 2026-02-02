@@ -1141,6 +1141,126 @@ export const PROTOCOL_ESP32_TEST_DEVICE: Protocol = {
 };
 
 // ============================================================================
+// ESC/POS THERMAL PRINTER PROTOCOL
+// ============================================================================
+
+export const PROTOCOL_ESCPOS: Protocol = {
+  id: "proto-escpos",
+  name: "ESC/POS",
+  version: "1.0",
+  description:
+    "Epson Standard Code for Point of Sale - binary protocol for thermal receipt printers",
+  author: "Epson",
+  sourceUrl: "https://reference.epson-biz.com/modules/ref_escpos/index.php",
+  tags: ["escpos", "thermal", "printer", "pos", "receipt", "binary"],
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+
+  // Binary protocol - uses hex mode
+  framing: {
+    strategy: "NONE",
+  },
+
+  // ESC/POS uses simple binary commands, no complex structures needed
+  messageStructures: [],
+
+  // Protocol command templates
+  commands: [
+    {
+      id: "tmpl-escpos-init",
+      type: "SIMPLE",
+      name: "Initialize Printer",
+      description: "Reset printer to default state (ESC @)",
+      payload: "1B40",
+      mode: "HEX",
+      parameters: [],
+      extractVariables: [],
+    },
+    {
+      id: "tmpl-escpos-status",
+      type: "SIMPLE",
+      name: "Query Status",
+      description: "Real-time status request (DLE EOT)",
+      payload: "1004",
+      mode: "HEX",
+      parameters: [],
+      extractVariables: [],
+    },
+    {
+      id: "tmpl-escpos-cut",
+      type: "SIMPLE",
+      name: "Cut Paper",
+      description: "Full paper cut (GS V 0)",
+      payload: "1D5600",
+      mode: "HEX",
+      parameters: [],
+      extractVariables: [],
+    },
+    {
+      id: "tmpl-escpos-feed",
+      type: "SIMPLE",
+      name: "Feed Lines",
+      description: "Print and feed n lines (ESC d n)",
+      payload: "1B64{lines}",
+      mode: "HEX",
+      parameters: [
+        {
+          name: "lines",
+          type: "STRING",
+          description: "Number of lines (hex byte)",
+          required: true,
+        },
+      ],
+      extractVariables: [],
+    },
+    {
+      id: "tmpl-escpos-style",
+      type: "SIMPLE",
+      name: "Set Style",
+      description: "Set text style (ESC E n for bold)",
+      payload: "1B45{n}",
+      mode: "HEX",
+      parameters: [
+        {
+          name: "n",
+          type: "STRING",
+          description: "Style parameter (00=off, 01=on)",
+          required: true,
+        },
+      ],
+      extractVariables: [],
+    },
+    {
+      id: "tmpl-escpos-align",
+      type: "SIMPLE",
+      name: "Set Alignment",
+      description: "Set text alignment (ESC a n)",
+      payload: "1B61{n}",
+      mode: "HEX",
+      parameters: [
+        {
+          name: "n",
+          type: "STRING",
+          description: "Alignment (00=left, 01=center, 02=right)",
+          required: true,
+        },
+      ],
+      extractVariables: [],
+    },
+    {
+      id: "tmpl-escpos-drawer",
+      type: "SIMPLE",
+      name: "Open Cash Drawer",
+      description: "Generate pulse to open drawer (DLE DC4)",
+      payload: "1014",
+      mode: "HEX",
+      parameters: [],
+      extractVariables: [],
+    },
+  ],
+};
+
+// ============================================================================
 // EXPORT ALL DEFAULT PROTOCOLS
 // ============================================================================
 
@@ -1152,4 +1272,5 @@ export const DEFAULT_PROTOCOLS: Protocol[] = [
   PROTOCOL_ELM327,
   PROTOCOL_GPS_NMEA,
   PROTOCOL_MODBUS_RTU,
+  PROTOCOL_ESCPOS,
 ];

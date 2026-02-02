@@ -31,6 +31,20 @@ pub fn send_line(line: &str) {
     }
 }
 
+/// Send raw bytes over USB Serial JTAG (for binary protocols)
+pub fn send_bytes(data: &[u8]) {
+    if data.is_empty() {
+        return;
+    }
+    unsafe {
+        esp_idf_svc::sys::usb_serial_jtag_write_bytes(
+            data.as_ptr() as *const _,
+            data.len(),
+            100, // timeout ticks
+        );
+    }
+}
+
 /// Read bytes from USB Serial JTAG (non-blocking with short timeout)
 /// Returns the number of bytes read, or 0 if no data available
 pub fn read_bytes(buf: &mut [u8]) -> i32 {

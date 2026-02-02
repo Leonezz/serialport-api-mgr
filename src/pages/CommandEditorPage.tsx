@@ -44,6 +44,7 @@ import { Breadcrumb, workspaceItem } from "../components/ui/Breadcrumb";
 import CodeEditor from "../components/ui/CodeEditor";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { cn } from "../lib/utils";
+import { getEffectiveMode, getEffectivePayload } from "../lib/commandBuilder";
 import type { SavedCommand, CommandParameter, DataMode } from "../types";
 import { useTranslation } from "react-i18next";
 
@@ -125,11 +126,50 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
     ...command,
   }));
 
+  // Check if this is a PROTOCOL source command
+  const isProtocolCommand = editState.source === "PROTOCOL";
+
+  // Get effective mode and payload (handles both CUSTOM and PROTOCOL commands)
+  const effectiveMode = getEffectiveMode(editState);
+  const effectivePayload = getEffectivePayload(editState);
+
   const updateField = <K extends keyof SavedCommand>(
     field: K,
     value: SavedCommand[K],
   ) => {
     setEditState((prev) => ({ ...prev, [field]: value }));
+    setHasUnsavedChanges(true);
+  };
+
+  // Update mode - writes to correct location based on source
+  const updateMode = (newMode: DataMode) => {
+    if (isProtocolCommand && editState.protocolLayer) {
+      setEditState((prev) => ({
+        ...prev,
+        protocolLayer: {
+          ...prev.protocolLayer!,
+          mode: newMode,
+        },
+      }));
+    } else {
+      setEditState((prev) => ({ ...prev, mode: newMode }));
+    }
+    setHasUnsavedChanges(true);
+  };
+
+  // Update payload - writes to correct location based on source
+  const updatePayload = (newPayload: string) => {
+    if (isProtocolCommand && editState.protocolLayer) {
+      setEditState((prev) => ({
+        ...prev,
+        protocolLayer: {
+          ...prev.protocolLayer!,
+          payload: newPayload,
+        },
+      }));
+    } else {
+      setEditState((prev) => ({ ...prev, payload: newPayload }));
+    }
     setHasUnsavedChanges(true);
   };
 
@@ -319,13 +359,13 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
                     <div className="space-y-2">
                       <Label>Mode</Label>
                       <SelectDropdown
-                        value={editState.mode}
-                        onChange={(v) => updateField("mode", v as DataMode)}
+                        value={effectiveMode}
+                        onChange={(v) => updateMode(v as DataMode)}
                         options={MODE_OPTIONS}
                       />
                     </div>
 
-                    {editState.mode === "TEXT" && (
+                    {effectiveMode === "TEXT" && (
                       <div className="space-y-2">
                         <Label>Encoding</Label>
                         <SelectDropdown
@@ -345,12 +385,12 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
                   <div className="space-y-2">
                     <Label>Payload</Label>
                     <Textarea
-                      value={editState.payload || ""}
-                      onChange={(e) => updateField("payload", e.target.value)}
+                      value={effectivePayload}
+                      onChange={(e) => updatePayload(e.target.value)}
                       placeholder={
-                        editState.mode === "HEX"
+                        effectiveMode === "HEX"
                           ? "e.g., 01 02 03 FF"
-                          : editState.mode === "BINARY"
+                          : effectiveMode === "BINARY"
                             ? "e.g., 00000001 00000010"
                             : "Enter command text..."
                       }
@@ -358,7 +398,7 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
                       rows={3}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Use {"{{paramName}}"} for parameter placeholders
+                      Use {"{paramName}"} for parameter placeholders
                     </p>
                   </div>
                 </CardContent>

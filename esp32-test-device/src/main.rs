@@ -36,9 +36,9 @@ use esp_idf_svc::{
 use log::*;
 use std::sync::{Arc, Mutex};
 
-use commands::{process_line, show_welcome_message};
+use commands::{is_binary_mode, process_binary_data, process_line, show_welcome_message, BinaryProtocolState};
 use http::start_http_server;
-use serial::{init_usb_serial, read_bytes, send_line};
+use serial::{init_usb_serial, read_bytes, send_bytes, send_line};
 use types::{DeviceState, ProtocolMode};
 use wifi::{load_wifi_config, try_connect_wifi, WifiManager, NVS_NAMESPACE};
 
@@ -120,7 +120,11 @@ fn main() -> anyhow::Result<()> {
 
     // Main loop
     let mut line_buf = String::new();
+    let mut binary_buf: Vec<u8> = Vec::with_capacity(512);
     let mut stdin_buf = [0u8; 256];
+    let mut binary_state = BinaryProtocolState::new();
+    let mut binary_idle_count = 0u32;
+    const BINARY_FRAME_TIMEOUT: u32 = 5; // Number of idle cycles before processing binary frame
 
     loop {
         // Blink LED based on WiFi status
@@ -137,34 +141,60 @@ fn main() -> anyhow::Result<()> {
 
         // Read from USB Serial JTAG
         let bytes_read = read_bytes(&mut stdin_buf);
+        let current_mode = state.lock().unwrap().mode;
 
         if bytes_read > 0 {
-            for &byte in &stdin_buf[..bytes_read as usize] {
-                if byte == b'\n' || byte == b'\r' {
-                    if !line_buf.is_empty() {
-                        let line = line_buf.trim().to_string();
-                        line_buf.clear();
+            binary_idle_count = 0;
 
-                        // Update state
-                        {
-                            let mut s = state.lock().unwrap();
-                            s.message_count += 1;
-                            s.last_received = line.clone();
-                        }
+            if is_binary_mode(current_mode) {
+                // Binary protocol mode - accumulate bytes
+                binary_buf.extend_from_slice(&stdin_buf[..bytes_read as usize]);
 
-                        // Process the line based on mode
-                        let current_mode = state.lock().unwrap().mode;
-                        let response =
-                            process_line(&line, current_mode, &state, &mut wifi_mgr, &mut http_server);
-
-                        if !response.is_empty() {
-                            send_line(&response);
-                            state.lock().unwrap().last_sent = response;
-                        }
-                    }
-                } else {
-                    line_buf.push(byte as char);
+                // Update state
+                {
+                    let mut s = state.lock().unwrap();
+                    s.message_count += 1;
                 }
+            } else {
+                // Text-based protocol mode - process lines
+                for &byte in &stdin_buf[..bytes_read as usize] {
+                    if byte == b'\n' || byte == b'\r' {
+                        if !line_buf.is_empty() {
+                            let line = line_buf.trim().to_string();
+                            line_buf.clear();
+
+                            // Update state
+                            {
+                                let mut s = state.lock().unwrap();
+                                s.message_count += 1;
+                                s.last_received = line.clone();
+                            }
+
+                            // Process the line based on mode
+                            let response =
+                                process_line(&line, current_mode, &state, &mut wifi_mgr, &mut http_server);
+
+                            if !response.is_empty() {
+                                send_line(&response);
+                                state.lock().unwrap().last_sent = response;
+                            }
+                        }
+                    } else {
+                        line_buf.push(byte as char);
+                    }
+                }
+            }
+        } else if is_binary_mode(current_mode) && !binary_buf.is_empty() {
+            // No new data in binary mode - check if frame is complete (timeout-based framing)
+            binary_idle_count += 1;
+
+            if binary_idle_count >= BINARY_FRAME_TIMEOUT {
+                // Process the accumulated binary frame
+                if let Some(response) = process_binary_data(&binary_buf, current_mode, &state, &mut binary_state) {
+                    send_bytes(&response);
+                }
+                binary_buf.clear();
+                binary_idle_count = 0;
             }
         }
     }

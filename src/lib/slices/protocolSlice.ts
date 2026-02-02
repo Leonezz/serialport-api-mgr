@@ -89,9 +89,7 @@ export interface ProtocolSliceActions {
   updateSequence: (id: string, updates: Partial<Sequence>) => void;
   deleteSequence: (id: string) => void;
 
-  // Device-Command relationship management
-  addCommandToDevice: (deviceId: string, commandId: string) => void;
-  removeCommandFromDevice: (deviceId: string, commandId: string) => void;
+  // Note: addCommandToDevice and removeCommandFromDevice moved to deviceSlice
   setDeviceDefaultProtocol: (
     deviceId: string,
     protocolId: string | null,
@@ -388,34 +386,7 @@ export const createProtocolSlice: StateCreator<ProtocolSlice> = (set, get) => ({
       sequences: state.sequences.filter((s) => s.id !== id),
     })),
 
-  // Device-Command relationship management
-  addCommandToDevice: (deviceId, commandId) =>
-    set((state) => ({
-      devices: state.devices.map((d) =>
-        d.id === deviceId
-          ? {
-              ...d,
-              commandIds: d.commandIds?.includes(commandId)
-                ? d.commandIds
-                : [...(d.commandIds || []), commandId],
-              updatedAt: Date.now(),
-            }
-          : d,
-      ),
-    })),
-
-  removeCommandFromDevice: (deviceId, commandId) =>
-    set((state) => ({
-      devices: state.devices.map((d) =>
-        d.id === deviceId
-          ? {
-              ...d,
-              commandIds: (d.commandIds || []).filter((id) => id !== commandId),
-              updatedAt: Date.now(),
-            }
-          : d,
-      ),
-    })),
+  // Note: addCommandToDevice and removeCommandFromDevice moved to deviceSlice
 
   setDeviceDefaultProtocol: (deviceId, protocolId) =>
     set((state) => ({

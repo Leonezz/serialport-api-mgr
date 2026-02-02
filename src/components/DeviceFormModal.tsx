@@ -341,10 +341,18 @@ const DeviceFormModal: React.FC = () => {
   const IconComponent = DEVICE_ICONS.find((i) => i.value === icon)?.icon || Cpu;
 
   // Get commands for this device
+  // Use device.commandIds as source of truth (many-to-many relationship)
+  // For new devices: use localCommandIds (commands to assign on save)
   const deviceCommands = useMemo(() => {
-    const commandIds = editingDevice?.commandIds || localCommandIds;
-    return commands.filter((cmd) => commandIds.includes(cmd.id));
-  }, [commands, editingDevice?.commandIds, localCommandIds]);
+    if (editingDevice?.id) {
+      // Existing device: filter commands by device.commandIds
+      const commandIds = editingDevice.commandIds || [];
+      return commands.filter((cmd) => commandIds.includes(cmd.id));
+    } else {
+      // New device: use local tracking
+      return commands.filter((cmd) => localCommandIds.includes(cmd.id));
+    }
+  }, [commands, editingDevice?.id, editingDevice?.commandIds, localCommandIds]);
 
   // Group commands by category/group
   const groupedDeviceCommands = useMemo(() => {
@@ -818,11 +826,13 @@ const DeviceFormModal: React.FC = () => {
                 Add existing command to device
               </div>
               {(() => {
-                const deviceCommandIds =
-                  editingDevice?.commandIds || localCommandIds;
-                const availableCommands = commands.filter(
-                  (cmd) => !deviceCommandIds.includes(cmd.id),
-                );
+                // For existing devices: filter out commands already in this device's commandIds
+                // For new devices: filter out commands in localCommandIds
+                // Note: Commands can belong to multiple devices (many-to-many)
+                const deviceCommandIds = editingDevice?.commandIds || [];
+                const availableCommands = editingDevice?.id
+                  ? commands.filter((cmd) => !deviceCommandIds.includes(cmd.id))
+                  : commands.filter((cmd) => !localCommandIds.includes(cmd.id));
                 if (availableCommands.length === 0) {
                   return (
                     <p className="text-xs text-muted-foreground italic">

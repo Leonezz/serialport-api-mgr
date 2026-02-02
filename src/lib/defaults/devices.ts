@@ -58,33 +58,26 @@ export const DEVICE_ESP32_TEST: Device = {
         address: 1,
       },
     },
+    {
+      protocolId: "proto-escpos",
+      parameterDefaults: {},
+    },
   ],
 
   // Default protocol for new commands
   defaultProtocolId: "proto-esp32-test-device",
 
-  // Commands owned by this device
+  // ESP32 Test Device Setup Commands only
   commandIds: [
-    "cmd-esp32-show-help",
-    "cmd-esp32-device-status",
-    "cmd-esp32-wifi-status",
-    "cmd-esp32-set-wifi-ssid",
-    "cmd-esp32-set-wifi-password",
-    "cmd-esp32-connect-wifi",
-    "cmd-esp32-scan-networks",
-    "cmd-esp32-clear-wifi",
-    "cmd-esp32-setup-mode",
-    "cmd-esp32-echo-mode",
-    "cmd-esp32-at-mode",
-    "cmd-esp32-modbus-mode",
-    "cmd-esp32-gps-mode",
-    "cmd-esp32-scpi-mode",
-    "cmd-esp32-marlin-mode",
-    "cmd-esp32-elm327-mode",
+    "cmd-esp32-help",
+    "cmd-esp32-status",
+    "cmd-esp32-set-mode",
     "cmd-esp32-set-temp",
-    "cmd-esp32-set-humidity",
+    "cmd-esp32-set-humid",
     "cmd-esp32-set-rpm",
     "cmd-esp32-set-speed",
+    "cmd-esp32-wifi-status",
+    "cmd-esp32-wifi-scan",
   ],
 
   // Default serial options for this device
@@ -125,14 +118,10 @@ export const DEVICE_MODBUS_GENERIC: Device = {
 
   defaultProtocolId: "proto-modbus-rtu",
   commandIds: [
-    "cmd-modbus-read-coils",
-    "cmd-modbus-read-discrete",
     "cmd-modbus-read-holding",
     "cmd-modbus-read-input",
-    "cmd-modbus-write-coil",
-    "cmd-modbus-write-register",
-    "cmd-modbus-write-multiple-coils",
-    "cmd-modbus-write-multiple-registers",
+    "cmd-modbus-write-single",
+    "cmd-modbus-read-coils",
   ],
 
   defaultSerialOptions: {
@@ -208,14 +197,14 @@ export const DEVICE_3D_PRINTER_MARLIN: Device = {
 
   defaultProtocolId: "proto-marlin",
   commandIds: [
-    "cmd-marlin-home",
-    "cmd-marlin-level-bed",
+    "cmd-marlin-home-all",
+    "cmd-marlin-get-position",
+    "cmd-marlin-get-temperature",
+    "cmd-marlin-disable-steppers",
     "cmd-marlin-set-hotend-temp",
     "cmd-marlin-set-bed-temp",
-    "cmd-marlin-get-temp",
-    "cmd-marlin-get-position",
-    "cmd-marlin-move",
-    "cmd-marlin-emergency-stop",
+    "cmd-marlin-set-fan-speed",
+    "cmd-marlin-set-feedrate",
   ],
 
   defaultSerialOptions: {
@@ -294,12 +283,12 @@ export const DEVICE_GPS_RECEIVER: Device = {
 
   defaultProtocolId: "proto-gps-nmea",
   commandIds: [
-    "cmd-gps-query-position",
-    "cmd-gps-query-rmc",
-    "cmd-gps-query-satellites",
-    "cmd-gps-set-update-rate",
-    "cmd-gps-get-firmware",
-    "cmd-gps-hot-start",
+    "cmd-gps-get-gga",
+    "cmd-gps-get-rmc",
+    "cmd-gps-get-gsa",
+    "cmd-gps-get-gsv",
+    "cmd-gps-get-vtg",
+    "cmd-gps-get-gll",
   ],
 
   defaultSerialOptions: {
@@ -336,18 +325,62 @@ export const DEVICE_SCPI_INSTRUMENT: Device = {
 
   defaultProtocolId: "proto-scpi",
   commandIds: [
-    "cmd-scpi-identify",
-    "cmd-scpi-reset",
-    "cmd-scpi-measure-voltage",
-    "cmd-scpi-measure-current",
-    "cmd-scpi-set-voltage",
-    "cmd-scpi-set-current",
-    "cmd-scpi-output-on",
-    "cmd-scpi-output-off",
+    "cmd-scpi-idn",
+    "cmd-scpi-rst",
+    "cmd-scpi-opc",
+    "cmd-scpi-err",
+    "cmd-scpi-meas-volt",
+    "cmd-scpi-meas-curr",
+    "cmd-scpi-meas-temp",
   ],
 
   defaultSerialOptions: {
     baudRate: 9600,
+    dataBits: "Eight",
+    stopBits: "One",
+    parity: "None",
+    flowControl: "None",
+  },
+
+  attachments: [],
+};
+
+// ============================================================================
+// ESC/POS THERMAL PRINTER
+// ============================================================================
+
+export const DEVICE_ESCPOS_PRINTER: Device = {
+  id: "device-escpos-printer",
+  name: "Thermal Printer (ESC/POS)",
+  description: "ESC/POS compatible thermal receipt printer for POS systems",
+  icon: "printer",
+  tags: ["escpos", "thermal", "printer", "pos", "receipt"],
+  createdAt: now,
+  updatedAt: now,
+
+  protocols: [
+    {
+      protocolId: "proto-escpos",
+      parameterDefaults: {},
+    },
+  ],
+
+  defaultProtocolId: "proto-escpos",
+  commandIds: [
+    "cmd-escpos-init",
+    "cmd-escpos-status",
+    "cmd-escpos-paper-status",
+    "cmd-escpos-cut",
+    "cmd-escpos-feed",
+    "cmd-escpos-bold-on",
+    "cmd-escpos-bold-off",
+    "cmd-escpos-center",
+    "cmd-escpos-left",
+    "cmd-escpos-drawer-kick",
+  ],
+
+  defaultSerialOptions: {
+    baudRate: 19200,
     dataBits: "Eight",
     stopBits: "One",
     parity: "None",
@@ -369,4 +402,5 @@ export const DEFAULT_DEVICES: Device[] = [
   DEVICE_OBD2_ELM327,
   DEVICE_GPS_RECEIVER,
   DEVICE_SCPI_INSTRUMENT,
+  DEVICE_ESCPOS_PRINTER,
 ];
