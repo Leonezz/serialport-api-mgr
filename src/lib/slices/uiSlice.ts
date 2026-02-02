@@ -1,6 +1,12 @@
 import { StateCreator } from "zustand";
 import { generateId } from "../utils";
 import { ToastMessage } from "../../components/ui/Toast";
+import {
+  encryptForStorage,
+  decryptFromStorage,
+  needsMigration,
+  migrateToEncrypted,
+} from "../apiKeyEncryption";
 import type {
   Device,
   LogCategory,
@@ -58,8 +64,10 @@ export interface UISliceActions {
   setThemeMode: (mode: ThemeMode) => void;
   setThemeColor: (color: ThemeColor) => void;
 
-  // AI Settings
-  setGeminiApiKey: (key: string) => void;
+  // AI Settings (async for encryption)
+  setGeminiApiKey: (key: string) => Promise<void>;
+  getDecryptedApiKey: () => Promise<string>;
+  migrateApiKeyIfNeeded: () => Promise<void>;
 
   // System Logs
   addSystemLog: (
@@ -107,14 +115,37 @@ export interface UISliceActions {
 // Complete slice: State & Actions
 export type UISlice = UISliceState & UISliceActions;
 
-export const createUISlice: StateCreator<UISlice> = (set) => ({
+export const createUISlice: StateCreator<UISlice> = (set, get) => ({
   themeMode: "system",
   themeColor: "zinc",
   setThemeMode: (mode) => set({ themeMode: mode }),
   setThemeColor: (color) => set({ themeColor: color }),
 
   geminiApiKey: "",
-  setGeminiApiKey: (key) => set({ geminiApiKey: key }),
+  setGeminiApiKey: async (key) => {
+    if (!key || !key.trim()) {
+      set({ geminiApiKey: "" });
+      return;
+    }
+    // Encrypt before storing
+    const encrypted = await encryptForStorage(key);
+    set({ geminiApiKey: encrypted });
+  },
+  getDecryptedApiKey: async () => {
+    const { geminiApiKey } = get();
+    if (!geminiApiKey) {
+      return "";
+    }
+    return decryptFromStorage(geminiApiKey);
+  },
+  migrateApiKeyIfNeeded: async () => {
+    const { geminiApiKey } = get();
+    if (needsMigration(geminiApiKey)) {
+      console.info("[Store] Migrating plaintext API key to encrypted format");
+      const encrypted = await migrateToEncrypted(geminiApiKey);
+      set({ geminiApiKey: encrypted });
+    }
+  },
 
   systemLogs: [],
   addSystemLog: (level, category, message, details) =>

@@ -21,10 +21,11 @@ import { AIProjectResultSchema } from "../lib/schemas"; // Import Zod schema
 import { getErrorMessage } from "../lib/utils";
 
 // Helper to get the API key (store takes priority over env var)
-const getApiKey = (): string | undefined => {
-  const storeKey = useStore.getState().geminiApiKey;
-  if (storeKey && storeKey.trim()) {
-    return storeKey.trim();
+// Uses async decryption for stored keys
+const getApiKey = async (): Promise<string | undefined> => {
+  const decryptedKey = await useStore.getState().getDecryptedApiKey();
+  if (decryptedKey && decryptedKey.trim()) {
+    return decryptedKey.trim();
   }
   return process.env.API_KEY;
 };
@@ -78,8 +79,9 @@ const parseApiError = (error: unknown): string => {
 let aiInstance: GoogleGenAI | null = null;
 let lastApiKey: string | undefined = undefined;
 
-const getAIInstance = (): GoogleGenAI => {
-  const apiKey = getApiKey();
+// Get AI instance (async - uses decrypted key)
+const getAIInstance = async (): Promise<GoogleGenAI> => {
+  const apiKey = await getApiKey();
   if (!apiKey) {
     throw new Error(
       "Gemini API key not configured. Please add your API key in Settings.",
@@ -431,8 +433,8 @@ export const getGeminiChatModel = () => {
   return "gemini-3-flash-preview";
 };
 
-export const createChatSession = (projectState?: ProjectSummary) => {
-  const ai = getAIInstance(); // Throws user-friendly error if no API key
+export const createChatSession = async (projectState?: ProjectSummary) => {
+  const ai = await getAIInstance(); // Throws user-friendly error if no API key
 
   let resourceContext = "";
   if (projectState) {
@@ -497,7 +499,7 @@ export const analyzeSerialLog = async (
 ): Promise<string> => {
   let ai: GoogleGenAI;
   try {
-    ai = getAIInstance();
+    ai = await getAIInstance();
   } catch {
     return "Gemini API key not configured. Please add your API key in Settings.";
   }
@@ -577,7 +579,7 @@ export const generateProjectFromDescription = async (
   text: string,
   attachment?: { name: string; mimeType: string; data: string },
 ): Promise<AIProjectResult> => {
-  const ai = getAIInstance(); // Throws user-friendly error if no API key
+  const ai = await getAIInstance(); // Throws user-friendly error if no API key
 
   const promptText = `
     You are an expert embedded systems engineer.

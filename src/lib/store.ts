@@ -400,6 +400,10 @@ export const useStore = create<AppState>()(
               merged.sidebarSectionsCollapsed =
                 data.sidebarSectionsCollapsed as Record<string, boolean>;
 
+            // AI Settings (may be encrypted)
+            if (data.geminiApiKey !== undefined)
+              merged.geminiApiKey = data.geminiApiKey;
+
             // Project data - cast to proper types since validation passed
             // Only override defaults if persisted data has items (prevent empty arrays from clearing defaults)
             if (data.presets && data.presets.length > 0)
@@ -446,12 +450,33 @@ export const useStore = create<AppState>()(
             return currentState;
           }
         },
+        // Migrate API keys after rehydration
+        onRehydrateStorage: () => {
+          return (_state, error) => {
+            if (error) {
+              console.error("[Store] Rehydration error:", error);
+              return;
+            }
+            // Run API key migration asynchronously after rehydration
+            // The state is already available via useStore.getState()
+            setTimeout(async () => {
+              try {
+                await useStore.getState().migrateApiKeyIfNeeded();
+              } catch (e) {
+                console.error("[Store] API key migration failed:", e);
+              }
+            }, 0);
+          };
+        },
         // Only persist specific slices - avoid persisting runtime data like logs, toasts
         partialize: (state) => ({
           // UI preferences
           themeMode: state.themeMode,
           themeColor: state.themeColor,
           sidebarSectionsCollapsed: state.sidebarSectionsCollapsed,
+
+          // AI Settings (encrypted)
+          geminiApiKey: state.geminiApiKey,
 
           // Legacy project data (keeping for backward compatibility during migration)
           presets: state.presets,

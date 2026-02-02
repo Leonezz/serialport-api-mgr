@@ -38,26 +38,29 @@ const AIAssistantContent: React.FC = () => {
   const fileInputRef = useRef<FileInputRef>(null);
 
   useEffect(() => {
-    try {
-      chatSessionRef.current = createChatSession({
-        commands,
-        sequences,
-        presets,
-        widgets,
-      });
-      if (messages.length === 0) {
-        setAiMessages([
-          {
-            id: generateId(),
-            role: "model",
-            text: "Hello! I'm your SerialPort expert. How can I assist with your debugging today?",
-            timestamp: Date.now(),
-          },
-        ]);
+    const initChat = async () => {
+      try {
+        chatSessionRef.current = await createChatSession({
+          commands,
+          sequences,
+          presets,
+          widgets,
+        });
+        if (messages.length === 0) {
+          setAiMessages([
+            {
+              id: generateId(),
+              role: "model",
+              text: "Hello! I'm your SerialPort expert. How can I assist with your debugging today?",
+              timestamp: Date.now(),
+            },
+          ]);
+        }
+      } catch (e) {
+        console.error("AI Init Error", e);
       }
-    } catch (e) {
-      console.error("AI Init Error", e);
-    }
+    };
+    initChat();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
