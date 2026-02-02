@@ -123,41 +123,52 @@ const ProtocolCommandCustomizer: React.FC<Props> = ({ command, onUpdate }) => {
   } | null>(null);
 
   useEffect(() => {
-    if (!protocol || !command.protocolLayer?.messageStructureId) {
-      setBinaryPreview(null);
-      return;
-    }
+    let isCancelled = false;
 
-    const structure = protocol.messageStructures?.find(
-      (s) => s.id === command.protocolLayer!.messageStructureId,
-    );
-    if (!structure) {
-      setBinaryPreview(null);
-      return;
-    }
+    const buildPreview = async () => {
+      if (!protocol || !command.protocolLayer?.messageStructureId) {
+        return null;
+      }
 
-    // Build with empty params (shows default/static values)
-    buildStructuredMessage(structure, {
-      params: {},
-      bindings: [],
-      staticBindings: [],
-    })
-      .then((result) => {
-        setBinaryPreview({
+      const structure = protocol.messageStructures?.find(
+        (s) => s.id === command.protocolLayer!.messageStructureId,
+      );
+      if (!structure) {
+        return null;
+      }
+
+      try {
+        // Build with empty params (shows default/static values)
+        const result = await buildStructuredMessage(structure, {
+          params: {},
+          bindings: [],
+          staticBindings: [],
+        });
+        return {
           data: result.data,
           hex: bytesToHex(result.data, true, " "),
           size: result.data.length,
           error: null,
-        });
-      })
-      .catch((err) => {
-        setBinaryPreview({
+        };
+      } catch (err) {
+        return {
           data: null,
           hex: null,
           size: 0,
           error: err instanceof Error ? err.message : "Build failed",
-        });
-      });
+        };
+      }
+    };
+
+    buildPreview().then((preview) => {
+      if (!isCancelled) {
+        setBinaryPreview(preview);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [protocol, command.protocolLayer]);
 
   // Copy hex to clipboard

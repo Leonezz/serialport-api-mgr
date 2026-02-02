@@ -95,8 +95,28 @@ export async function decryptApiKey(
 }
 
 /**
- * Check if a string is in encrypted format
+ * Check if a string is in our encrypted format (iv:ciphertext in base64)
+ * IV is 12 bytes = 16 chars in base64, ciphertext includes 16-byte auth tag
  */
 export function isEncrypted(value: string): boolean {
-  return value.includes(":") && !value.startsWith("sk-");
+  // Quick rejection for obvious non-encrypted values
+  if (!value || !value.includes(":")) return false;
+  if (value.startsWith("sk-") || value.startsWith("AIza")) return false;
+
+  const parts = value.split(":");
+  // Our format is exactly "iv:ciphertext"
+  if (parts.length !== 2) return false;
+
+  const [iv, ciphertext] = parts;
+
+  // IV must be exactly 16 chars (12 bytes in base64)
+  if (iv.length !== 16) return false;
+
+  // Ciphertext must be valid base64 and have minimum length
+  // (at least auth tag = 16 bytes = ~22 chars in base64)
+  if (ciphertext.length < 22) return false;
+
+  // Validate both parts are valid base64
+  const base64Regex = /^[A-Za-z0-9+/]+=*$/;
+  return base64Regex.test(iv) && base64Regex.test(ciphertext);
 }

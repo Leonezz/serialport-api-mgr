@@ -111,11 +111,11 @@ const applySubstitute = (
 /**
  * Apply transform mode to a value
  */
-const applyTransform = (
+const applyTransform = async (
   value: unknown,
   config: ParameterApplication["transform"],
   params: Record<string, unknown>,
-): string => {
+): Promise<string> => {
   const preset = config?.preset || "CUSTOM";
 
   switch (preset) {
@@ -188,7 +188,7 @@ const applyTransform = (
     case "CUSTOM":
       if (config?.expression) {
         try {
-          const result = executeUserScript(config.expression, {
+          const result = await executeUserScript(config.expression, {
             value,
             params,
             Math,
@@ -379,10 +379,10 @@ const applyFormat = (
  * Apply position mode - returns bytes to insert at specific offset
  * This is for binary protocols where values are inserted at specific byte positions
  */
-export const applyPosition = (
+export const applyPosition = async (
   value: unknown,
   config: ParameterApplication["position"],
-): { offset: number; bytes: Uint8Array } => {
+): Promise<{ offset: number; bytes: Uint8Array }> => {
   const posConfig = config || { byteOffset: 0, byteSize: "1" };
   const byteSize = parseInt(posConfig.byteSize || "1");
   const endianness = posConfig.endianness || "LE";
@@ -391,7 +391,7 @@ export const applyPosition = (
   let num: number;
   if (posConfig.valueTransform) {
     try {
-      const result = executeUserScript(posConfig.valueTransform, {
+      const result = await executeUserScript(posConfig.valueTransform, {
         value,
         Math,
         parseInt,
@@ -438,18 +438,18 @@ export const applyPosition = (
 /**
  * Apply a single parameter value based on its application config
  */
-const applyParameterValue = (
+const applyParameterValue = async (
   value: unknown,
   application: ParameterApplication | undefined,
   params: Record<string, unknown>,
-): string => {
+): Promise<string> => {
   const mode = application?.mode || "SUBSTITUTE";
 
   switch (mode) {
     case "SUBSTITUTE":
       return applySubstitute(value, application?.substitute);
     case "TRANSFORM":
-      return applyTransform(value, application?.transform, params);
+      return await applyTransform(value, application?.transform, params);
     case "FORMAT":
       return applyFormat(value, application?.format);
     case "POSITION":
@@ -465,11 +465,11 @@ const applyParameterValue = (
  * Apply parameters to a payload string
  * Replaces variables with parameter values based on their application modes
  */
-export const applyParameters = (
+export const applyParameters = async (
   payload: string,
   params: Record<string, unknown>,
   command?: SavedCommand,
-): string => {
+): Promise<string> => {
   if (!command) {
     // Simple replacement without application modes
     const syntax = "SHELL";
@@ -493,9 +493,30 @@ export const applyParameters = (
     }
   }
 
-  return payload.replace(pattern, (match, name1, name2) => {
-    const varName = name1 || name2;
+  // Collect all matches first (since replace callback can't be async)
+  const matches: Array<{
+    match: string;
+    index: number;
+    varName: string;
+    lookupKey: string;
+  }> = [];
+  let execResult: RegExpExecArray | null;
+  const globalPattern = new RegExp(pattern.source, pattern.flags + "g");
+  while ((execResult = globalPattern.exec(payload)) !== null) {
+    const varName = execResult[1] || execResult[2];
     const lookupKey = caseSensitive ? varName : varName.toLowerCase();
+    matches.push({
+      match: execResult[0],
+      index: execResult.index,
+      varName,
+      lookupKey,
+    });
+  }
+
+  // Process matches in reverse order to maintain correct indices
+  let result = payload;
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { match, index, varName, lookupKey } = matches[i];
 
     // Check if we have a value for this variable
     let value: unknown;
@@ -511,25 +532,29 @@ export const applyParameters = (
 
     if (value === undefined) {
       // No value provided, keep the original placeholder
-      return match;
+      continue;
     }
 
     // Get parameter config
     const paramConfig = paramConfigs.get(lookupKey);
     const application = paramConfig?.application;
 
-    return applyParameterValue(value, application, params);
-  });
+    const replacement = await applyParameterValue(value, application, params);
+    result =
+      result.slice(0, index) + replacement + result.slice(index + match.length);
+  }
+
+  return result;
 };
 
 /**
  * Collect position-mode parameters for binary payload construction
  * Returns a list of byte insertions to apply to a binary payload
  */
-export const collectPositionParameters = (
+export const collectPositionParameters = async (
   params: Record<string, unknown>,
   command?: SavedCommand,
-): Array<{ name: string; offset: number; bytes: Uint8Array }> => {
+): Promise<Array<{ name: string; offset: number; bytes: Uint8Array }>> => {
   if (!command?.parameters) return [];
 
   const results: Array<{ name: string; offset: number; bytes: Uint8Array }> =
@@ -539,7 +564,7 @@ export const collectPositionParameters = (
     if (param.application?.mode === "POSITION") {
       const value = params[param.name];
       if (value !== undefined) {
-        const { offset, bytes } = applyPosition(
+        const { offset, bytes } = await applyPosition(
           value,
           param.application.position,
         );

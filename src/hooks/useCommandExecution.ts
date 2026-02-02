@@ -232,7 +232,7 @@ export function useCommandExecution(
     // Apply parameters to payload using the new parameter system
     let processedData = data;
     if (cmdInfo && Object.keys(params).length > 0) {
-      processedData = applyParameters(data, params, cmdInfo);
+      processedData = await applyParameters(data, params, cmdInfo);
       if (processedData !== data) {
         addSystemLog("INFO", "COMMAND", `Applied parameters to payload`, {
           original: data,
@@ -257,7 +257,7 @@ export function useCommandExecution(
           );
         };
         const scriptArgs = { payload: processedData, params, log };
-        const result = executeUserScript(
+        const result = await executeUserScript(
           cmdInfo.scripting.preRequestScript,
           scriptArgs,
         );
@@ -433,7 +433,7 @@ export function useCommandExecution(
 
       // Apply position-mode parameters for binary protocols
       if (cmdInfo && Object.keys(params).length > 0) {
-        const positionParams = collectPositionParameters(params, cmdInfo);
+        const positionParams = await collectPositionParameters(params, cmdInfo);
         if (positionParams.length > 0) {
           dataBytes = applyPositionParameters(dataBytes, positionParams);
           addSystemLog(

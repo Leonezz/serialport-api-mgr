@@ -283,6 +283,9 @@ export class SerialFramer {
   private chunks: TimedChunk[] = [];
   // Fix: Using any instead of NodeJS.Timeout to avoid namespace errors in browser environment
   private timer: ReturnType<typeof setTimeout> | null = null;
+  // Prevent race condition: track if composeFrames is currently running
+  private isProcessing = false;
+  private pendingFlush = false;
 
   constructor(
     private config: FramingConfig,
@@ -334,17 +337,43 @@ export class SerialFramer {
       }
     }
 
+    // Prevent race condition: if already processing, queue up the flush request
+    if (this.isProcessing) {
+      if (forceFlush) {
+        this.pendingFlush = true;
+      }
+      return;
+    }
+
+    this.isProcessing = true;
+    // Capture current chunks to process, avoiding mutation during async operation
+    const chunksToProcess = [...this.chunks];
+    this.chunks = [];
+
     // composeFrames is now async, handle the promise
-    composeFrames(this.chunks, this.config, forceFlush)
+    composeFrames(chunksToProcess, this.config, forceFlush)
       .then((result) => {
         if (result.frames.length > 0) {
           this.onFrames(result.frames);
         }
-        this.chunks = result.remaining;
+        // Prepend any remaining chunks back, then any new chunks that arrived
+        this.chunks = [...result.remaining, ...this.chunks];
       })
       .catch((error) => {
         console.error("Error in composeFrames:", error);
-        // Keep chunks intact on error to avoid data loss
+        // On error, restore chunks to avoid data loss
+        this.chunks = [...chunksToProcess, ...this.chunks];
+      })
+      .finally(() => {
+        this.isProcessing = false;
+        // If there's pending work, process it
+        if (this.pendingFlush || this.chunks.length > 0) {
+          const shouldFlush = this.pendingFlush;
+          this.pendingFlush = false;
+          if (this.chunks.length > 0) {
+            this.runCompose(shouldFlush);
+          }
+        }
       });
   }
 }
