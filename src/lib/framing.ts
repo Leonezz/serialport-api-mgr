@@ -1,4 +1,5 @@
 import { FramingConfig, FramingStrategy } from "../types";
+import { executeSandboxedScript } from "./sandboxedScripting";
 
 export interface TimedChunk {
   data: Uint8Array;
@@ -16,12 +17,13 @@ interface CompositionResult {
 
 /**
  * Pure function to extract frames from a list of timed chunks based on strategy.
+ * Note: This function is async to support sandboxed script execution.
  */
-export const composeFrames = (
+export const composeFrames = async (
   chunks: TimedChunk[],
   config: FramingConfig,
   forceFlush: boolean = false,
-): CompositionResult => {
+): Promise<CompositionResult> => {
   if (chunks.length === 0) {
     return { frames: [], remaining: [] };
   }
@@ -31,18 +33,52 @@ export const composeFrames = (
   // --- Strategy: SCRIPT (Custom Full Control) ---
   if (strategy === "SCRIPT" && config.script) {
     try {
-      // Signature: (chunks: TimedChunk[], forceFlush: boolean) => { frames: TimedChunk[], remaining: TimedChunk[] }
-      // Users must handle Uint8Array concatenation/slicing themselves if they want to merge.
-      const scriptFunc = new Function("chunks", "forceFlush", config.script);
-      const result = scriptFunc(chunks, forceFlush);
+      // Execute script in sandboxed environment
+      // Script receives context.chunks and context.forceFlush
+      // Script must return { frames: [], remaining: [] }
+      const result = await executeSandboxedScript(
+        config.script,
+        { chunks, forceFlush },
+        { timeout: 2000 }, // Shorter timeout for framing
+      );
 
-      // Validate return structure lightly
+      // Validate return structure
       if (
         result &&
-        Array.isArray(result.frames) &&
-        Array.isArray(result.remaining)
+        typeof result === "object" &&
+        "frames" in result &&
+        "remaining" in result &&
+        Array.isArray((result as CompositionResult).frames) &&
+        Array.isArray((result as CompositionResult).remaining)
       ) {
-        return result as CompositionResult;
+        // Convert arrays back to Uint8Array if needed (QuickJS converts to number arrays)
+        const typedResult = result as {
+          frames: Array<{
+            data: number[] | Uint8Array;
+            timestamp: number;
+            payloadStart?: number;
+            payloadLength?: number;
+          }>;
+          remaining: Array<{
+            data: number[] | Uint8Array;
+            timestamp: number;
+            payloadStart?: number;
+            payloadLength?: number;
+          }>;
+        };
+
+        return {
+          frames: typedResult.frames.map((f) => ({
+            ...f,
+            data:
+              f.data instanceof Uint8Array ? f.data : new Uint8Array(f.data),
+          })),
+          remaining: typedResult.remaining.map((r) => ({
+            ...r,
+            data:
+              r.data instanceof Uint8Array ? r.data : new Uint8Array(r.data),
+          })),
+        };
       } else {
         console.warn(
           "Script framing returned invalid structure. Expected { frames: [], remaining: [] }",
@@ -298,11 +334,17 @@ export class SerialFramer {
       }
     }
 
-    const result = composeFrames(this.chunks, this.config, forceFlush);
-
-    if (result.frames.length > 0) {
-      this.onFrames(result.frames);
-    }
-    this.chunks = result.remaining;
+    // composeFrames is now async, handle the promise
+    composeFrames(this.chunks, this.config, forceFlush)
+      .then((result) => {
+        if (result.frames.length > 0) {
+          this.onFrames(result.frames);
+        }
+        this.chunks = result.remaining;
+      })
+      .catch((error) => {
+        console.error("Error in composeFrames:", error);
+        // Keep chunks intact on error to avoid data loss
+      });
   }
 }
