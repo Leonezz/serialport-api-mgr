@@ -96,7 +96,16 @@ export async function executeSandboxedScript(
     vm.runtime.setMaxStackSize(options.maxStackSize ?? DEFAULT_STACK_SIZE);
     vm.runtime.setInterruptHandler(shouldInterruptAfterDeadline(deadline));
 
-    // Create context object
+    // Expose each context property as a top-level variable (for backward compatibility)
+    // The original new Function() implementation did: new Function(...keys, code)(...values)
+    // which made each key available as a variable in the script
+    for (const [key, value] of Object.entries(context)) {
+      const handle = jsToQuickJS(vm, value);
+      vm.setProp(vm.global, key, handle);
+      handle.dispose();
+    }
+
+    // Also expose the full context object for scripts that prefer context.xxx syntax
     const contextHandle = jsToQuickJS(vm, context);
     vm.setProp(vm.global, "context", contextHandle);
     contextHandle.dispose();
