@@ -19,6 +19,8 @@ import {
   Clock,
 } from "lucide-react";
 import { useStore } from "../lib/store";
+import { getErrorMessage } from "../lib/utils";
+import { SerialSequenceSchema } from "../lib/schemas";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { PageHeader } from "../routes";
@@ -119,9 +121,10 @@ const SequenceLibrary: React.FC = () => {
         const content = e.target?.result as string;
         const imported = JSON.parse(content);
 
-        // Validate basic sequence structure
-        if (!imported.name || !Array.isArray(imported.steps)) {
-          throw new Error("Invalid sequence format");
+        // Validate with Zod schema
+        const result = SerialSequenceSchema.safeParse(imported);
+        if (!result.success) {
+          throw result.error;
         }
 
         // Strip id and timestamps to create as new
@@ -130,19 +133,15 @@ const SequenceLibrary: React.FC = () => {
           createdAt: _ca,
           updatedAt: _ua,
           ...sequenceData
-        } = imported;
+        } = result.data;
         addSequence(sequenceData);
         addToast(
           "success",
           "Sequence Imported",
-          `Sequence "${imported.name}" has been imported.`,
+          `Sequence "${result.data.name}" has been imported.`,
         );
       } catch (error) {
-        addToast(
-          "error",
-          "Import Failed",
-          "The file does not contain a valid sequence.",
-        );
+        addToast("error", "Import Failed", getErrorMessage(error));
       }
     };
     reader.readAsText(file);
