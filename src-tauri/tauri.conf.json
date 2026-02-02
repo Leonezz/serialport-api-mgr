@@ -11,7 +11,7 @@
   "app": {
     "windows": [],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://generativelanguage.googleapis.com wss://localhost:* ws://localhost:*; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:"
     }
   },
   "bundle": {
