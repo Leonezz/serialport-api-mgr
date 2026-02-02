@@ -275,12 +275,23 @@ pub async fn open_port(
         tracing::error!("update available ports failed: {}", err);
         err.to_string()
     })?;
+
+    // Acquire write lock on port_handles early and hold it across the entire operation
+    // to prevent TOCTOU race conditions where another thread could open the same port
+    // between our check and the actual open operation.
+    let mut port_handles = state.port_handles.write().await;
+
+    // Check port exists
     if !state.ports.read().await.contains_key(&port_name) {
         return Err(format!("no such port: {}", port_name));
     }
-    if state.port_handles.read().await.contains_key(&port_name) {
+
+    // Check port not already open (while holding write lock)
+    if port_handles.contains_key(&port_name) {
         return Err(format!("{} already opened", port_name));
     }
+
+    // Get device fingerprint
     let device_fingerprint = {
         let ports = state.ports.read().await;
         let port_info = ports
@@ -288,6 +299,8 @@ pub async fn open_port(
             .ok_or_else(|| format!("port {} not found", port_name))?;
         generate_device_fingerprint(&port_name, &port_info.port_type)
     };
+
+    // Open port (while still holding write lock on port_handles)
     let (write_tx, session_id) = open_port_unchecked(
         port_name.clone(),
         baud_rate,
@@ -305,13 +318,19 @@ pub async fn open_port(
         err.to_string()
     })?;
     tracing::info!("open port succeed");
-    state.port_handles.write().await.insert(
+
+    // Insert handle (still holding write lock - atomically marks port as open)
+    port_handles.insert(
         port_name.clone(),
         PortHandles {
             write_port_tx: write_tx,
         },
     );
     tracing::info!("insert new port handle");
+
+    // Drop port_handles lock before acquiring ports write lock to avoid potential deadlock
+    drop(port_handles);
+
     state
         .ports
         .write()
