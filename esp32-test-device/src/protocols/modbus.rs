@@ -29,44 +29,59 @@ impl ModbusServer {
     pub fn update_from_sim_data(&self, sim_data: &SimulatedData) {
         let mut ctx = self.context.lock().unwrap();
 
+        // Helper macro to log errors from register operations
+        macro_rules! set_register {
+            ($method:ident, $addr:expr, $value:expr, $name:expr) => {
+                if let Err(e) = ctx.$method($addr, $value) {
+                    log::warn!("Modbus: Failed to set {} register {}: {:?}", $name, $addr, e);
+                }
+            };
+        }
+
+        macro_rules! set_bit {
+            ($method:ident, $addr:expr, $value:expr, $name:expr) => {
+                if let Err(e) = ctx.$method($addr, $value) {
+                    log::warn!("Modbus: Failed to set {} {}: {:?}", $name, $addr, e);
+                }
+            };
+        }
+
         // Input registers (read-only sensor data) - addresses 0-7
         // Register 0: Temperature ×10 (e.g., 250 = 25.0°C)
-        ctx.set_input(0, (sim_data.temperature * 10.0) as u16)
-            .ok();
+        set_register!(set_input, 0, (sim_data.temperature * 10.0) as u16, "input");
         // Register 1: Humidity ×10 (e.g., 500 = 50.0%)
-        ctx.set_input(1, (sim_data.humidity * 10.0) as u16).ok();
+        set_register!(set_input, 1, (sim_data.humidity * 10.0) as u16, "input");
         // Register 2: RPM
-        ctx.set_input(2, sim_data.rpm).ok();
+        set_register!(set_input, 2, sim_data.rpm, "input");
         // Register 3: Speed ×10 (e.g., 600 = 60.0 km/h)
-        ctx.set_input(3, (sim_data.speed * 10.0) as u16).ok();
+        set_register!(set_input, 3, (sim_data.speed * 10.0) as u16, "input");
         // Register 4: Voltage ×100 (e.g., 330 = 3.30V)
-        ctx.set_input(4, (sim_data.voltage * 100.0) as u16).ok();
+        set_register!(set_input, 4, (sim_data.voltage * 100.0) as u16, "input");
         // Register 5: Current ×1000 (e.g., 100 = 0.100A)
-        ctx.set_input(5, (sim_data.current * 1000.0) as u16).ok();
+        set_register!(set_input, 5, (sim_data.current * 1000.0) as u16, "input");
         // Register 6: Pressure ×10 (e.g., 10132 = 1013.2 hPa)
-        ctx.set_input(6, (sim_data.pressure * 10.0) as u16).ok();
+        set_register!(set_input, 6, (sim_data.pressure * 10.0) as u16, "input");
         // Register 7: Altitude ×10 (e.g., 100 = 10.0m)
-        ctx.set_input(7, (sim_data.altitude * 10.0) as u16).ok();
+        set_register!(set_input, 7, (sim_data.altitude * 10.0) as u16, "input");
 
         // Also mirror to holding registers for read/write access
-        ctx.set_holding(0, (sim_data.temperature * 10.0) as u16)
-            .ok();
-        ctx.set_holding(1, (sim_data.humidity * 10.0) as u16).ok();
-        ctx.set_holding(2, sim_data.rpm).ok();
-        ctx.set_holding(3, (sim_data.speed * 10.0) as u16).ok();
-        ctx.set_holding(4, (sim_data.voltage * 100.0) as u16).ok();
-        ctx.set_holding(5, (sim_data.current * 1000.0) as u16).ok();
-        ctx.set_holding(6, (sim_data.pressure * 10.0) as u16).ok();
-        ctx.set_holding(7, (sim_data.altitude * 10.0) as u16).ok();
+        set_register!(set_holding, 0, (sim_data.temperature * 10.0) as u16, "holding");
+        set_register!(set_holding, 1, (sim_data.humidity * 10.0) as u16, "holding");
+        set_register!(set_holding, 2, sim_data.rpm, "holding");
+        set_register!(set_holding, 3, (sim_data.speed * 10.0) as u16, "holding");
+        set_register!(set_holding, 4, (sim_data.voltage * 100.0) as u16, "holding");
+        set_register!(set_holding, 5, (sim_data.current * 1000.0) as u16, "holding");
+        set_register!(set_holding, 6, (sim_data.pressure * 10.0) as u16, "holding");
+        set_register!(set_holding, 7, (sim_data.altitude * 10.0) as u16, "holding");
 
         // Coils (digital outputs) - some example states
-        ctx.set_coil(0, true).ok(); // Device online
-        ctx.set_coil(1, false).ok(); // Alarm status
-        ctx.set_coil(2, true).ok(); // Sensor ready
+        set_bit!(set_coil, 0, true, "coil"); // Device online
+        set_bit!(set_coil, 1, false, "coil"); // Alarm status
+        set_bit!(set_coil, 2, true, "coil"); // Sensor ready
 
         // Discrete inputs (digital inputs)
-        ctx.set_discrete(0, true).ok(); // Input 1 state
-        ctx.set_discrete(1, false).ok(); // Input 2 state
+        set_bit!(set_discrete, 0, true, "discrete"); // Input 1 state
+        set_bit!(set_discrete, 1, false, "discrete"); // Input 2 state
     }
 
     /// Process a Modbus RTU frame and return the response
