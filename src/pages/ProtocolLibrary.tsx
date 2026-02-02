@@ -22,6 +22,8 @@ import {
   Command,
 } from "lucide-react";
 import { useStore } from "../lib/store";
+import { getErrorMessage } from "../lib/utils";
+import { ProtocolSchema } from "../lib/protocolSchemas";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { PageHeader } from "../routes";
@@ -135,9 +137,10 @@ const ProtocolLibrary: React.FC = () => {
         const content = e.target?.result as string;
         const imported = JSON.parse(content);
 
-        // Validate basic protocol structure
-        if (!imported.name || !imported.version) {
-          throw new Error("Invalid protocol format");
+        // Validate with Zod schema
+        const result = ProtocolSchema.safeParse(imported);
+        if (!result.success) {
+          throw result.error;
         }
 
         // Strip id and timestamps to create as new
@@ -146,19 +149,15 @@ const ProtocolLibrary: React.FC = () => {
           createdAt: _ca,
           updatedAt: _ua,
           ...protocolData
-        } = imported;
+        } = result.data;
         addProtocol(protocolData);
         addToast(
           "success",
           "Protocol Imported",
-          `Protocol "${imported.name}" has been imported.`,
+          `Protocol "${result.data.name}" has been imported.`,
         );
       } catch (error) {
-        addToast(
-          "error",
-          "Import Failed",
-          "The file does not contain a valid protocol.",
-        );
+        addToast("error", "Import Failed", getErrorMessage(error));
       }
     };
     reader.readAsText(file);

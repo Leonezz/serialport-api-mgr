@@ -9,7 +9,8 @@ import React, { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Upload, Folder, LayoutGrid, List } from "lucide-react";
 import { useStore } from "../lib/store";
-import { cn } from "../lib/utils";
+import { cn, getErrorMessage } from "../lib/utils";
+import { SavedCommandSchema } from "../lib/schemas";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Badge } from "../components/ui/Badge";
@@ -165,9 +166,10 @@ const CommandLibrary: React.FC = () => {
         const content = e.target?.result as string;
         const imported = JSON.parse(content);
 
-        // Validate basic command structure
-        if (!imported.name || !imported.mode) {
-          throw new Error("Invalid command format");
+        // Validate with Zod schema
+        const result = SavedCommandSchema.safeParse(imported);
+        if (!result.success) {
+          throw result.error;
         }
 
         // Strip id and timestamps to create as new
@@ -176,19 +178,15 @@ const CommandLibrary: React.FC = () => {
           createdAt: _ca,
           updatedAt: _ua,
           ...commandData
-        } = imported;
+        } = result.data;
         addCommand(commandData);
         addToast(
           "success",
           "Command Imported",
-          `Command "${imported.name}" has been imported.`,
+          `Command "${result.data.name}" has been imported.`,
         );
       } catch (error) {
-        addToast(
-          "error",
-          "Import Failed",
-          "The file does not contain a valid command.",
-        );
+        addToast("error", "Import Failed", getErrorMessage(error));
       }
     };
     reader.readAsText(file);
