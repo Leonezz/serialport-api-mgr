@@ -599,7 +599,7 @@ describe("parseStructuredMessage - complex messages", () => {
 // ============================================================================
 
 describe("extractVariables", () => {
-  it("should extract variables from parsed fields", () => {
+  it("should extract variables from parsed fields", async () => {
     const parseResult = {
       success: true,
       fields: {
@@ -628,14 +628,14 @@ describe("extractVariables", () => {
       },
     ];
 
-    const result = extractVariables(parseResult, patterns);
+    const result = await extractVariables(parseResult, patterns);
 
     expect(result.success).toBe(true);
     expect(result.variables["temp"]).toBe(25);
     expect(result.variables["humid"]).toBe(60);
   });
 
-  it("should handle failed parse result", () => {
+  it("should handle failed parse result", async () => {
     const parseResult = {
       success: false,
       error: "Parse failed",
@@ -644,13 +644,13 @@ describe("extractVariables", () => {
     };
 
     const patterns: ResponsePattern[] = [];
-    const result = extractVariables(parseResult, patterns);
+    const result = await extractVariables(parseResult, patterns);
 
     expect(result.success).toBe(false);
     expect(result.error).toBe("Parse failed");
   });
 
-  it("should return empty variables when no patterns match", () => {
+  it("should return empty variables when no patterns match", async () => {
     const parseResult = {
       success: true,
       fields: {},
@@ -658,7 +658,7 @@ describe("extractVariables", () => {
     };
 
     const patterns: ResponsePattern[] = [];
-    const result = extractVariables(parseResult, patterns);
+    const result = await extractVariables(parseResult, patterns);
 
     expect(result.success).toBe(true);
     expect(Object.keys(result.variables)).toHaveLength(0);
@@ -670,7 +670,7 @@ describe("extractVariables", () => {
 // ============================================================================
 
 describe("parseAndExtract", () => {
-  it("should parse and extract in one step", () => {
+  it("should parse and extract in one step", async () => {
     const structure = createStructure([
       createElement(
         "temp",
@@ -689,20 +689,20 @@ describe("parseAndExtract", () => {
     ];
 
     const data = new Uint8Array([0x19]); // 25
-    const result = parseAndExtract(data, structure, patterns);
+    const result = await parseAndExtract(data, structure, patterns);
 
     expect(result.success).toBe(true);
     expect(result.fields["Temperature"].value).toBe(25);
     expect(result.variables["temp"]).toBe(25);
   });
 
-  it("should return empty variables on parse failure", () => {
+  it("should return empty variables on parse failure", async () => {
     const structure = createStructure([
       createElement("data", "Data", { type: "STATIC", value: [0xaa] }, 1),
     ]);
 
     const data = new Uint8Array([]); // Empty - will fail
-    const result = parseAndExtract(data, structure, []);
+    const result = await parseAndExtract(data, structure, []);
 
     expect(result.success).toBe(false);
     expect(Object.keys(result.variables)).toHaveLength(0);
