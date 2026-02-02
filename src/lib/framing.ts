@@ -286,6 +286,7 @@ export class SerialFramer {
   // Prevent race condition: track if composeFrames is currently running
   private isProcessing = false;
   private pendingFlush = false;
+  private pendingData = false;
 
   constructor(
     private config: FramingConfig,
@@ -337,15 +338,18 @@ export class SerialFramer {
       }
     }
 
-    // Prevent race condition: if already processing, queue up the flush request
+    // Prevent race condition: if already processing, queue up the request
     if (this.isProcessing) {
       if (forceFlush) {
         this.pendingFlush = true;
       }
+      // Mark that new data arrived during processing
+      this.pendingData = true;
       return;
     }
 
     this.isProcessing = true;
+    this.pendingData = false;
     // Capture current chunks to process, avoiding mutation during async operation
     const chunksToProcess = [...this.chunks];
     this.chunks = [];
@@ -366,10 +370,11 @@ export class SerialFramer {
       })
       .finally(() => {
         this.isProcessing = false;
-        // If there's pending work, process it
-        if (this.pendingFlush || this.chunks.length > 0) {
+        // Only re-run if new data arrived during processing OR there's a pending flush
+        if (this.pendingFlush || this.pendingData) {
           const shouldFlush = this.pendingFlush;
           this.pendingFlush = false;
+          this.pendingData = false;
           if (this.chunks.length > 0) {
             this.runCompose(shouldFlush);
           }
