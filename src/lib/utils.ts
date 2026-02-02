@@ -1,5 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { ZodError } from "zod";
+import { fromZodError } from "zod-validation-error";
 import { DataMode } from "../types";
 
 export function cn(...inputs: ClassValue[]) {
@@ -55,9 +57,24 @@ export const generateId = (): string => {
 };
 
 /**
+ * Convert ZodError to user-friendly message
+ */
+export function getZodErrorMessage(error: ZodError): string {
+  const validationError = fromZodError(error, {
+    prefix: "Validation error",
+    includePath: true,
+  });
+  return validationError.message;
+}
+
+/**
  * Safely extract error message from unknown error
+ * Handles ZodError with user-friendly formatting
  */
 export function getErrorMessage(error: unknown): string {
+  if (error instanceof ZodError) {
+    return getZodErrorMessage(error);
+  }
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return "An unknown error occurred";
