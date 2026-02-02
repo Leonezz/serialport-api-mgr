@@ -8,7 +8,7 @@
  * Per PRD UI-3: Two-Section Layout
  */
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Lock,
   Pencil,
@@ -115,39 +115,49 @@ const ProtocolCommandCustomizer: React.FC<Props> = ({ command, onUpdate }) => {
   }, [needsSync, command, protocols]);
 
   // Build binary preview for STRUCTURED commands
-  const binaryPreview = useMemo(() => {
+  const [binaryPreview, setBinaryPreview] = useState<{
+    data: Uint8Array | null;
+    hex: string | null;
+    size: number;
+    error: string | null;
+  } | null>(null);
+
+  useEffect(() => {
     if (!protocol || !command.protocolLayer?.messageStructureId) {
-      return null;
+      setBinaryPreview(null);
+      return;
     }
 
     const structure = protocol.messageStructures?.find(
       (s) => s.id === command.protocolLayer!.messageStructureId,
     );
     if (!structure) {
-      return null;
+      setBinaryPreview(null);
+      return;
     }
 
-    try {
-      // Build with empty params (shows default/static values)
-      const result = buildStructuredMessage(structure, {
-        params: {},
-        bindings: [],
-        staticBindings: [],
+    // Build with empty params (shows default/static values)
+    buildStructuredMessage(structure, {
+      params: {},
+      bindings: [],
+      staticBindings: [],
+    })
+      .then((result) => {
+        setBinaryPreview({
+          data: result.data,
+          hex: bytesToHex(result.data, true, " "),
+          size: result.data.length,
+          error: null,
+        });
+      })
+      .catch((err) => {
+        setBinaryPreview({
+          data: null,
+          hex: null,
+          size: 0,
+          error: err instanceof Error ? err.message : "Build failed",
+        });
       });
-      return {
-        data: result.data,
-        hex: bytesToHex(result.data, true, " "),
-        size: result.data.length,
-        error: null,
-      };
-    } catch (err) {
-      return {
-        data: null,
-        hex: null,
-        size: 0,
-        error: err instanceof Error ? err.message : "Build failed",
-      };
-    }
   }, [protocol, command.protocolLayer]);
 
   // Copy hex to clipboard

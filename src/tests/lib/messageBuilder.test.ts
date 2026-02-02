@@ -38,7 +38,7 @@ const createStructure = (
 // ============================================================================
 
 describe("buildStructuredMessage - STATIC elements", () => {
-  it("should insert fixed bytes for STATIC elements", () => {
+  it("should insert fixed bytes for STATIC elements", async () => {
     const structure = createStructure([
       createElement("header", "Header", {
         type: "STATIC",
@@ -46,7 +46,7 @@ describe("buildStructuredMessage - STATIC elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -58,13 +58,13 @@ describe("buildStructuredMessage - STATIC elements", () => {
     expect(result.elements[0].size).toBe(2);
   });
 
-  it("should handle multiple STATIC elements", () => {
+  it("should handle multiple STATIC elements", async () => {
     const structure = createStructure([
       createElement("start", "Start", { type: "STATIC", value: [0x02] }),
       createElement("end", "End", { type: "STATIC", value: [0x03] }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -78,7 +78,7 @@ describe("buildStructuredMessage - STATIC elements", () => {
 // ============================================================================
 
 describe("buildStructuredMessage - FIELD elements", () => {
-  it("should encode UINT8 field", () => {
+  it("should encode UINT8 field", async () => {
     const structure = createStructure([
       createElement("value", "Value", {
         type: "FIELD",
@@ -86,7 +86,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: { val: 255 },
       bindings: [{ elementId: "value", parameterName: "val" }],
     });
@@ -94,7 +94,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
     expect(result.data).toEqual(new Uint8Array([0xff]));
   });
 
-  it("should encode INT8 field with negative value", () => {
+  it("should encode INT8 field with negative value", async () => {
     const structure = createStructure([
       createElement("value", "Value", {
         type: "FIELD",
@@ -102,7 +102,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: { val: -1 },
       bindings: [{ elementId: "value", parameterName: "val" }],
     });
@@ -110,7 +110,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
     expect(result.data).toEqual(new Uint8Array([0xff]));
   });
 
-  it("should encode UINT16 big-endian", () => {
+  it("should encode UINT16 big-endian", async () => {
     const structure = createStructure(
       [
         createElement("value", "Value", {
@@ -121,7 +121,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
       "BE",
     );
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: { val: 0x1234 },
       bindings: [{ elementId: "value", parameterName: "val" }],
     });
@@ -129,7 +129,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
     expect(result.data).toEqual(new Uint8Array([0x12, 0x34]));
   });
 
-  it("should encode UINT16 little-endian", () => {
+  it("should encode UINT16 little-endian", async () => {
     const structure = createStructure(
       [
         createElement("value", "Value", {
@@ -140,7 +140,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
       "LE",
     );
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: { val: 0x1234 },
       bindings: [{ elementId: "value", parameterName: "val" }],
     });
@@ -148,7 +148,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
     expect(result.data).toEqual(new Uint8Array([0x34, 0x12]));
   });
 
-  it("should encode UINT32 big-endian", () => {
+  it("should encode UINT32 big-endian", async () => {
     const structure = createStructure(
       [
         createElement("value", "Value", {
@@ -159,7 +159,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
       "BE",
     );
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: { val: 0x12345678 },
       bindings: [{ elementId: "value", parameterName: "val" }],
     });
@@ -167,7 +167,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
     expect(result.data).toEqual(new Uint8Array([0x12, 0x34, 0x56, 0x78]));
   });
 
-  it("should encode FLOAT32", () => {
+  it("should encode FLOAT32", async () => {
     const structure = createStructure(
       [
         createElement("value", "Value", {
@@ -178,7 +178,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
       "BE",
     );
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: { val: 1.0 },
       bindings: [{ elementId: "value", parameterName: "val" }],
     });
@@ -187,7 +187,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
     expect(result.data).toEqual(new Uint8Array([0x3f, 0x80, 0x00, 0x00]));
   });
 
-  it("should apply transform to field value", () => {
+  it("should apply transform to field value", async () => {
     const structure = createStructure([
       createElement("value", "Value", {
         type: "FIELD",
@@ -195,7 +195,7 @@ describe("buildStructuredMessage - FIELD elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: { val: 5 },
       bindings: [
         { elementId: "value", parameterName: "val", transform: "value * 2" },
@@ -211,14 +211,14 @@ describe("buildStructuredMessage - FIELD elements", () => {
 // ============================================================================
 
 describe("buildStructuredMessage - ADDRESS elements", () => {
-  it("should encode ADDRESS element as UINT8 by default", () => {
+  it("should encode ADDRESS element as UINT8 by default", async () => {
     const structure = createStructure([
       createElement("addr", "Address", {
         type: "ADDRESS",
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: { address: 0x42 },
       bindings: [{ elementId: "addr", parameterName: "address" }],
     });
@@ -232,7 +232,7 @@ describe("buildStructuredMessage - ADDRESS elements", () => {
 // ============================================================================
 
 describe("buildStructuredMessage - LENGTH elements", () => {
-  it("should calculate length of referenced elements", () => {
+  it("should calculate length of referenced elements", async () => {
     const structure = createStructure([
       createElement("header", "Header", { type: "STATIC", value: [0xaa] }),
       createElement(
@@ -251,7 +251,7 @@ describe("buildStructuredMessage - LENGTH elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -260,7 +260,7 @@ describe("buildStructuredMessage - LENGTH elements", () => {
     expect(result.data).toEqual(new Uint8Array([0xaa, 0x03, 0x01, 0x02, 0x03]));
   });
 
-  it("should apply adjustment to calculated length", () => {
+  it("should apply adjustment to calculated length", async () => {
     const structure = createStructure([
       createElement(
         "len",
@@ -275,7 +275,7 @@ describe("buildStructuredMessage - LENGTH elements", () => {
       createElement("data", "Data", { type: "STATIC", value: [0x01, 0x02] }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -284,7 +284,7 @@ describe("buildStructuredMessage - LENGTH elements", () => {
     expect(result.data[0]).toBe(4);
   });
 
-  it("should calculate length of multiple elements", () => {
+  it("should calculate length of multiple elements", async () => {
     const structure = createStructure([
       createElement(
         "len",
@@ -303,7 +303,7 @@ describe("buildStructuredMessage - LENGTH elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -318,7 +318,7 @@ describe("buildStructuredMessage - LENGTH elements", () => {
 // ============================================================================
 
 describe("buildStructuredMessage - CHECKSUM elements", () => {
-  it("should calculate MOD256 checksum", () => {
+  it("should calculate MOD256 checksum", async () => {
     const structure = createStructure([
       createElement("data", "Data", {
         type: "STATIC",
@@ -331,7 +331,7 @@ describe("buildStructuredMessage - CHECKSUM elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -340,7 +340,7 @@ describe("buildStructuredMessage - CHECKSUM elements", () => {
     expect(result.data).toEqual(new Uint8Array([0x01, 0x02, 0x03, 0x06]));
   });
 
-  it("should calculate XOR checksum", () => {
+  it("should calculate XOR checksum", async () => {
     const structure = createStructure([
       createElement("data", "Data", {
         type: "STATIC",
@@ -353,7 +353,7 @@ describe("buildStructuredMessage - CHECKSUM elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -362,7 +362,7 @@ describe("buildStructuredMessage - CHECKSUM elements", () => {
     expect(result.data).toEqual(new Uint8Array([0x01, 0x02, 0x04, 0x07]));
   });
 
-  it("should calculate CRC16_MODBUS checksum", () => {
+  it("should calculate CRC16_MODBUS checksum", async () => {
     const structure = createStructure([
       createElement("data", "Data", {
         type: "STATIC",
@@ -375,7 +375,7 @@ describe("buildStructuredMessage - CHECKSUM elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -386,7 +386,7 @@ describe("buildStructuredMessage - CHECKSUM elements", () => {
     expect(result.elements.find((e) => e.name === "Checksum")?.size).toBe(2);
   });
 
-  it("should calculate LRC checksum", () => {
+  it("should calculate LRC checksum", async () => {
     const structure = createStructure([
       createElement("data", "Data", {
         type: "STATIC",
@@ -399,7 +399,7 @@ describe("buildStructuredMessage - CHECKSUM elements", () => {
       }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -414,7 +414,7 @@ describe("buildStructuredMessage - CHECKSUM elements", () => {
 // ============================================================================
 
 describe("buildStructuredMessage - PADDING elements", () => {
-  it("should insert padding bytes with default fill", () => {
+  it("should insert padding bytes with default fill", async () => {
     const structure = createStructure([
       createElement("data", "Data", { type: "STATIC", value: [0x01] }),
       createElement(
@@ -428,7 +428,7 @@ describe("buildStructuredMessage - PADDING elements", () => {
       ),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -436,7 +436,7 @@ describe("buildStructuredMessage - PADDING elements", () => {
     expect(result.data).toEqual(new Uint8Array([0x01, 0x00, 0x00, 0x00]));
   });
 
-  it("should use custom fill byte", () => {
+  it("should use custom fill byte", async () => {
     const structure = createStructure([
       createElement(
         "pad",
@@ -449,7 +449,7 @@ describe("buildStructuredMessage - PADDING elements", () => {
       ),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -463,7 +463,7 @@ describe("buildStructuredMessage - PADDING elements", () => {
 // ============================================================================
 
 describe("buildStructuredMessage - RESERVED elements", () => {
-  it("should insert reserved bytes", () => {
+  it("should insert reserved bytes", async () => {
     const structure = createStructure([
       createElement(
         "reserved",
@@ -476,7 +476,7 @@ describe("buildStructuredMessage - RESERVED elements", () => {
       ),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -490,14 +490,14 @@ describe("buildStructuredMessage - RESERVED elements", () => {
 // ============================================================================
 
 describe("buildStructuredMessage - PAYLOAD elements", () => {
-  it("should insert payload data", () => {
+  it("should insert payload data", async () => {
     const structure = createStructure([
       createElement("header", "Header", { type: "STATIC", value: [0xaa] }),
       createElement("payload", "Payload", { type: "PAYLOAD" }, "VARIABLE"),
       createElement("footer", "Footer", { type: "STATIC", value: [0xbb] }),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
       payload: new Uint8Array([0x01, 0x02, 0x03]),
@@ -506,13 +506,13 @@ describe("buildStructuredMessage - PAYLOAD elements", () => {
     expect(result.data).toEqual(new Uint8Array([0xaa, 0x01, 0x02, 0x03, 0xbb]));
   });
 
-  it("should handle empty payload", () => {
+  it("should handle empty payload", async () => {
     const structure = createStructure([
       createElement("header", "Header", { type: "STATIC", value: [0xaa] }),
       createElement("payload", "Payload", { type: "PAYLOAD" }, "VARIABLE"),
     ]);
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {},
       bindings: [],
     });
@@ -526,7 +526,7 @@ describe("buildStructuredMessage - PAYLOAD elements", () => {
 // ============================================================================
 
 describe("buildStructuredMessage - Complex frames", () => {
-  it("should build a Modbus-like read holding registers frame", () => {
+  it("should build a Modbus-like read holding registers frame", async () => {
     const structure = createStructure(
       [
         createElement("addr", "Slave Address", {
@@ -553,7 +553,7 @@ describe("buildStructuredMessage - Complex frames", () => {
       "BE",
     );
 
-    const result = buildStructuredMessage(structure, {
+    const result = await buildStructuredMessage(structure, {
       params: {
         slaveAddr: 1,
         funcCode: 3,
@@ -586,19 +586,19 @@ describe("buildStructuredMessage - Complex frames", () => {
 // ============================================================================
 
 describe("buildMessage helper", () => {
-  it("should return just the data array", () => {
+  it("should return just the data array", async () => {
     const structure = createStructure([
       createElement("data", "Data", { type: "STATIC", value: [0x01, 0x02] }),
     ]);
 
-    const result = buildMessage(structure, [], {});
+    const result = await buildMessage(structure, [], {});
 
     expect(result).toEqual(new Uint8Array([0x01, 0x02]));
   });
 });
 
 describe("getMessageStructureSize", () => {
-  it("should return total size for fixed-size elements", () => {
+  it("should return total size for fixed-size elements", async () => {
     const structure = createStructure([
       createElement("a", "A", { type: "STATIC", value: [0x01] }, 1),
       createElement("b", "B", { type: "STATIC", value: [0x02, 0x03] }, 2),
@@ -608,7 +608,7 @@ describe("getMessageStructureSize", () => {
     expect(getMessageStructureSize(structure)).toBe(7);
   });
 
-  it("should return null for variable-size elements", () => {
+  it("should return null for variable-size elements", async () => {
     const structure = createStructure([
       createElement("a", "A", { type: "STATIC", value: [0x01] }),
       createElement("b", "B", { type: "PAYLOAD" }, "VARIABLE"),

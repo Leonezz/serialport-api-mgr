@@ -46,12 +46,12 @@ interface ActiveValidation {
 /**
  * Build binary message for a STRUCTURED protocol command
  */
-function buildProtocolCommandMessage(
+async function buildProtocolCommandMessage(
   command: StructuredCommand,
   protocol: Protocol,
   params: Record<string, unknown>,
   payload?: Uint8Array,
-): Uint8Array {
+): Promise<Uint8Array> {
   // Find the message structure
   const structure = protocol.messageStructures.find(
     (s) => s.id === command.messageStructureId,
@@ -81,7 +81,7 @@ function buildProtocolCommandMessage(
     payload,
   };
 
-  const result = buildStructuredMessage(structure, buildOpts);
+  const result = await buildStructuredMessage(structure, buildOpts);
   return result.data;
 }
 
@@ -169,7 +169,7 @@ export function useCommandExecution(
 
         try {
           // Build binary message using protocol structure
-          const binaryMessage = buildProtocolCommandMessage(
+          const binaryMessage = await buildProtocolCommandMessage(
             effectiveCmd as StructuredCommand,
             protocol,
             params,

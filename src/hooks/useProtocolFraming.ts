@@ -77,7 +77,7 @@ export interface ProtocolFramingActions {
     command: StructuredCommand,
     protocol: Protocol,
     options: BuildMessageOptions,
-  ) => Uint8Array;
+  ) => Promise<Uint8Array>;
   /** Parse binary response using a message structure */
   parseProtocolMessage: (
     data: Uint8Array,

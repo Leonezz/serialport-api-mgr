@@ -23,6 +23,7 @@ import type {
   ChecksumAlgorithm,
   StaticBinding,
 } from "./protocolTypes";
+import { executeSandboxedScript } from "./sandboxedScripting";
 
 // ============================================================================
 // TYPES
@@ -289,11 +290,11 @@ function buildStaticElement(element: MessageElement): Uint8Array {
 /**
  * Build an ADDRESS or FIELD element with parameter binding
  */
-function buildFieldElement(
+async function buildFieldElement(
   element: MessageElement,
   options: BuildOptions,
   byteOrder: ByteOrder,
-): Uint8Array {
+): Promise<Uint8Array> {
   const config = element.config;
   if (config.type !== "ADDRESS" && config.type !== "FIELD") {
     throw new Error(`Expected ADDRESS or FIELD element, got ${config.type}`);
@@ -338,8 +339,11 @@ function buildFieldElement(
   // Apply transform if specified
   if (binding.transform) {
     try {
-      const transformFn = new Function("value", `return ${binding.transform}`);
-      value = transformFn(value);
+      value = await executeSandboxedScript(
+        `const value = context.value; return ${binding.transform}`,
+        { value },
+        { timeout: 1000 },
+      );
     } catch (e) {
       console.warn(`Transform failed for ${element.name}:`, e);
     }
@@ -427,10 +431,10 @@ function buildReservedElement(element: MessageElement): Uint8Array {
  * @param options - Build options including params, bindings, and payload
  * @returns BuildResult with the complete binary frame and element breakdown
  */
-export function buildStructuredMessage(
+export async function buildStructuredMessage(
   structure: MessageStructure,
   options: BuildOptions,
-): BuildResult {
+): Promise<BuildResult> {
   const byteOrder = structure.byteOrder ?? "BE";
   const elementResults: Map<string, Uint8Array> = new Map();
   const elementInfos: ElementBuildInfo[] = [];
@@ -446,7 +450,7 @@ export function buildStructuredMessage(
 
       case "ADDRESS":
       case "FIELD":
-        bytes = buildFieldElement(element, options, byteOrder);
+        bytes = await buildFieldElement(element, options, byteOrder);
         break;
 
       case "LENGTH":
@@ -571,13 +575,13 @@ export function buildStructuredMessage(
  * @param params - Parameter values
  * @param payload - Optional payload data
  */
-export function buildMessage(
+export async function buildMessage(
   structure: MessageStructure,
   bindings: ElementBinding[],
   params: Record<string, unknown>,
   payload?: Uint8Array,
-): Uint8Array {
-  const result = buildStructuredMessage(structure, {
+): Promise<Uint8Array> {
+  const result = await buildStructuredMessage(structure, {
     params,
     bindings,
     payload,
