@@ -9,6 +9,7 @@ import {
   buildCommandForExecution,
   substituteParameters,
   getEffectivePayload,
+  getEffectiveMode,
 } from "../commandBuilder";
 import type { SavedCommand } from "../../types";
 
@@ -268,6 +269,203 @@ describe("commandBuilder", () => {
       };
 
       expect(getEffectivePayload(command)).toBe("TEST");
+    });
+  });
+
+  describe("safe defaults for malformed PROTOCOL commands", () => {
+    it("getEffectivePayload should return empty string when protocolLayer is missing", () => {
+      const command: SavedCommand = {
+        id: "malformed-1",
+        name: "Broken",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+      };
+      expect(getEffectivePayload(command)).toBe("");
+    });
+
+    it("getEffectiveMode should return TEXT when protocolLayer is missing", () => {
+      const command: SavedCommand = {
+        id: "malformed-2",
+        name: "Broken",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+      };
+      expect(getEffectiveMode(command)).toBe("TEXT");
+    });
+
+    it("buildCommandForExecution should return safe defaults when protocolLayer is missing", () => {
+      const command: SavedCommand = {
+        id: "malformed-3",
+        name: "Broken",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+      };
+      const result = buildCommandForExecution(command);
+      expect(result.payload).toBe("");
+      expect(result.mode).toBe("TEXT");
+    });
+  });
+
+  describe("getEffectiveMode", () => {
+    it("should return legacy mode for CUSTOM commands", () => {
+      const command: SavedCommand = {
+        id: "mode-1",
+        name: "HEX Command",
+        source: "CUSTOM",
+        mode: "HEX",
+        payload: "FF01",
+        createdAt: now,
+        updatedAt: now,
+      };
+      expect(getEffectiveMode(command)).toBe("HEX");
+    });
+
+    it("should default to TEXT when CUSTOM command has no mode", () => {
+      const command: SavedCommand = {
+        id: "mode-2",
+        name: "No Mode",
+        source: "CUSTOM",
+        createdAt: now,
+        updatedAt: now,
+      };
+      expect(getEffectiveMode(command)).toBe("TEXT");
+    });
+
+    it("should return protocolLayer mode for PROTOCOL commands", () => {
+      const command: SavedCommand = {
+        id: "mode-3",
+        name: "Modbus Read",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+        protocolLayer: {
+          protocolId: "proto-modbus",
+          protocolCommandId: "tmpl-read",
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+          payload: "01 03 00 00 00 01",
+          mode: "HEX",
+          parameters: [],
+        },
+      };
+      expect(getEffectiveMode(command)).toBe("HEX");
+    });
+
+    it("should default to CUSTOM when source is undefined", () => {
+      const command = {
+        id: "mode-4",
+        name: "Legacy",
+        mode: "BINARY",
+        createdAt: now,
+        updatedAt: now,
+      } as SavedCommand;
+      expect(getEffectiveMode(command)).toBe("BINARY");
+    });
+
+    it("should return TEXT for PROTOCOL with TEXT mode", () => {
+      const command: SavedCommand = {
+        id: "mode-5",
+        name: "AT Command",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+        protocolLayer: {
+          protocolId: "proto-at",
+          protocolCommandId: "tmpl-at",
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+          payload: "AT+GMR",
+          mode: "TEXT",
+          parameters: [],
+        },
+      };
+      expect(getEffectiveMode(command)).toBe("TEXT");
+    });
+  });
+
+  describe("hex payload validation", () => {
+    it("should accept valid hex payload for HEX mode", () => {
+      const command: SavedCommand = {
+        id: "hex-valid",
+        name: "Valid Modbus",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+        protocolLayer: {
+          protocolId: "proto-modbus",
+          protocolCommandId: "tmpl-read",
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+          payload: "01 03 {addr} 00 01",
+          mode: "HEX",
+          parameters: [{ name: "addr", type: "STRING", required: true }],
+        },
+        commandLayer: {
+          parameterEnhancements: {
+            addr: { customDefault: "00 40" },
+          },
+        },
+      };
+
+      const result = buildCommandForExecution(command);
+      expect(result.payload).toBe("01 03 00 40 00 01");
+      expect(result.mode).toBe("HEX");
+    });
+
+    it("should reject invalid hex characters in HEX mode", () => {
+      const command: SavedCommand = {
+        id: "hex-invalid",
+        name: "Bad Modbus",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+        protocolLayer: {
+          protocolId: "proto-modbus",
+          protocolCommandId: "tmpl-read",
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+          payload: "01 03 {addr} 00 01",
+          mode: "HEX",
+          parameters: [{ name: "addr", type: "STRING", required: true }],
+        },
+        commandLayer: {
+          parameterEnhancements: {
+            addr: { customDefault: "ZZZZ" },
+          },
+        },
+      };
+
+      expect(() => buildCommandForExecution(command)).toThrow(/invalid hex/i);
+    });
+
+    it("should not validate hex for TEXT mode", () => {
+      const command: SavedCommand = {
+        id: "text-anything",
+        name: "Text Command",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+        protocolLayer: {
+          protocolId: "proto-at",
+          protocolCommandId: "tmpl-at",
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+          payload: "AT+{cmd}",
+          mode: "TEXT",
+          parameters: [{ name: "cmd", type: "STRING", required: true }],
+        },
+        commandLayer: {
+          parameterEnhancements: {
+            cmd: { customDefault: "GMR" },
+          },
+        },
+      };
+
+      const result = buildCommandForExecution(command);
+      expect(result.payload).toBe("AT+GMR");
     });
   });
 });

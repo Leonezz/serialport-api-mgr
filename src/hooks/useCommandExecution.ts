@@ -533,7 +533,18 @@ export function useCommandExecution(
       }
       if (effectiveMode !== sendMode) setSendMode(effectiveMode);
       if (cmd.encoding && cmd.encoding !== encoding) setEncoding(cmd.encoding);
-      sendData(finalData, cmd).catch(() => {});
+      sendData(finalData, cmd).catch((error) => {
+        addSystemLog(
+          "ERROR",
+          "COMMAND",
+          `Failed to send "${cmd.name}": ${error instanceof Error ? error.message : String(error)}`,
+        );
+        addToast(
+          "error",
+          "Send Failed",
+          error instanceof Error ? error.message : "Command failed to send",
+        );
+      });
     }
   };
 

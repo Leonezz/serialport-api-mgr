@@ -620,12 +620,36 @@ const AICommandGeneratorModal: React.FC<Props> = ({
               )}
             </Button>
           ) : (
-            <Button
-              onClick={handleImport}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              <Check className="w-4 h-4 mr-2" /> Import Project
-            </Button>
+            <>
+              {generatedResult?.commands.some(
+                (cmd) =>
+                  cmd.scripting?.enabled &&
+                  (cmd.scripting?.preRequestScript ||
+                    cmd.scripting?.postResponseScript),
+              ) && (
+                <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-500" />
+                  <span className="text-yellow-200/80">
+                    <strong>
+                      {
+                        generatedResult.commands.filter(
+                          (c) => c.scripting?.enabled,
+                        ).length
+                      }{" "}
+                      command(s)
+                    </strong>{" "}
+                    contain AI-generated scripts. Scripts run sandboxed but
+                    should be reviewed after import.
+                  </span>
+                </div>
+              )}
+              <Button
+                onClick={handleImport}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Check className="w-4 h-4 mr-2" /> Import Project
+              </Button>
+            </>
           )}
         </CardFooter>
 

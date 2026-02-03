@@ -52,9 +52,13 @@ export function buildCommandForExecution(
 
   // PROTOCOL source - merge L1 + L2
   if (!command.protocolLayer) {
-    throw new Error(
-      `Command ${command.id} has source=PROTOCOL but no protocolLayer`,
+    console.error(
+      `[commandBuilder] Command "${command.name}" (${command.id}) has source=PROTOCOL but no protocolLayer`,
     );
+    return {
+      payload: command.payload || "",
+      mode: command.mode || "TEXT",
+    };
   }
 
   const protocolLayer = command.protocolLayer;
@@ -69,6 +73,16 @@ export function buildCommandForExecution(
     parameterValues,
     protocolLayer.parameters || [],
   );
+
+  // Validate hex payload if mode is HEX
+  if (protocolLayer.mode === "HEX") {
+    const stripped = payload.replace(/\s+/g, "");
+    if (stripped.length > 0 && !/^[0-9a-fA-F]*$/.test(stripped)) {
+      throw new Error(
+        `Invalid hex characters in payload for "${command.name}". Expected 0-9, A-F only.`,
+      );
+    }
+  }
 
   // Merge validation (L2 can override timeout)
   const validation = protocolLayer.validation
@@ -214,9 +228,10 @@ export function getEffectivePayload(command: SavedCommand): string {
   }
 
   if (!command.protocolLayer) {
-    throw new Error(
-      `Command ${command.id} has source=PROTOCOL but no protocolLayer`,
+    console.error(
+      `[commandBuilder] Command "${command.name}" (${command.id}) has source=PROTOCOL but no protocolLayer`,
     );
+    return command.payload || "";
   }
 
   const parameterValues = buildParameterValues(
@@ -242,9 +257,10 @@ export function getEffectiveMode(command: SavedCommand): DataMode {
   }
 
   if (!command.protocolLayer) {
-    throw new Error(
-      `Command ${command.id} has source=PROTOCOL but no protocolLayer`,
+    console.error(
+      `[commandBuilder] Command "${command.name}" (${command.id}) has source=PROTOCOL but no protocolLayer`,
     );
+    return command.mode || "TEXT";
   }
 
   return command.protocolLayer.mode;
