@@ -100,8 +100,16 @@ const ProtocolCommandCustomizer: React.FC<Props> = ({ command, onUpdate }) => {
   // Get protocol info
   const protocol = useMemo(() => {
     if (!command.protocolLayer?.protocolId) return null;
-    return protocols.find((p) => p.id === command.protocolLayer!.protocolId);
-  }, [command.protocolLayer, protocols]);
+    const found = protocols.find(
+      (p) => p.id === command.protocolLayer!.protocolId,
+    );
+    if (!found) {
+      console.warn(
+        `Protocol "${command.protocolLayer.protocolId}" not found for command "${command.name}" (${command.id})`,
+      );
+    }
+    return found ?? null;
+  }, [command.protocolLayer, command.name, command.id, protocols]);
 
   // Check if sync is needed
   const needsSync = useMemo(() => {

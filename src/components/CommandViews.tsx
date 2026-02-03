@@ -22,6 +22,30 @@ import { getEffectiveMode, getEffectivePayload } from "../lib/commandBuilder";
 import type { SavedCommand } from "../types";
 import type { Protocol } from "../lib/protocolTypes";
 
+/**
+ * Look up a protocol by ID, logging a warning if a protocol command
+ * references a protocol that no longer exists.
+ */
+function findProtocolForCommand(
+  command: SavedCommand,
+  protocols: Protocol[] | undefined,
+): Protocol | undefined {
+  if (command.source !== "PROTOCOL" || !command.protocolLayer?.protocolId) {
+    return undefined;
+  }
+  if (!protocols) return undefined;
+
+  const protocol = protocols.find(
+    (p) => p.id === command.protocolLayer!.protocolId,
+  );
+  if (!protocol) {
+    console.warn(
+      `Protocol "${command.protocolLayer.protocolId}" not found for command "${command.name}" (${command.id})`,
+    );
+  }
+  return protocol;
+}
+
 interface CommandCardProps {
   command: SavedCommand;
   deviceName?: string | null;
@@ -49,10 +73,8 @@ export const CommandCard: React.FC<CommandCardProps> = ({
   editOnly = false,
 }) => {
   const isProtocolCommand = command.source === "PROTOCOL";
-  const protocolName =
-    isProtocolCommand && command.protocolLayer && protocols
-      ? protocols.find((p) => p.id === command.protocolLayer?.protocolId)?.name
-      : null;
+  const protocol = findProtocolForCommand(command, protocols);
+  const protocolName = protocol?.name ?? null;
 
   // Use effective mode/payload which handles both CUSTOM and PROTOCOL commands
   const commandMode = getEffectiveMode(command);
@@ -208,10 +230,8 @@ export const CommandListItem: React.FC<CommandListItemProps> = ({
   showEditButton = true,
 }) => {
   const isProtocolCommand = command.source === "PROTOCOL";
-  const protocolName =
-    isProtocolCommand && command.protocolLayer && protocols
-      ? protocols.find((p) => p.id === command.protocolLayer?.protocolId)?.name
-      : null;
+  const protocol = findProtocolForCommand(command, protocols);
+  const protocolName = protocol?.name ?? null;
 
   // Use effective mode which handles both CUSTOM and PROTOCOL commands
   const commandMode = getEffectiveMode(command);
