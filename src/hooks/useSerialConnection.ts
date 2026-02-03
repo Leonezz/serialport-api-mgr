@@ -53,35 +53,106 @@ export const useSerialConnection = (
     setIsSerialSupported(serialService.isSupported());
   }, []);
 
+  // Track if component is still mounted to prevent state updates after unmount (#21)
+  const isMountedRef = useRef(true);
+
+  // Track disconnect operations in progress to prevent race conditions (#21)
+  const disconnectingRef = useRef<Set<string>>(new Set());
+
   const disconnect = useCallback(
     async (sessionId: string) => {
-      keepReadingRef.current.set(sessionId, false);
-
-      const reader = readersRef.current.get(sessionId);
-      if (reader) {
-        try {
-          await reader.cancel();
-        } catch (e) {
-          console.warn("Reader cancel error", e);
-        }
-        readersRef.current.delete(sessionId);
+      // Prevent concurrent disconnect calls for same session (#21)
+      if (disconnectingRef.current.has(sessionId)) {
+        return;
       }
+      disconnectingRef.current.add(sessionId);
 
-      const port = portsRef.current.get(sessionId);
-      if (port) {
-        try {
-          await port.close();
-        } catch (e) {
-          console.warn("Port close error", e);
+      try {
+        // Signal read loop to stop immediately
+        keepReadingRef.current.set(sessionId, false);
+
+        const reader = readersRef.current.get(sessionId);
+        if (reader) {
+          try {
+            // Cancel the reader first - this will cause read() to return {done: true}
+            await reader.cancel();
+          } catch (e) {
+            // Ignore cancel errors - port may already be closed
+            console.warn("Reader cancel error (may be expected):", e);
+          } finally {
+            // Always remove from map even if cancel failed
+            readersRef.current.delete(sessionId);
+          }
         }
-        portsRef.current.delete(sessionId);
-      }
 
-      onDisconnectCallback(sessionId);
-      signalStateRef.current.delete(sessionId);
+        const port = portsRef.current.get(sessionId);
+        if (port) {
+          try {
+            // Give streams time to settle before closing port (#21)
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            await port.close();
+          } catch (e) {
+            // Ignore close errors - port may already be closed or in bad state
+            console.warn("Port close error (may be expected):", e);
+          } finally {
+            // Always remove from map even if close failed
+            portsRef.current.delete(sessionId);
+          }
+        }
+
+        // Only call callback if still mounted (#21)
+        if (isMountedRef.current) {
+          onDisconnectCallback(sessionId);
+        }
+        signalStateRef.current.delete(sessionId);
+      } finally {
+        disconnectingRef.current.delete(sessionId);
+      }
     },
     [onDisconnectCallback],
   );
+
+  // Cleanup all connections on unmount to prevent crashes during navigation (#21)
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      // Synchronously signal all read loops to stop
+      keepReadingRef.current.forEach((_, sessionId) => {
+        keepReadingRef.current.set(sessionId, false);
+      });
+
+      // Cancel all readers immediately (don't wait for async)
+      readersRef.current.forEach((reader, sessionId) => {
+        try {
+          reader.cancel().catch(() => {
+            // Ignore errors during unmount cleanup
+          });
+        } catch {
+          // Ignore synchronous errors
+        }
+        readersRef.current.delete(sessionId);
+      });
+
+      // Close all ports (don't wait for async to prevent blocking navigation)
+      portsRef.current.forEach((port, sessionId) => {
+        try {
+          port.close().catch(() => {
+            // Ignore errors during unmount cleanup
+          });
+        } catch {
+          // Ignore synchronous errors
+        }
+        portsRef.current.delete(sessionId);
+      });
+
+      // Clear all refs
+      signalStateRef.current.clear();
+      disconnectingRef.current.clear();
+    };
+  }, []);
 
   const readLoop = async (sessionId: string, port: GenericPort) => {
     if (!port.readable) return;
