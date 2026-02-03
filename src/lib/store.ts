@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
 import { z, ZodError } from "zod";
 import { createUISlice, UISlice } from "./slices/uiSlice";
 import { createProjectSlice, ProjectSlice } from "./slices/projectSlice";
@@ -347,162 +348,161 @@ type AppState = UISlice &
   DeviceSlice &
   ProtocolSlice;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const createSlices = (...a: [any, any, any]) => ({
+  ...createUISlice(...a),
+  ...createProjectSlice(...a),
+  ...createSessionSlice(...a),
+  ...createDeviceSlice(...a),
+  ...createProtocolSlice(...a),
+});
+
 export const useStore = create<AppState>()(
   devtools(
-    persist(
-      (...a) => ({
-        ...createUISlice(...a),
-        ...createProjectSlice(...a),
-        ...createSessionSlice(...a),
-        ...createDeviceSlice(...a),
-        ...createProtocolSlice(...a),
-      }),
-      {
-        name: "serialport-store",
-        storage: createJSONStorage(() => tauriStorage),
-        merge: (persistedState, currentState) => {
-          if (!persistedState || typeof persistedState !== "object") {
+    persist(immer(createSlices), {
+      name: "serialport-store",
+      storage: createJSONStorage(() => tauriStorage),
+      merge: (persistedState, currentState) => {
+        if (!persistedState || typeof persistedState !== "object") {
+          return currentState;
+        }
+
+        try {
+          // Validate the persisted state structure
+          const validated = PersistedStoreStateSchema.safeParse(persistedState);
+
+          if (validated.success === false) {
+            console.error(
+              "Invalid persisted state structure:",
+              validated.error.errors,
+            );
             return currentState;
           }
 
-          try {
-            // Validate the persisted state structure
-            const validated =
-              PersistedStoreStateSchema.safeParse(persistedState);
+          const data = validated.data;
 
-            if (validated.success === false) {
-              console.error(
-                "Invalid persisted state structure:",
-                validated.error.errors,
-              );
-              return currentState;
-            }
-
-            const data = validated.data;
-
-            // Check version and migrate if needed
-            const persistedVersion = data.__version || "0.0.0";
-            if (persistedVersion !== STORE_VERSION) {
-              console.info(
-                `Migrating store from ${persistedVersion} to ${STORE_VERSION}`,
-              );
-              // Future migration logic can go here
-            }
-
-            // Merge with care - only override with valid persisted data
-            // Use type assertion to help TypeScript understand the merge
-            const merged: AppState = { ...currentState };
-
-            // UI preferences
-            if (data.themeMode) merged.themeMode = data.themeMode;
-            if (data.themeColor) merged.themeColor = data.themeColor;
-            if (data.sidebarSectionsCollapsed)
-              merged.sidebarSectionsCollapsed =
-                data.sidebarSectionsCollapsed as Record<string, boolean>;
-
-            // AI Settings (may be encrypted)
-            if (data.geminiApiKey !== undefined)
-              merged.geminiApiKey = data.geminiApiKey;
-
-            // Project data - cast to proper types since validation passed
-            // Only override defaults if persisted data has items (prevent empty arrays from clearing defaults)
-            if (data.presets && data.presets.length > 0)
-              merged.presets = data.presets as AppState["presets"];
-            if (data.commands && data.commands.length > 0)
-              merged.commands = data.commands as AppState["commands"];
-            if (data.sequences && data.sequences.length > 0)
-              merged.sequences = data.sequences as AppState["sequences"];
-            if (data.contexts && data.contexts.length > 0)
-              merged.contexts = data.contexts as AppState["contexts"];
-            if (data.loadedPresetId !== undefined)
-              merged.loadedPresetId = data.loadedPresetId;
-
-            // Devices (Manually handled since not in main schema yet)
-            // Only override defaults if persisted data has items
-            const anyData = data as Record<string, unknown>;
-            if (
-              anyData.devices &&
-              Array.isArray(anyData.devices) &&
-              anyData.devices.length > 0
-            ) {
-              merged.devices = anyData.devices as AppState["devices"];
-            }
-
-            // Protocol system data (new)
-            // Only override defaults if persisted data has items
-            if (
-              anyData.protocols &&
-              Array.isArray(anyData.protocols) &&
-              anyData.protocols.length > 0
-            ) {
-              merged.protocols = anyData.protocols as AppState["protocols"];
-            }
-
-            // Session data - cast to proper types since validation passed
-            if (data.sessions)
-              merged.sessions = data.sessions as AppState["sessions"];
-            if (data.activeSessionId)
-              merged.activeSessionId = data.activeSessionId;
-
-            return merged;
-          } catch (error) {
-            console.error("Error merging persisted state:", error);
-            return currentState;
+          // Check version and migrate if needed
+          const persistedVersion = data.__version || "0.0.0";
+          if (persistedVersion !== STORE_VERSION) {
+            console.info(
+              `Migrating store from ${persistedVersion} to ${STORE_VERSION}`,
+            );
+            // Future migration logic can go here
           }
-        },
-        // Migrate API keys after rehydration
-        onRehydrateStorage: () => {
-          return (_state, error) => {
-            if (error) {
-              console.error("[Store] Rehydration error:", error);
-              return;
-            }
-            // Run API key migration asynchronously after rehydration
-            // The state is already available via useStore.getState()
-            setTimeout(async () => {
-              try {
-                await useStore.getState().migrateApiKeyIfNeeded();
-              } catch (e) {
-                console.error("[Store] API key migration failed:", e);
-              }
-            }, 0);
-          };
-        },
-        // Only persist specific slices - avoid persisting runtime data like logs, toasts
-        partialize: (state) => ({
+
+          // Merge with care - only override with valid persisted data
+          // Use type assertion to help TypeScript understand the merge
+          const merged: AppState = { ...currentState };
+
           // UI preferences
-          themeMode: state.themeMode,
-          themeColor: state.themeColor,
-          sidebarSectionsCollapsed: state.sidebarSectionsCollapsed,
+          if (data.themeMode) merged.themeMode = data.themeMode;
+          if (data.themeColor) merged.themeColor = data.themeColor;
+          if (data.sidebarSectionsCollapsed)
+            merged.sidebarSectionsCollapsed =
+              data.sidebarSectionsCollapsed as Record<string, boolean>;
 
-          // AI Settings (encrypted)
-          geminiApiKey: state.geminiApiKey,
+          // AI Settings (may be encrypted)
+          if (data.geminiApiKey !== undefined)
+            merged.geminiApiKey = data.geminiApiKey;
 
-          // Legacy project data (keeping for backward compatibility during migration)
-          presets: state.presets,
-          commands: state.commands,
-          sequences: state.sequences,
-          contexts: state.contexts,
-          loadedPresetId: state.loadedPresetId,
-          devices: state.devices,
+          // Project data - cast to proper types since validation passed
+          // Only override defaults if persisted data has items (prevent empty arrays from clearing defaults)
+          if (data.presets && data.presets.length > 0)
+            merged.presets = data.presets as AppState["presets"];
+          if (data.commands && data.commands.length > 0)
+            merged.commands = data.commands as AppState["commands"];
+          if (data.sequences && data.sequences.length > 0)
+            merged.sequences = data.sequences as AppState["sequences"];
+          if (data.contexts && data.contexts.length > 0)
+            merged.contexts = data.contexts as AppState["contexts"];
+          if (data.loadedPresetId !== undefined)
+            merged.loadedPresetId = data.loadedPresetId;
 
-          // New protocol system data
-          protocols: state.protocols,
+          // Devices (Manually handled since not in main schema yet)
+          // Only override defaults if persisted data has items
+          const anyData = data as Record<string, unknown>;
+          if (
+            anyData.devices &&
+            Array.isArray(anyData.devices) &&
+            anyData.devices.length > 0
+          ) {
+            merged.devices = anyData.devices as AppState["devices"];
+          }
 
-          // Session configs only (not runtime state like isConnected, logs)
-          sessions: Object.fromEntries(
-            Object.entries(state.sessions).map(([id, session]) => [
-              id,
-              {
-                ...session,
-                isConnected: false, // Never persist connection state
-              },
-            ]),
-          ),
-          activeSessionId: state.activeSessionId,
-        }),
+          // Protocol system data (new)
+          // Only override defaults if persisted data has items
+          if (
+            anyData.protocols &&
+            Array.isArray(anyData.protocols) &&
+            anyData.protocols.length > 0
+          ) {
+            merged.protocols = anyData.protocols as AppState["protocols"];
+          }
+
+          // Session data - cast to proper types since validation passed
+          if (data.sessions)
+            merged.sessions = data.sessions as AppState["sessions"];
+          if (data.activeSessionId)
+            merged.activeSessionId = data.activeSessionId;
+
+          return merged;
+        } catch (error) {
+          console.error("Error merging persisted state:", error);
+          return currentState;
+        }
       },
-    ),
+      // Migrate API keys after rehydration
+      onRehydrateStorage: () => {
+        return (_state, error) => {
+          if (error) {
+            console.error("[Store] Rehydration error:", error);
+            return;
+          }
+          // Run API key migration asynchronously after rehydration
+          // The state is already available via useStore.getState()
+          setTimeout(async () => {
+            try {
+              await useStore.getState().migrateApiKeyIfNeeded();
+            } catch (e) {
+              console.error("[Store] API key migration failed:", e);
+            }
+          }, 0);
+        };
+      },
+      // Only persist specific slices - avoid persisting runtime data like logs, toasts
+      partialize: (state) => ({
+        // UI preferences
+        themeMode: state.themeMode,
+        themeColor: state.themeColor,
+        sidebarSectionsCollapsed: state.sidebarSectionsCollapsed,
+
+        // AI Settings (encrypted)
+        geminiApiKey: state.geminiApiKey,
+
+        // Legacy project data (keeping for backward compatibility during migration)
+        presets: state.presets,
+        commands: state.commands,
+        sequences: state.sequences,
+        contexts: state.contexts,
+        loadedPresetId: state.loadedPresetId,
+        devices: state.devices,
+
+        // New protocol system data
+        protocols: state.protocols,
+
+        // Session configs only (not runtime state like isConnected, logs)
+        sessions: Object.fromEntries(
+          Object.entries(state.sessions).map(([id, session]) => [
+            id,
+            {
+              ...session,
+              isConnected: false, // Never persist connection state
+            },
+          ]),
+        ),
+        activeSessionId: state.activeSessionId,
+      }),
+    }),
     {
       name: "SerialPort Manager",
       enabled: process.env.NODE_ENV === "development", // Only enable devtools in development
