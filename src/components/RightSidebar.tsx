@@ -29,27 +29,38 @@ import type { RightSidebarTab } from "../types";
 import AIAssistantContent from "./RightSidebar/AIAssistantContent";
 import CommandEditor from "./RightSidebar/CommandEditor";
 import { DevicePanel } from "./RightSidebar/DevicePanel";
+import {
+  useRightSidebarUIState,
+  useCommandById,
+  useRightSidebarCommandActions,
+} from "../lib/selectors";
 
 const RightSidebar: React.FC = () => {
   const { t } = useTranslation();
+
+  // Use optimized selectors to avoid over-subscription
   const {
     selectedCommandId,
     selectedDeviceId,
-    commands,
-    updateCommand,
     rightSidebarTab,
     setRightSidebarTab,
     editingCommand,
     setEditingCommand,
-    addToast,
     rightSidebarCollapsed,
     setRightSidebarCollapsed,
-  } = useStore();
+  } = useRightSidebarUIState();
+
+  const { updateCommand, deleteCommand, setSelectedCommandId, addToast } =
+    useRightSidebarCommandActions();
+
+  // Only subscribe to the specific command we need, not the entire array
+  const selectedCommand = useCommandById(selectedCommandId);
+
+  // Get commands array only for the useEffect sync (via direct store access)
+  const commands = useStore((state) => state.commands);
 
   const [width, setWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
-
-  const selectedCommand = commands.find((c) => c.id === selectedCommandId);
 
   // Sync: When selected ID changes, load it into editing draft
   useEffect(() => {
@@ -278,7 +289,7 @@ const RightSidebar: React.FC = () => {
                 size="sm"
                 onClick={() => {
                   // Clear selection and go back to AI tab
-                  useStore.getState().setSelectedCommandId(null);
+                  setSelectedCommandId(null);
                   setRightSidebarTab("ai");
                 }}
                 aria-label="Close editor"
@@ -324,7 +335,7 @@ const RightSidebar: React.FC = () => {
               variant="ghost"
               onClick={() => {
                 // TODO: Add confirmation dialog for delete
-                useStore.getState().deleteCommand(selectedCommandId!);
+                deleteCommand(selectedCommandId!);
                 setRightSidebarTab("ai");
               }}
               className="gap-2 text-status-error hover:bg-status-error/10"

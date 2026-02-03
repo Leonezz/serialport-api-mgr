@@ -203,3 +203,152 @@ export const useSystemLogs = () => useStore((state) => state.systemLogs || []);
  */
 export const useVariables = () =>
   useStore((state) => state.sessions[state.activeSessionId]?.variables || {});
+
+// --- Sidebar-Specific Selectors ---
+
+/**
+ * Get sidebar UI state (collapsed state, sections)
+ */
+export const useSidebarUIState = () =>
+  useStore((state) => ({
+    leftSidebarCollapsed: state.leftSidebarCollapsed,
+    setLeftSidebarCollapsed: state.setLeftSidebarCollapsed,
+    sidebarSectionsCollapsed: state.sidebarSectionsCollapsed,
+    toggleSidebarSection: state.toggleSidebarSection,
+  }));
+
+/**
+ * Get sidebar data (commands, sequences, devices, protocols)
+ */
+export const useSidebarData = () =>
+  useStore((state) => ({
+    commands: state.commands,
+    sequences: state.sequences,
+    devices: state.devices,
+    protocols: state.protocols,
+    selectedDeviceId: state.selectedDeviceId,
+    selectedCommandId: state.selectedCommandId,
+  }));
+
+/**
+ * Get sidebar actions for commands
+ */
+export const useSidebarCommandActions = () =>
+  useStore((state) => ({
+    addCommand: state.addCommand,
+    deleteCommand: state.deleteCommand,
+    deleteCommands: state.deleteCommands,
+    setSelectedCommandId: state.setSelectedCommandId,
+    setEditingCommand: state.setEditingCommand,
+  }));
+
+/**
+ * Get sidebar actions for sequences
+ */
+export const useSidebarSequenceActions = () =>
+  useStore((state) => ({
+    addSequence: state.addSequence,
+    updateSequence: state.updateSequence,
+  }));
+
+/**
+ * Get sidebar actions for protocols
+ */
+export const useSidebarProtocolActions = () =>
+  useStore((state) => ({
+    protocols: state.protocols,
+    addProtocol: state.addProtocol,
+  }));
+
+/**
+ * Get sidebar actions for presets
+ */
+export const useSidebarPresetActions = () =>
+  useStore((state) => ({
+    presets: state.presets,
+    loadedPresetId: state.loadedPresetId,
+    setPresets: state.setPresets,
+    setLoadedPresetId: state.setLoadedPresetId,
+  }));
+
+/**
+ * Get sidebar actions for UI modals and tabs
+ */
+export const useSidebarUIActions = () =>
+  useStore((state) => ({
+    setRightSidebarTab: state.setRightSidebarTab,
+    setShowSystemLogs: state.setShowSystemLogs,
+    setShowAppSettings: state.setShowAppSettings,
+    setShowAI: state.setShowAI,
+    addToast: state.addToast,
+  }));
+
+/**
+ * Get sidebar context data and actions
+ */
+export const useSidebarContexts = () =>
+  useStore((state) => ({
+    contexts: state.contexts,
+    setContexts: state.setContexts,
+  }));
+
+/**
+ * Get active session token usage (for AI token display in sidebar)
+ */
+export const useAITokenUsage = () =>
+  useStore(
+    (state) =>
+      state.sessions[state.activeSessionId]?.aiTokenUsage || { total: 0 },
+  );
+
+/**
+ * Get active session basic info (for sidebar preset handling)
+ */
+export const useActiveSessionBasicInfo = () =>
+  useStore((state) => {
+    const session = state.sessions[state.activeSessionId];
+    return {
+      connectionType: session?.connectionType || "SERIAL",
+      config: session?.config,
+      networkConfig: session?.networkConfig,
+      widgets: session?.widgets || [],
+    };
+  });
+
+// --- Right Sidebar-Specific Selectors ---
+
+/**
+ * Get right sidebar UI state
+ */
+export const useRightSidebarUIState = () =>
+  useStore((state) => ({
+    rightSidebarTab: state.rightSidebarTab,
+    setRightSidebarTab: state.setRightSidebarTab,
+    rightSidebarCollapsed: state.rightSidebarCollapsed,
+    setRightSidebarCollapsed: state.setRightSidebarCollapsed,
+    selectedCommandId: state.selectedCommandId,
+    selectedDeviceId: state.selectedDeviceId,
+    editingCommand: state.editingCommand,
+    setEditingCommand: state.setEditingCommand,
+  }));
+
+/**
+ * Get command by ID (for right sidebar command lookup)
+ * Returns undefined if not found - avoids subscribing to entire commands array
+ */
+export const useCommandById = (commandId: string | null) =>
+  useStore((state) => {
+    if (!commandId) return undefined;
+    return state.commands.find((c) => c.id === commandId);
+  });
+
+/**
+ * Get right sidebar command actions
+ */
+export const useRightSidebarCommandActions = () =>
+  useStore((state) => ({
+    updateCommand: state.updateCommand,
+    deleteCommand: state.deleteCommand,
+    setSelectedCommandId: state.setSelectedCommandId,
+    addToast: state.addToast,
+  }));
