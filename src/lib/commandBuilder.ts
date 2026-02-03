@@ -52,9 +52,13 @@ export function buildCommandForExecution(
 
   // PROTOCOL source - merge L1 + L2
   if (!command.protocolLayer) {
-    throw new Error(
-      `Command ${command.id} has source=PROTOCOL but no protocolLayer`,
+    console.error(
+      `[commandBuilder] Command "${command.name}" (${command.id}) has source=PROTOCOL but no protocolLayer`,
     );
+    return {
+      payload: command.payload || "",
+      mode: command.mode || "TEXT",
+    };
   }
 
   const protocolLayer = command.protocolLayer;
@@ -214,9 +218,10 @@ export function getEffectivePayload(command: SavedCommand): string {
   }
 
   if (!command.protocolLayer) {
-    throw new Error(
-      `Command ${command.id} has source=PROTOCOL but no protocolLayer`,
+    console.error(
+      `[commandBuilder] Command "${command.name}" (${command.id}) has source=PROTOCOL but no protocolLayer`,
     );
+    return command.payload || "";
   }
 
   const parameterValues = buildParameterValues(
@@ -242,9 +247,10 @@ export function getEffectiveMode(command: SavedCommand): DataMode {
   }
 
   if (!command.protocolLayer) {
-    throw new Error(
-      `Command ${command.id} has source=PROTOCOL but no protocolLayer`,
+    console.error(
+      `[commandBuilder] Command "${command.name}" (${command.id}) has source=PROTOCOL but no protocolLayer`,
     );
+    return command.mode || "TEXT";
   }
 
   return command.protocolLayer.mode;

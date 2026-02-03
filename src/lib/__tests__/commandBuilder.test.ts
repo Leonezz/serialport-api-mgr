@@ -9,6 +9,7 @@ import {
   buildCommandForExecution,
   substituteParameters,
   getEffectivePayload,
+  getEffectiveMode,
 } from "../commandBuilder";
 import type { SavedCommand } from "../../types";
 
@@ -268,6 +269,43 @@ describe("commandBuilder", () => {
       };
 
       expect(getEffectivePayload(command)).toBe("TEST");
+    });
+  });
+
+  describe("safe defaults for malformed PROTOCOL commands", () => {
+    it("getEffectivePayload should return empty string when protocolLayer is missing", () => {
+      const command: SavedCommand = {
+        id: "malformed-1",
+        name: "Broken",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+      };
+      expect(getEffectivePayload(command)).toBe("");
+    });
+
+    it("getEffectiveMode should return TEXT when protocolLayer is missing", () => {
+      const command: SavedCommand = {
+        id: "malformed-2",
+        name: "Broken",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+      };
+      expect(getEffectiveMode(command)).toBe("TEXT");
+    });
+
+    it("buildCommandForExecution should return safe defaults when protocolLayer is missing", () => {
+      const command: SavedCommand = {
+        id: "malformed-3",
+        name: "Broken",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+      };
+      const result = buildCommandForExecution(command);
+      expect(result.payload).toBe("");
+      expect(result.mode).toBe("TEXT");
     });
   });
 });
