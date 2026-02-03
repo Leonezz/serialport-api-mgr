@@ -120,6 +120,10 @@ export function useProtocolFraming(): ProtocolFramingState &
       if (protocol) {
         setActiveProtocolId(protocolId);
         setProtocolFramingEnabled(true);
+      } else {
+        console.warn(
+          `Cannot enable protocol framing: protocol "${protocolId}" not found`,
+        );
       }
     },
     [protocols, setActiveProtocolId, setProtocolFramingEnabled],
@@ -138,7 +142,13 @@ export function useProtocolFraming(): ProtocolFramingState &
   const getMessageStructure = useCallback(
     (protocolId: string, structureId: string) => {
       const protocol = protocols.find((p) => p.id === protocolId);
-      return protocol?.messageStructures.find((s) => s.id === structureId);
+      if (!protocol) {
+        console.warn(
+          `Protocol "${protocolId}" not found when looking up message structure "${structureId}"`,
+        );
+        return undefined;
+      }
+      return protocol.messageStructures.find((s) => s.id === structureId);
     },
     [protocols],
   );
@@ -146,7 +156,13 @@ export function useProtocolFraming(): ProtocolFramingState &
   const getCommandTemplate = useCallback(
     (protocolId: string, commandId: string) => {
       const protocol = protocols.find((p) => p.id === protocolId);
-      return protocol?.commands.find((c) => c.id === commandId);
+      if (!protocol) {
+        console.warn(
+          `Protocol "${protocolId}" not found when looking up command template "${commandId}"`,
+        );
+        return undefined;
+      }
+      return protocol.commands.find((c) => c.id === commandId);
     },
     [protocols],
   );

@@ -760,10 +760,15 @@ const DeviceFormModal: React.FC = () => {
                     {cmds.map((cmd) => {
                       // Find which protocol this command uses
                       const cmdProtocol = cmd.protocolLayer?.protocolId
-                        ? protocols.find(
+                        ? (protocols.find(
                             (p) => p.id === cmd.protocolLayer?.protocolId,
-                          )
+                          ) ?? null)
                         : null;
+                      if (cmd.protocolLayer?.protocolId && !cmdProtocol) {
+                        console.warn(
+                          `Protocol "${cmd.protocolLayer.protocolId}" not found for command "${cmd.name}" (${cmd.id})`,
+                        );
+                      }
 
                       return (
                         <div

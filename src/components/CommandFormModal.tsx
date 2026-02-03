@@ -142,7 +142,13 @@ const CommandFormModal: React.FC<Props> = ({
   const availableTemplates = useMemo(() => {
     if (!protocolId) return [];
     const protocol = protocols.find((p) => p.id === protocolId);
-    const allTemplates = protocol?.commands || [];
+    if (!protocol) {
+      console.warn(
+        `Protocol "${protocolId}" not found when loading command templates`,
+      );
+      return [];
+    }
+    const allTemplates = protocol.commands;
     // Only show SIMPLE templates for now
     return allTemplates.filter((t) => t.type === "SIMPLE");
   }, [protocolId, protocols]);
@@ -615,7 +621,8 @@ const CommandFormModal: React.FC<Props> = ({
                           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>
                             No command templates available for{" "}
-                            {protocols.find((p) => p.id === protocolId)?.name}
+                            {protocols.find((p) => p.id === protocolId)?.name ??
+                              "unknown protocol"}
                           </span>
                         </div>
                       ) : (
