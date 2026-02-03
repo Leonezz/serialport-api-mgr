@@ -137,7 +137,7 @@ const HexLogEntry: React.FC<HexLogEntryProps> = ({ log }) => {
 
 /**
  * Custom comparison function for React.memo
- * Only re-render if log identity or data changes
+ * Compare all log fields used in rendering to prevent stale data
  */
 const arePropsEqual = (
   prevProps: HexLogEntryProps,
@@ -146,6 +146,9 @@ const arePropsEqual = (
   // Compare log identity and timestamp
   if (prevProps.log.id !== nextProps.log.id) return false;
   if (prevProps.log.timestamp !== nextProps.log.timestamp) return false;
+  // Compare log fields used in rendering
+  if (prevProps.log.data !== nextProps.log.data) return false;
+  if (prevProps.log.direction !== nextProps.log.direction) return false;
   return true;
 };
 
