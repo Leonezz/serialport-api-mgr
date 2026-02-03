@@ -1,10 +1,14 @@
 import { useStore } from "./store";
+import { useShallow } from "zustand/react/shallow";
 
 /**
  * Zustand Selectors for Optimized Re-renders
  *
  * These selectors allow components to subscribe to only the specific state slices they need,
  * preventing unnecessary re-renders when unrelated state changes.
+ *
+ * All selectors that return objects use `useShallow` for shallow equality comparison,
+ * preventing infinite re-render loops from new object references.
  */
 
 // --- Active Session Selectors ---
@@ -14,47 +18,53 @@ import { useStore } from "./store";
  * Use this when you need session-specific data but don't need actions
  */
 export const useActiveSession = () =>
-  useStore((state) => {
-    const session = state.sessions[state.activeSessionId];
-    return {
-      config: session?.config,
-      networkConfig: session?.networkConfig,
-      sendMode: session?.sendMode,
-      encoding: session?.encoding,
-      checksum: session?.checksum,
-      isConnected: session?.isConnected,
-      connectionType: session?.connectionType,
-      logs: session?.logs,
-      widgets: session?.widgets,
-      framingOverride: session?.framingOverride,
-    };
-  });
+  useStore(
+    useShallow((state) => {
+      const session = state.sessions[state.activeSessionId];
+      return {
+        config: session?.config,
+        networkConfig: session?.networkConfig,
+        sendMode: session?.sendMode,
+        encoding: session?.encoding,
+        checksum: session?.checksum,
+        isConnected: session?.isConnected,
+        connectionType: session?.connectionType,
+        logs: session?.logs,
+        widgets: session?.widgets,
+        framingOverride: session?.framingOverride,
+      };
+    }),
+  );
 
 /**
  * Get only session metadata (id, name, connection status)
  * Useful for session tabs/switcher UI
  */
 export const useSessionMetadata = () =>
-  useStore((state) => ({
-    sessions: Object.entries(state.sessions).map(([id, session]) => ({
-      id,
-      name: session.name,
-      isConnected: session.isConnected,
-      connectionType: session.connectionType,
+  useStore(
+    useShallow((state) => ({
+      sessions: Object.entries(state.sessions).map(([id, session]) => ({
+        id,
+        name: session.name,
+        isConnected: session.isConnected,
+        connectionType: session.connectionType,
+      })),
+      activeSessionId: state.activeSessionId,
     })),
-    activeSessionId: state.activeSessionId,
-  }));
+  );
 
 /**
  * Get only the active session's connection state
  * Use when you only need to know if connected/disconnected
  */
 export const useConnectionState = () =>
-  useStore((state) => ({
-    isConnected: state.sessions[state.activeSessionId]?.isConnected || false,
-    connectionType:
-      state.sessions[state.activeSessionId]?.connectionType || "SERIAL",
-  }));
+  useStore(
+    useShallow((state) => ({
+      isConnected: state.sessions[state.activeSessionId]?.isConnected || false,
+      connectionType:
+        state.sessions[state.activeSessionId]?.connectionType || "SERIAL",
+    })),
+  );
 
 // --- Store Actions (Stable - Never Cause Re-renders) ---
 
@@ -63,57 +73,59 @@ export const useConnectionState = () =>
  * These are stable references that don't change, so components using this won't re-render
  */
 export const useStoreActions = () =>
-  useStore((state) => ({
-    // Config
-    setConfig: state.setConfig,
-    setNetworkConfig: state.setNetworkConfig,
-    setConnectionType: state.setConnectionType,
-    setSendMode: state.setSendMode,
-    setEncoding: state.setEncoding,
-    setChecksum: state.setChecksum,
+  useStore(
+    useShallow((state) => ({
+      // Config
+      setConfig: state.setConfig,
+      setNetworkConfig: state.setNetworkConfig,
+      setConnectionType: state.setConnectionType,
+      setSendMode: state.setSendMode,
+      setEncoding: state.setEncoding,
+      setChecksum: state.setChecksum,
 
-    // Logs
-    addLog: state.addLog,
-    updateLog: state.updateLog,
-    clearLogs: state.clearLogs,
-    addSystemLog: state.addSystemLog,
+      // Logs
+      addLog: state.addLog,
+      updateLog: state.updateLog,
+      clearLogs: state.clearLogs,
+      addSystemLog: state.addSystemLog,
 
-    // Commands & Sequences
-    addCommand: state.addCommand,
-    updateCommand: state.updateCommand,
-    deleteCommand: state.deleteCommand,
-    setCommands: state.setCommands,
-    addSequence: state.addSequence,
-    updateSequence: state.updateSequence,
-    deleteSequence: state.deleteSequence,
-    setSequences: state.setSequences,
+      // Commands & Sequences
+      addCommand: state.addCommand,
+      updateCommand: state.updateCommand,
+      deleteCommand: state.deleteCommand,
+      setCommands: state.setCommands,
+      addSequence: state.addSequence,
+      updateSequence: state.updateSequence,
+      deleteSequence: state.deleteSequence,
+      setSequences: state.setSequences,
 
-    // Sessions
-    addSession: state.addSession,
-    removeSession: state.removeSession,
-    setActiveSessionId: state.setActiveSessionId,
-    renameSession: state.renameSession,
-    setIsConnected: state.setIsConnected,
+      // Sessions
+      addSession: state.addSession,
+      removeSession: state.removeSession,
+      setActiveSessionId: state.setActiveSessionId,
+      renameSession: state.renameSession,
+      setIsConnected: state.setIsConnected,
 
-    // UI State
-    setEditingCommand: state.setEditingCommand,
-    setEditingPreset: state.setEditingPreset,
-    setPendingParamCommand: state.setPendingParamCommand,
-    setShowGeneratorModal: state.setShowGeneratorModal,
-    setActiveSequenceId: state.setActiveSequenceId,
+      // UI State
+      setEditingCommand: state.setEditingCommand,
+      setEditingPreset: state.setEditingPreset,
+      setPendingParamCommand: state.setPendingParamCommand,
+      setShowGeneratorModal: state.setShowGeneratorModal,
+      setActiveSequenceId: state.setActiveSequenceId,
 
-    // Toasts
-    addToast: state.addToast,
-    removeToast: state.removeToast,
+      // Toasts
+      addToast: state.addToast,
+      removeToast: state.removeToast,
 
-    // Other
-    setPresets: state.setPresets,
-    setLoadedPresetId: state.setLoadedPresetId,
-    setVariable: state.setVariable,
-    setFramingOverride: state.setFramingOverride,
-    setContexts: state.setContexts,
-    applyPresetLayout: state.applyPresetLayout,
-  }));
+      // Other
+      setPresets: state.setPresets,
+      setLoadedPresetId: state.setLoadedPresetId,
+      setVariable: state.setVariable,
+      setFramingOverride: state.setFramingOverride,
+      setContexts: state.setContexts,
+      applyPresetLayout: state.applyPresetLayout,
+    })),
+  );
 
 // --- UI State Selectors ---
 
@@ -121,32 +133,38 @@ export const useStoreActions = () =>
  * Get theme settings
  */
 export const useTheme = () =>
-  useStore((state) => ({
-    themeMode: state.themeMode,
-    themeColor: state.themeColor,
-  }));
+  useStore(
+    useShallow((state) => ({
+      themeMode: state.themeMode,
+      themeColor: state.themeColor,
+    })),
+  );
 
 /**
  * Get theme actions
  */
 export const useThemeActions = () =>
-  useStore((state) => ({
-    setThemeMode: state.setThemeMode,
-    setThemeColor: state.setThemeColor,
-  }));
+  useStore(
+    useShallow((state) => ({
+      setThemeMode: state.setThemeMode,
+      setThemeColor: state.setThemeColor,
+    })),
+  );
 
 /**
  * Get modal states
  */
 export const useModals = () =>
-  useStore((state) => ({
-    editingCommand: state.editingCommand,
-    editingPreset: state.editingPreset,
-    pendingParamCommand: state.pendingParamCommand,
-    showGeneratorModal: state.showGeneratorModal,
-    showSystemLogs: state.showSystemLogs,
-    showAppSettings: state.showAppSettings,
-  }));
+  useStore(
+    useShallow((state) => ({
+      editingCommand: state.editingCommand,
+      editingPreset: state.editingPreset,
+      pendingParamCommand: state.pendingParamCommand,
+      showGeneratorModal: state.showGeneratorModal,
+      showSystemLogs: state.showSystemLogs,
+      showAppSettings: state.showAppSettings,
+    })),
+  );
 
 /**
  * Get toasts
@@ -177,10 +195,12 @@ export const useSequences = () => useStore((state) => state.sequences);
  * Get presets
  */
 export const usePresets = () =>
-  useStore((state) => ({
-    presets: state.presets,
-    loadedPresetId: state.loadedPresetId,
-  }));
+  useStore(
+    useShallow((state) => ({
+      presets: state.presets,
+      loadedPresetId: state.loadedPresetId,
+    })),
+  );
 
 /**
  * Get contexts
@@ -210,87 +230,103 @@ export const useVariables = () =>
  * Get sidebar UI state (collapsed state, sections)
  */
 export const useSidebarUIState = () =>
-  useStore((state) => ({
-    leftSidebarCollapsed: state.leftSidebarCollapsed,
-    setLeftSidebarCollapsed: state.setLeftSidebarCollapsed,
-    sidebarSectionsCollapsed: state.sidebarSectionsCollapsed,
-    toggleSidebarSection: state.toggleSidebarSection,
-  }));
+  useStore(
+    useShallow((state) => ({
+      leftSidebarCollapsed: state.leftSidebarCollapsed,
+      setLeftSidebarCollapsed: state.setLeftSidebarCollapsed,
+      sidebarSectionsCollapsed: state.sidebarSectionsCollapsed,
+      toggleSidebarSection: state.toggleSidebarSection,
+    })),
+  );
 
 /**
  * Get sidebar data (commands, sequences, devices, protocols)
  */
 export const useSidebarData = () =>
-  useStore((state) => ({
-    commands: state.commands,
-    sequences: state.sequences,
-    devices: state.devices,
-    protocols: state.protocols,
-    selectedDeviceId: state.selectedDeviceId,
-    selectedCommandId: state.selectedCommandId,
-  }));
+  useStore(
+    useShallow((state) => ({
+      commands: state.commands,
+      sequences: state.sequences,
+      devices: state.devices,
+      protocols: state.protocols,
+      selectedDeviceId: state.selectedDeviceId,
+      selectedCommandId: state.selectedCommandId,
+    })),
+  );
 
 /**
  * Get sidebar actions for commands
  */
 export const useSidebarCommandActions = () =>
-  useStore((state) => ({
-    addCommand: state.addCommand,
-    deleteCommand: state.deleteCommand,
-    deleteCommands: state.deleteCommands,
-    setSelectedCommandId: state.setSelectedCommandId,
-    setEditingCommand: state.setEditingCommand,
-  }));
+  useStore(
+    useShallow((state) => ({
+      addCommand: state.addCommand,
+      deleteCommand: state.deleteCommand,
+      deleteCommands: state.deleteCommands,
+      setSelectedCommandId: state.setSelectedCommandId,
+      setEditingCommand: state.setEditingCommand,
+    })),
+  );
 
 /**
  * Get sidebar actions for sequences
  */
 export const useSidebarSequenceActions = () =>
-  useStore((state) => ({
-    addSequence: state.addSequence,
-    updateSequence: state.updateSequence,
-  }));
+  useStore(
+    useShallow((state) => ({
+      addSequence: state.addSequence,
+      updateSequence: state.updateSequence,
+    })),
+  );
 
 /**
  * Get sidebar actions for protocols
  */
 export const useSidebarProtocolActions = () =>
-  useStore((state) => ({
-    protocols: state.protocols,
-    addProtocol: state.addProtocol,
-  }));
+  useStore(
+    useShallow((state) => ({
+      protocols: state.protocols,
+      addProtocol: state.addProtocol,
+    })),
+  );
 
 /**
  * Get sidebar actions for presets
  */
 export const useSidebarPresetActions = () =>
-  useStore((state) => ({
-    presets: state.presets,
-    loadedPresetId: state.loadedPresetId,
-    setPresets: state.setPresets,
-    setLoadedPresetId: state.setLoadedPresetId,
-  }));
+  useStore(
+    useShallow((state) => ({
+      presets: state.presets,
+      loadedPresetId: state.loadedPresetId,
+      setPresets: state.setPresets,
+      setLoadedPresetId: state.setLoadedPresetId,
+    })),
+  );
 
 /**
  * Get sidebar actions for UI modals and tabs
  */
 export const useSidebarUIActions = () =>
-  useStore((state) => ({
-    setRightSidebarTab: state.setRightSidebarTab,
-    setShowSystemLogs: state.setShowSystemLogs,
-    setShowAppSettings: state.setShowAppSettings,
-    setShowAI: state.setShowAI,
-    addToast: state.addToast,
-  }));
+  useStore(
+    useShallow((state) => ({
+      setRightSidebarTab: state.setRightSidebarTab,
+      setShowSystemLogs: state.setShowSystemLogs,
+      setShowAppSettings: state.setShowAppSettings,
+      setShowAI: state.setShowAI,
+      addToast: state.addToast,
+    })),
+  );
 
 /**
  * Get sidebar context data and actions
  */
 export const useSidebarContexts = () =>
-  useStore((state) => ({
-    contexts: state.contexts,
-    setContexts: state.setContexts,
-  }));
+  useStore(
+    useShallow((state) => ({
+      contexts: state.contexts,
+      setContexts: state.setContexts,
+    })),
+  );
 
 /**
  * Get active session token usage (for AI token display in sidebar)
@@ -305,15 +341,17 @@ export const useAITokenUsage = () =>
  * Get active session basic info (for sidebar preset handling)
  */
 export const useActiveSessionBasicInfo = () =>
-  useStore((state) => {
-    const session = state.sessions[state.activeSessionId];
-    return {
-      connectionType: session?.connectionType || "SERIAL",
-      config: session?.config,
-      networkConfig: session?.networkConfig,
-      widgets: session?.widgets || [],
-    };
-  });
+  useStore(
+    useShallow((state) => {
+      const session = state.sessions[state.activeSessionId];
+      return {
+        connectionType: session?.connectionType || "SERIAL",
+        config: session?.config,
+        networkConfig: session?.networkConfig,
+        widgets: session?.widgets || [],
+      };
+    }),
+  );
 
 // --- Right Sidebar-Specific Selectors ---
 
@@ -321,16 +359,18 @@ export const useActiveSessionBasicInfo = () =>
  * Get right sidebar UI state
  */
 export const useRightSidebarUIState = () =>
-  useStore((state) => ({
-    rightSidebarTab: state.rightSidebarTab,
-    setRightSidebarTab: state.setRightSidebarTab,
-    rightSidebarCollapsed: state.rightSidebarCollapsed,
-    setRightSidebarCollapsed: state.setRightSidebarCollapsed,
-    selectedCommandId: state.selectedCommandId,
-    selectedDeviceId: state.selectedDeviceId,
-    editingCommand: state.editingCommand,
-    setEditingCommand: state.setEditingCommand,
-  }));
+  useStore(
+    useShallow((state) => ({
+      rightSidebarTab: state.rightSidebarTab,
+      setRightSidebarTab: state.setRightSidebarTab,
+      rightSidebarCollapsed: state.rightSidebarCollapsed,
+      setRightSidebarCollapsed: state.setRightSidebarCollapsed,
+      selectedCommandId: state.selectedCommandId,
+      selectedDeviceId: state.selectedDeviceId,
+      editingCommand: state.editingCommand,
+      setEditingCommand: state.setEditingCommand,
+    })),
+  );
 
 /**
  * Get command by ID (for right sidebar command lookup)
@@ -346,9 +386,11 @@ export const useCommandById = (commandId: string | null) =>
  * Get right sidebar command actions
  */
 export const useRightSidebarCommandActions = () =>
-  useStore((state) => ({
-    updateCommand: state.updateCommand,
-    deleteCommand: state.deleteCommand,
-    setSelectedCommandId: state.setSelectedCommandId,
-    addToast: state.addToast,
-  }));
+  useStore(
+    useShallow((state) => ({
+      updateCommand: state.updateCommand,
+      deleteCommand: state.deleteCommand,
+      setSelectedCommandId: state.setSelectedCommandId,
+      addToast: state.addToast,
+    })),
+  );

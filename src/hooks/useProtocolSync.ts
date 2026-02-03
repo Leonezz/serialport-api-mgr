@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useStore } from "../lib/store";
+import { useShallow } from "zustand/react/shallow";
 import {
   syncAllProtocolCommands,
   getCommandsSyncStatus,
@@ -36,7 +37,17 @@ export function useProtocolSync() {
     addSystemLog,
     setLastProtocolSyncTimestamp,
     lastProtocolSyncTimestamp,
-  } = useStore();
+  } = useStore(
+    useShallow((state) => ({
+      commands: state.commands,
+      protocols: state.protocols,
+      updateCommand: state.updateCommand,
+      addToast: state.addToast,
+      addSystemLog: state.addSystemLog,
+      setLastProtocolSyncTimestamp: state.setLastProtocolSyncTimestamp,
+      lastProtocolSyncTimestamp: state.lastProtocolSyncTimestamp,
+    })),
+  );
 
   const hasRunInitialSync = useRef(false);
   const lastProtocolsHash = useRef<string>("");

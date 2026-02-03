@@ -24,6 +24,7 @@ import { ArrowLeft, Home, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import ToastContainer from "../components/ui/Toast";
 import { useStore } from "../lib/store";
+import { useShallow } from "zustand/react/shallow";
 
 // Lazy load pages for better performance
 const MainWorkspace = React.lazy(() => import("../pages/MainWorkspace"));
@@ -91,7 +92,12 @@ const RouteErrorBoundary: React.FC = () => {
 
 // Root layout with navigation
 const RootLayout: React.FC = () => {
-  const { toasts, removeToast } = useStore();
+  const { toasts, removeToast } = useStore(
+    useShallow((state) => ({
+      toasts: state.toasts,
+      removeToast: state.removeToast,
+    })),
+  );
 
   return (
     <div className="h-screen w-full bg-background text-foreground overflow-hidden">
