@@ -475,7 +475,15 @@ const MainWorkspace: React.FC = () => {
               {/* Input Panel sits below console, aligned with it */}
               <InputPanel
                 onSend={(data) => {
-                  commandExecution.sendData(data).catch(() => {});
+                  commandExecution.sendData(data).catch((error) => {
+                    addToast(
+                      "error",
+                      "Send Failed",
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to send data",
+                    );
+                  });
                 }}
                 rts={rts}
                 dtr={dtr}
@@ -532,7 +540,15 @@ const MainWorkspace: React.FC = () => {
               setEncoding(pendingParamCommand.encoding);
             commandExecution
               .sendData(finalData, pendingParamCommand, values)
-              .catch(() => {});
+              .catch((error) => {
+                addToast(
+                  "error",
+                  "Send Failed",
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to send command",
+                );
+              });
           }}
           onClose={() => setPendingParamCommand(null)}
         />
