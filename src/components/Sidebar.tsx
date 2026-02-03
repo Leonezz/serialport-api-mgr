@@ -37,6 +37,18 @@ import DeviceFormModal from "./DeviceFormModal";
 import { useStore } from "../lib/store";
 import { EmptyState } from "./ui/EmptyState";
 import { useTranslation } from "react-i18next";
+import {
+  useSidebarUIState,
+  useSidebarData,
+  useSidebarCommandActions,
+  useSidebarSequenceActions,
+  useSidebarProtocolActions,
+  useSidebarPresetActions,
+  useSidebarUIActions,
+  useSidebarContexts,
+  useAITokenUsage,
+  useActiveSessionBasicInfo,
+} from "../lib/selectors";
 // Note: DeviceList is no longer used inline - Devices now links to /devices page
 
 interface Props {
@@ -53,42 +65,50 @@ interface ConfirmationState {
 const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // Use optimized selectors to avoid over-subscription (fixes #68)
   const {
-    sessions,
-    activeSessionId,
+    leftSidebarCollapsed,
+    setLeftSidebarCollapsed,
+    sidebarSectionsCollapsed,
+    toggleSidebarSection,
+  } = useSidebarUIState();
+
+  const {
     commands,
     sequences,
-    presets,
-    protocols,
-    addProtocol,
     devices,
-    loadedPresetId,
+    protocols,
+    selectedDeviceId,
     selectedCommandId,
-    setSelectedCommandId,
-    setRightSidebarTab,
-    setEditingCommand,
+  } = useSidebarData();
+
+  const {
+    addCommand,
     deleteCommand,
     deleteCommands,
-    addCommand,
-    addSequence,
-    updateSequence,
-    setLoadedPresetId,
-    setPresets,
-    addToast,
+    setSelectedCommandId,
+    setEditingCommand,
+  } = useSidebarCommandActions();
+
+  const { addSequence, updateSequence } = useSidebarSequenceActions();
+
+  const { addProtocol } = useSidebarProtocolActions();
+
+  const { setPresets, setLoadedPresetId } = useSidebarPresetActions();
+
+  const {
+    setRightSidebarTab,
     setShowSystemLogs,
     setShowAppSettings,
     setShowAI,
-    leftSidebarCollapsed,
-    setLeftSidebarCollapsed,
-    selectedDeviceId, // Use selectedDeviceId for filtering
-    sidebarSectionsCollapsed,
-    toggleSidebarSection,
-    contexts,
-    setContexts,
-  } = useStore();
+    addToast,
+  } = useSidebarUIActions();
 
-  const activeSession = sessions[activeSessionId];
-  const { aiTokenUsage } = activeSession;
+  const { contexts, setContexts } = useSidebarContexts();
+
+  const aiTokenUsage = useAITokenUsage();
+  const activeSessionBasicInfo = useActiveSessionBasicInfo();
 
   // Track collapsed groups (folders) - inverse logic: if in set, it is collapsed (closed)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
@@ -145,13 +165,17 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
     const newPreset: SerialPreset = {
       id: generateId(),
       name,
-      type: activeSession.connectionType,
-      config: { ...activeSession.config },
+      type: activeSessionBasicInfo.connectionType,
+      config: activeSessionBasicInfo.config
+        ? { ...activeSessionBasicInfo.config }
+        : undefined,
       network:
-        activeSession.connectionType === "NETWORK"
-          ? { ...activeSession.networkConfig }
+        activeSessionBasicInfo.connectionType === "NETWORK"
+          ? activeSessionBasicInfo.networkConfig
+            ? { ...activeSessionBasicInfo.networkConfig }
+            : undefined
           : undefined,
-      widgets: [...(activeSession.widgets || [])],
+      widgets: [...activeSessionBasicInfo.widgets],
     };
     setPresets((prev) => {
       const currentPresets = Array.isArray(prev) ? prev : [];
