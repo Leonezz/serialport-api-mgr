@@ -8,7 +8,11 @@ import {
 } from "../types";
 import { executeUserScript } from "../lib/scripting";
 import { useStore } from "../lib/store";
-import { calculateChecksum, encodeText } from "../lib/dataUtils";
+import {
+  calculateChecksum,
+  encodeText,
+  appendLineEnding,
+} from "../lib/dataUtils";
 import {
   applyParameters,
   collectPositionParameters,
@@ -519,17 +523,7 @@ export function useCommandExecution(
       let finalData = getEffectivePayload(cmd);
 
       if (effectiveMode === "TEXT") {
-        switch (config.lineEnding) {
-          case "LF":
-            finalData += "\n";
-            break;
-          case "CR":
-            finalData += "\r";
-            break;
-          case "CRLF":
-            finalData += "\r\n";
-            break;
-        }
+        finalData = appendLineEnding(finalData, config.lineEnding);
       }
       if (effectiveMode !== sendMode) setSendMode(effectiveMode);
       if (cmd.encoding && cmd.encoding !== encoding) setEncoding(cmd.encoding);
@@ -585,17 +579,7 @@ export function useCommandExecution(
         let finalData = getEffectivePayload(cmd);
 
         if (effectiveMode === "TEXT") {
-          switch (config.lineEnding) {
-            case "LF":
-              finalData += "\n";
-              break;
-            case "CR":
-              finalData += "\r";
-              break;
-            case "CRLF":
-              finalData += "\r\n";
-              break;
-          }
+          finalData = appendLineEnding(finalData, config.lineEnding);
         }
         await sendData(finalData, cmd);
         if (step.delay > 0) await new Promise((r) => setTimeout(r, step.delay));

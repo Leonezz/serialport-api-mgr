@@ -20,10 +20,10 @@ import type {
   ElementBinding,
   ByteOrder,
   DataType,
-  ChecksumAlgorithm,
   StaticBinding,
 } from "./protocolTypes";
 import { executeSandboxedScript } from "./sandboxedScripting";
+import { calculateChecksum } from "./dataUtils";
 
 // ============================================================================
 // TYPES
@@ -200,77 +200,6 @@ function toNumber(value: unknown): number {
   }
   if (typeof value === "boolean") return value ? 1 : 0;
   return 0;
-}
-
-/**
- * Calculate checksum with support for all protocol checksum algorithms
- */
-function calculateProtocolChecksum(
-  data: Uint8Array,
-  algorithm: ChecksumAlgorithm,
-): Uint8Array {
-  switch (algorithm) {
-    case "NONE":
-      return new Uint8Array(0);
-
-    case "MOD256": {
-      let sum = 0;
-      for (const b of data) sum = (sum + b) % 256;
-      return new Uint8Array([sum]);
-    }
-
-    case "XOR": {
-      let xor = 0;
-      for (const b of data) xor ^= b;
-      return new Uint8Array([xor]);
-    }
-
-    case "CRC16":
-    case "CRC16_MODBUS": {
-      // CRC-16-MODBUS (Polynomial 0x8005, initial 0xFFFF, reversed)
-      let crc = 0xffff;
-      for (let i = 0; i < data.length; i++) {
-        crc ^= data[i];
-        for (let j = 0; j < 8; j++) {
-          if ((crc & 1) !== 0) {
-            crc = (crc >> 1) ^ 0xa001;
-          } else {
-            crc = crc >> 1;
-          }
-        }
-      }
-      // Modbus sends Low Byte first, High Byte second
-      return new Uint8Array([crc & 0xff, (crc >> 8) & 0xff]);
-    }
-
-    case "CRC16_CCITT": {
-      // CRC-16-CCITT (Polynomial 0x1021, initial 0xFFFF)
-      let crc = 0xffff;
-      for (let i = 0; i < data.length; i++) {
-        crc ^= data[i] << 8;
-        for (let j = 0; j < 8; j++) {
-          if ((crc & 0x8000) !== 0) {
-            crc = ((crc << 1) ^ 0x1021) & 0xffff;
-          } else {
-            crc = (crc << 1) & 0xffff;
-          }
-        }
-      }
-      // Big endian: High Byte first, Low Byte second
-      return new Uint8Array([(crc >> 8) & 0xff, crc & 0xff]);
-    }
-
-    case "LRC": {
-      // Longitudinal Redundancy Check (two's complement of sum)
-      let sum = 0;
-      for (const b of data) sum = (sum + b) & 0xff;
-      const lrc = (~sum + 1) & 0xff;
-      return new Uint8Array([lrc]);
-    }
-
-    default:
-      return new Uint8Array(0);
-  }
 }
 
 // ============================================================================
@@ -526,7 +455,7 @@ export async function buildStructuredMessage(
     }
 
     // Calculate checksum
-    const checksumBytes = calculateProtocolChecksum(
+    const checksumBytes = calculateChecksum(
       new Uint8Array(dataToChecksum),
       config.algorithm,
     );
