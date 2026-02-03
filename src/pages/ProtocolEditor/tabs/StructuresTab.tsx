@@ -19,7 +19,7 @@ import type {
   MessageElement,
   MessageStructure,
 } from "../../../lib/protocolTypes";
-import type { StructuresTabProps } from "../types";
+import type { StructuresTabProps } from "../protocolEditorTypes";
 import { StructurePreview } from "../components/StructurePreview";
 import { StructureEditModal } from "../modals/StructureEditModal";
 import { ElementEditModal } from "../modals/ElementEditModal";

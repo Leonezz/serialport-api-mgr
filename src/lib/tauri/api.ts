@@ -4,8 +4,8 @@
  */
 
 import { invokeCommand } from "./invoke";
-import type { SerialPortInfo } from "./types";
-import { OpenPortCommand } from "./commands";
+import type { SerialPortInfo } from "./tauriTypes";
+import { OpenPortCommand } from "./tauriCommands";
 
 /**
  * High-level API for Tauri serial port operations

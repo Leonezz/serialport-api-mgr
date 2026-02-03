@@ -6,7 +6,10 @@
  */
 
 import { z } from "zod";
-import { SerialPortInfoSchema, SerialPortInfoArraySchema } from "./schemas";
+import {
+  SerialPortInfoSchema,
+  SerialPortInfoArraySchema,
+} from "./tauriSchemas";
 
 // ============================================================================
 // Unified Serial Port Types

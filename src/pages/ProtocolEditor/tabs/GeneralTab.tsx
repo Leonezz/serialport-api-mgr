@@ -11,7 +11,7 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Textarea } from "../../../components/ui/Textarea";
-import type { GeneralTabProps } from "../types";
+import type { GeneralTabProps } from "../protocolEditorTypes";
 
 export const GeneralTab: React.FC<GeneralTabProps> = ({
   editState,

@@ -119,7 +119,7 @@ import {
   SerialInputSignalsSchema,
   SerialPortFilterSchema,
   SerialPortRequestOptionsSchema,
-} from "./lib/tauri/schemas";
+} from "./lib/tauri/tauriSchemas";
 
 import {
   PortOpenedEventSchema,

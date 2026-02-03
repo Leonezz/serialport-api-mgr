@@ -13,7 +13,7 @@ import type {
   CommandTemplate,
   SimpleCommand,
 } from "../../../lib/protocolTypes";
-import type { CommandsTabProps } from "../types";
+import type { CommandsTabProps } from "../protocolEditorTypes";
 
 export const CommandsTab: React.FC<CommandsTabProps> = ({
   editState,

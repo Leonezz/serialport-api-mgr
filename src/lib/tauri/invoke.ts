@@ -4,8 +4,8 @@
  */
 
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
-import type { CommandArgs, CommandReturn, TauriCommand } from "./commands";
-import { SerialPortInfoArraySchema } from "./schemas";
+import type { CommandArgs, CommandReturn, TauriCommand } from "./tauriCommands";
+import { SerialPortInfoArraySchema } from "./tauriSchemas";
 import { LogEntrySchema } from "../storeSchemas";
 import { z } from "zod";
 

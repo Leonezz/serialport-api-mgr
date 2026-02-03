@@ -4,7 +4,7 @@
  */
 
 import { DataBits, FlowControl, Parity, StopBits } from "@/types";
-import type { SerialPortInfo } from "./types";
+import type { SerialPortInfo } from "./tauriTypes";
 
 // ============================================================================
 // Individual Command Definitions
