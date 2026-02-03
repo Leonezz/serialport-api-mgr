@@ -22,8 +22,8 @@ export {
 } from "./events";
 
 // Unified serial port type exports
-export type { SerialPortInfo, SerialPortInfoArray } from "./types";
+export type { SerialPortInfo, SerialPortInfoArray } from "./tauriTypes";
 
 // Command type exports
-export type * from "./commands";
+export type * from "./tauriCommands";
 export type * from "./events";
