@@ -5,6 +5,9 @@ import { Button } from "../ui/Button";
 import { SegmentedControl } from "../ui/SegmentedControl";
 import { Tooltip } from "../ui/Tooltip";
 
+// Debounce delay for view changes during heavy streaming (fixes #18)
+const VIEW_CHANGE_DEBOUNCE_MS = 100;
+
 /**
  * ConsoleToolbar Component
  *
@@ -79,6 +82,55 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
   hideDisplayMode = false,
   className,
 }) => {
+  // Track pending view change for debouncing (#18)
+  const pendingViewRef = React.useRef<ConsoleView | null>(null);
+  const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  // Debounced view change handler to prevent UI unresponsiveness during heavy streaming
+  const handleViewChange = React.useCallback(
+    (newView: ConsoleView) => {
+      // Clear any pending debounce
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Store the pending view
+      pendingViewRef.current = newView;
+
+      // Use startTransition if available (React 18+) for non-urgent updates
+      if (typeof React.startTransition === "function") {
+        React.startTransition(() => {
+          debounceTimerRef.current = setTimeout(() => {
+            if (pendingViewRef.current) {
+              onViewChange(pendingViewRef.current);
+              pendingViewRef.current = null;
+            }
+          }, VIEW_CHANGE_DEBOUNCE_MS);
+        });
+      } else {
+        // Fallback for older React versions
+        debounceTimerRef.current = setTimeout(() => {
+          if (pendingViewRef.current) {
+            onViewChange(pendingViewRef.current);
+            pendingViewRef.current = null;
+          }
+        }, VIEW_CHANGE_DEBOUNCE_MS);
+      }
+    },
+    [onViewChange],
+  );
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div
       className={cn(
@@ -88,10 +140,10 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
         className,
       )}
     >
-      {/* View Switcher */}
+      {/* View Switcher - uses debounced handler to prevent unresponsiveness (#18) */}
       <SegmentedControl
         value={view}
-        onChange={(v) => onViewChange(v as ConsoleView)}
+        onChange={(v) => handleViewChange(v as ConsoleView)}
         options={viewOptions}
         size="sm"
       />

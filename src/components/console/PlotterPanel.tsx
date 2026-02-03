@@ -1,4 +1,10 @@
-import React, { useMemo, useState, useDeferredValue } from "react";
+import React, {
+  useMemo,
+  useState,
+  useDeferredValue,
+  useRef,
+  useEffect,
+} from "react";
 import {
   LineChart,
   Line,
@@ -46,6 +52,12 @@ const CHART_COLORS = [
 ];
 
 const WINDOW_SIZE = 200; // Visible points in auto-scroll mode
+
+// Maximum points to render at once to prevent browser crash (#12)
+const MAX_RENDER_POINTS = 500;
+
+// Minimum interval between chart re-renders during heavy streaming (ms)
+const RENDER_THROTTLE_MS = 50;
 
 // Time window options (Section 9.6)
 type TimeWindowValue = "30s" | "1m" | "5m" | "15m" | "ALL";
@@ -118,25 +130,74 @@ const PlotterPanel: React.FC = () => {
   const [frozenData, setFrozenData] = useState<PlotterDataPoint[]>([]);
   const rawDisplayData = isPaused ? frozenData : data;
 
-  // Section 9.6: Apply time window filter
+  // Section 9.6: Apply time window filter with additional pruning (#12)
   // Use the latest data point's timestamp as reference (more stable than Date.now())
   const displayData = useMemo(() => {
     const windowMs = TIME_WINDOW_MS[timeWindow];
-    if (windowMs === null || rawDisplayData.length === 0) {
-      return rawDisplayData;
+    let filtered = rawDisplayData;
+
+    // Apply time window filter
+    if (windowMs !== null && rawDisplayData.length > 0) {
+      const latestTime = rawDisplayData[rawDisplayData.length - 1]?.time;
+      if (latestTime !== undefined) {
+        const cutoff = latestTime - windowMs;
+        filtered = rawDisplayData.filter(
+          (point) => (point.time ?? 0) >= cutoff,
+        );
+      }
     }
-    // Use latest data point time as the reference point
-    const latestTime = rawDisplayData[rawDisplayData.length - 1]?.time;
-    if (latestTime === undefined) {
-      return rawDisplayData;
+
+    // Additional pruning: if too many points, downsample to prevent browser crash (#12)
+    // Keep every Nth point to stay under MAX_RENDER_POINTS
+    if (filtered.length > MAX_RENDER_POINTS) {
+      const step = Math.ceil(filtered.length / MAX_RENDER_POINTS);
+      const downsampled: PlotterDataPoint[] = [];
+      for (let i = 0; i < filtered.length; i += step) {
+        downsampled.push(filtered[i]);
+      }
+      // Always include the last point for accurate "current" display
+      if (
+        downsampled.length > 0 &&
+        downsampled[downsampled.length - 1] !== filtered[filtered.length - 1]
+      ) {
+        downsampled.push(filtered[filtered.length - 1]);
+      }
+      return downsampled;
     }
-    const cutoff = latestTime - windowMs;
-    return rawDisplayData.filter((point) => (point.time ?? 0) >= cutoff);
+
+    return filtered;
   }, [rawDisplayData, timeWindow]);
 
-  // Defer displayData to keep UI responsive during high-frequency updates
-  const deferredDisplayData = useDeferredValue(displayData);
-  const isDataStale = displayData !== deferredDisplayData;
+  // Throttle chart updates during heavy streaming (#12)
+  // Use refs inside effect only to avoid accessing during render
+  const lastRenderTimeRef = useRef<number>(0);
+  const [throttledDisplayData, setThrottledDisplayData] = useState<
+    PlotterDataPoint[]
+  >([]);
+
+  useEffect(() => {
+    // Capture displayData in closure for async access
+    const dataToSet = displayData;
+
+    // Always schedule update via setTimeout to avoid synchronous setState in effect
+    const now = Date.now();
+    const timeSinceLastRender = now - lastRenderTimeRef.current;
+    const delay = Math.max(0, RENDER_THROTTLE_MS - timeSinceLastRender);
+
+    const timeoutId = setTimeout(() => {
+      setThrottledDisplayData(dataToSet);
+      lastRenderTimeRef.current = Date.now();
+    }, delay);
+
+    return () => clearTimeout(timeoutId);
+  }, [displayData]);
+
+  // Defer throttledDisplayData to keep UI responsive during high-frequency updates
+  // Combines throttling (reduces update frequency) with deferring (keeps UI responsive)
+  const deferredDisplayData = useDeferredValue(throttledDisplayData);
+  const isDataStale =
+    throttledDisplayData !== deferredDisplayData ||
+    displayData !== throttledDisplayData;
 
   // Derived View Range - use deferred data for calculations
   const viewRange = useMemo(() => {
