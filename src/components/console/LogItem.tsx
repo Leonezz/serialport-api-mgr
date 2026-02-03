@@ -366,4 +366,41 @@ const LogItem: React.FC<LogItemProps> = ({
 
 LogItem.displayName = "LogItem";
 
-export { LogItem };
+/**
+ * Custom comparison function for React.memo
+ * Compare all log fields and props used in rendering to prevent stale data
+ */
+const arePropsEqual = (
+  prevProps: LogItemProps,
+  nextProps: LogItemProps,
+): boolean => {
+  // Compare log identity and timestamp
+  if (prevProps.log.id !== nextProps.log.id) return false;
+  if (prevProps.log.timestamp !== nextProps.log.timestamp) return false;
+
+  // Compare log fields used in rendering (fixes stale data bug when updateLog is called)
+  if (prevProps.log.direction !== nextProps.log.direction) return false;
+  if (prevProps.log.data !== nextProps.log.data) return false;
+  if (prevProps.log.commandParams !== nextProps.log.commandParams) return false;
+  if (prevProps.log.extractedVars !== nextProps.log.extractedVars) return false;
+  if (prevProps.log.contextIds !== nextProps.log.contextIds) return false;
+  if (prevProps.log.payloadStart !== nextProps.log.payloadStart) return false;
+  if (prevProps.log.payloadLength !== nextProps.log.payloadLength) return false;
+
+  // Compare display settings
+  if (prevProps.displayMode !== nextProps.displayMode) return false;
+  if (prevProps.enableAnsi !== nextProps.enableAnsi) return false;
+  if (prevProps.highlighted !== nextProps.highlighted) return false;
+  if (prevProps.tag !== nextProps.tag) return false;
+  if (prevProps.className !== nextProps.className) return false;
+
+  // Compare callback identity (if onClick changes, we need to re-render)
+  if (prevProps.onClick !== nextProps.onClick) return false;
+
+  return true;
+};
+
+const MemoizedLogItem = React.memo(LogItem, arePropsEqual);
+MemoizedLogItem.displayName = "LogItem";
+
+export { MemoizedLogItem as LogItem };
