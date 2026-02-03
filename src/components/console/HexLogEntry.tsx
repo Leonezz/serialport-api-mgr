@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { X, MoreHorizontal } from "lucide-react";
 import { cn, getBytes } from "../../lib/utils";
 import HexDataView from "./HexDataView";
 import { LogEntry } from "@/types";
+
+interface HexLogEntryProps {
+  log: LogEntry;
+}
 
 /**
  * HexLogEntry Component
@@ -16,7 +20,7 @@ import { LogEntry } from "@/types";
  * - 16 bytes per row
  */
 
-const HexLogEntry: React.FC<{ log: LogEntry }> = ({ log }) => {
+const HexLogEntry: React.FC<HexLogEntryProps> = ({ log }) => {
   const bytes = getBytes(log.data);
   const isTx = log.direction === "TX";
   const [selection, setSelection] = useState<{
@@ -131,4 +135,21 @@ const HexLogEntry: React.FC<{ log: LogEntry }> = ({ log }) => {
   );
 };
 
-export default HexLogEntry;
+/**
+ * Custom comparison function for React.memo
+ * Only re-render if log identity or data changes
+ */
+const arePropsEqual = (
+  prevProps: HexLogEntryProps,
+  nextProps: HexLogEntryProps,
+): boolean => {
+  // Compare log identity and timestamp
+  if (prevProps.log.id !== nextProps.log.id) return false;
+  if (prevProps.log.timestamp !== nextProps.log.timestamp) return false;
+  return true;
+};
+
+const MemoizedHexLogEntry = memo(HexLogEntry, arePropsEqual);
+MemoizedHexLogEntry.displayName = "HexLogEntry";
+
+export default MemoizedHexLogEntry;

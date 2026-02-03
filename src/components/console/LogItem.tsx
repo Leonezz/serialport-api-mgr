@@ -366,4 +366,32 @@ const LogItem: React.FC<LogItemProps> = ({
 
 LogItem.displayName = "LogItem";
 
-export { LogItem };
+/**
+ * Custom comparison function for React.memo
+ * Only re-render if relevant props have changed
+ */
+const arePropsEqual = (
+  prevProps: LogItemProps,
+  nextProps: LogItemProps,
+): boolean => {
+  // Compare log identity and timestamp (the most common change triggers)
+  if (prevProps.log.id !== nextProps.log.id) return false;
+  if (prevProps.log.timestamp !== nextProps.log.timestamp) return false;
+
+  // Compare display settings
+  if (prevProps.displayMode !== nextProps.displayMode) return false;
+  if (prevProps.enableAnsi !== nextProps.enableAnsi) return false;
+  if (prevProps.highlighted !== nextProps.highlighted) return false;
+  if (prevProps.tag !== nextProps.tag) return false;
+  if (prevProps.className !== nextProps.className) return false;
+
+  // Compare callback identity (if onClick changes, we need to re-render)
+  if (prevProps.onClick !== nextProps.onClick) return false;
+
+  return true;
+};
+
+const MemoizedLogItem = React.memo(LogItem, arePropsEqual);
+MemoizedLogItem.displayName = "LogItem";
+
+export { MemoizedLogItem as LogItem };
