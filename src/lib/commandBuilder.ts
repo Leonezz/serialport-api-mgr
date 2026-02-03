@@ -74,6 +74,16 @@ export function buildCommandForExecution(
     protocolLayer.parameters || [],
   );
 
+  // Validate hex payload if mode is HEX
+  if (protocolLayer.mode === "HEX") {
+    const stripped = payload.replace(/\s+/g, "");
+    if (stripped.length > 0 && !/^[0-9a-fA-F]*$/.test(stripped)) {
+      throw new Error(
+        `Invalid hex characters in payload for "${command.name}". Expected 0-9, A-F only.`,
+      );
+    }
+  }
+
   // Merge validation (L2 can override timeout)
   const validation = protocolLayer.validation
     ? {

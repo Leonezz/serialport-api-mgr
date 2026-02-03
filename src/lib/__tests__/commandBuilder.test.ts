@@ -385,4 +385,87 @@ describe("commandBuilder", () => {
       expect(getEffectiveMode(command)).toBe("TEXT");
     });
   });
+
+  describe("hex payload validation", () => {
+    it("should accept valid hex payload for HEX mode", () => {
+      const command: SavedCommand = {
+        id: "hex-valid",
+        name: "Valid Modbus",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+        protocolLayer: {
+          protocolId: "proto-modbus",
+          protocolCommandId: "tmpl-read",
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+          payload: "01 03 {addr} 00 01",
+          mode: "HEX",
+          parameters: [{ name: "addr", type: "STRING", required: true }],
+        },
+        commandLayer: {
+          parameterEnhancements: {
+            addr: { customDefault: "00 40" },
+          },
+        },
+      };
+
+      const result = buildCommandForExecution(command);
+      expect(result.payload).toBe("01 03 00 40 00 01");
+      expect(result.mode).toBe("HEX");
+    });
+
+    it("should reject invalid hex characters in HEX mode", () => {
+      const command: SavedCommand = {
+        id: "hex-invalid",
+        name: "Bad Modbus",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+        protocolLayer: {
+          protocolId: "proto-modbus",
+          protocolCommandId: "tmpl-read",
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+          payload: "01 03 {addr} 00 01",
+          mode: "HEX",
+          parameters: [{ name: "addr", type: "STRING", required: true }],
+        },
+        commandLayer: {
+          parameterEnhancements: {
+            addr: { customDefault: "ZZZZ" },
+          },
+        },
+      };
+
+      expect(() => buildCommandForExecution(command)).toThrow(/invalid hex/i);
+    });
+
+    it("should not validate hex for TEXT mode", () => {
+      const command: SavedCommand = {
+        id: "text-anything",
+        name: "Text Command",
+        source: "PROTOCOL",
+        createdAt: now,
+        updatedAt: now,
+        protocolLayer: {
+          protocolId: "proto-at",
+          protocolCommandId: "tmpl-at",
+          protocolVersion: "1.0",
+          protocolCommandUpdatedAt: now,
+          payload: "AT+{cmd}",
+          mode: "TEXT",
+          parameters: [{ name: "cmd", type: "STRING", required: true }],
+        },
+        commandLayer: {
+          parameterEnhancements: {
+            cmd: { customDefault: "GMR" },
+          },
+        },
+      };
+
+      const result = buildCommandForExecution(command);
+      expect(result.payload).toBe("AT+GMR");
+    });
+  });
 });
