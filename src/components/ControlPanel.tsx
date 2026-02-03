@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { createPortal } from "react-dom";
 import {
   SerialConfig,
   NetworkConfig,
@@ -11,37 +10,22 @@ import {
   ProjectContext,
   Device,
 } from "../types";
-import { Button } from "./ui/Button";
-import { Select, SelectDropdown } from "./ui/Select";
-import { DropdownOption } from "./ui/Dropdown";
-import { Input } from "./ui/Input";
-import { FileInput, FileInputRef } from "./ui/FileInput";
-import {
-  Play,
-  Square,
-  RefreshCw,
-  Usb,
-  Globe,
-  Cable,
-  Download,
-  Upload,
-  Check,
-  X,
-  RotateCcw,
-  Plus,
-  Copy,
-  Wand2,
-  Scissors,
-  Link2,
-} from "lucide-react";
+import { FileInputRef } from "./ui/FileInput";
+import { Usb, Globe } from "lucide-react";
 import { cn, generateId } from "../lib/utils";
 import SimpleInputModal from "./SimpleInputModal";
 import { useStore } from "../lib/store";
 import { serialService, ISerialPort } from "../lib/serialService";
 import { ExportProfileSchema } from "../lib/schemas";
 import { useTranslation } from "react-i18next";
-import { FramingConfigEditor } from "./shared/FramingConfigEditor";
-import { getSemanticPortName, getPortTooltip } from "../lib/portUtils";
+
+import ModeSelector from "./ControlPanel/ModeSelector";
+import SerialConfigPanel from "./ControlPanel/SerialConfigPanel";
+import NetworkConfigPanel from "./ControlPanel/NetworkConfigPanel";
+import PresetToolbar from "./ControlPanel/PresetToolbar";
+import ProjectActions from "./ControlPanel/ProjectActions";
+import ConnectionButton from "./ControlPanel/ConnectionButton";
+import FramingModal from "./ControlPanel/FramingModal";
 
 interface Props {
   onConnect: (port?: ISerialPort | string) => void;
@@ -381,7 +365,20 @@ const ControlPanel: React.FC<Props> = ({
     fileInputRef.current?.reset();
   };
 
-  const strategy = config.framing?.strategy || "NONE";
+  const handleProtocolFramingToggle = () => {
+    if (protocolFramingEnabled) {
+      setProtocolFramingEnabled(false);
+      setActiveProtocolId(undefined);
+    } else if (protocols.length === 1) {
+      // Auto-select if only one protocol
+      setActiveProtocolId(protocols[0].id);
+      setProtocolFramingEnabled(true);
+    } else {
+      // Show protocol selector (for now, just enable with first)
+      setActiveProtocolId(protocols[0].id);
+      setProtocolFramingEnabled(true);
+    }
+  };
 
   return (
     <>
@@ -434,492 +431,77 @@ const ControlPanel: React.FC<Props> = ({
             data-scrollable={isConfigScrollable}
             className="flex items-end gap-3 overflow-x-auto no-scrollbar pb-1"
           >
-            {/* Mode Selector */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                {t("cp.mode")}
-              </span>
-              <div className="flex items-center bg-muted/30 p-1 rounded-md border border-border h-9">
-                <button
-                  onClick={() => setConnectionType("SERIAL")}
-                  disabled={isConnected}
-                  className={cn(
-                    "px-2 h-full rounded-sm text-xs font-medium flex items-center gap-1.5 transition-all",
-                    connectionType === "SERIAL"
-                      ? "bg-background shadow-sm text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Cable className="w-3 h-3" /> Serial
-                </button>
-                <div className="w-px h-3 bg-border/50 mx-1"></div>
-                <button
-                  onClick={() => setConnectionType("NETWORK")}
-                  disabled={isConnected}
-                  className={cn(
-                    "px-2 h-full rounded-sm text-xs font-medium flex items-center gap-1.5 transition-all",
-                    connectionType === "NETWORK"
-                      ? "bg-background shadow-sm text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Globe className="w-3 h-3" /> TCP
-                </button>
-              </div>
-            </div>
+            <ModeSelector
+              connectionType={connectionType}
+              isConnected={isConnected}
+              onConnectionTypeChange={setConnectionType}
+              t={t}
+            />
 
             {connectionType === "SERIAL" ? (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    {t("cp.port")}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-50">
-                      <Select
-                        className="h-9 text-xs font-mono bg-muted/30 border-border focus:border-primary focus:ring-primary/20"
-                        value={selectedPortIndex}
-                        onChange={(e) => setSelectedPortIndex(e.target.value)}
-                        disabled={isConnected}
-                      >
-                        <option value="" disabled>
-                          Select a port...
-                        </option>
-                        <optgroup label="Simulated Devices">
-                          <option
-                            value="mock-echo"
-                            className="font-bold text-emerald-600"
-                          >
-                            🔌 Virtual Echo Device
-                          </option>
-                          <option
-                            value="mock-json-stream"
-                            className="font-bold text-blue-600"
-                          >
-                            🧩 Virtual JSON Stream (Fragment/Burst)
-                          </option>
-                          <option
-                            value="mock-timeout-stream"
-                            className="font-bold text-purple-600"
-                          >
-                            ⏱️ Virtual Packet Stream (Timeout)
-                          </option>
-                          <option
-                            value="mock-prefix-stream"
-                            className="font-bold text-amber-600"
-                          >
-                            📏 Virtual Prefix Stream (2B LE)
-                          </option>
-                          <option
-                            value="mock-sine-wave"
-                            className="font-bold text-pink-600"
-                          >
-                            📈 Virtual Sine Wave Generator
-                          </option>
-                        </optgroup>
-                        {availablePorts.length > 0 && (
-                          <optgroup label="Physical Ports">
-                            {availablePorts.map((port, idx) => {
-                              const rustInfo = port.getRustPortInfo?.();
-                              const semanticName = rustInfo
-                                ? getSemanticPortName(rustInfo)
-                                : `Port ${idx + 1}`;
-                              const tooltip = rustInfo
-                                ? getPortTooltip(rustInfo)
-                                : "";
-                              return (
-                                <option key={idx} value={idx} title={tooltip}>
-                                  {semanticName}
-                                </option>
-                              );
-                            })}
-                          </optgroup>
-                        )}
-                        <option value="new">+ Request New Port...</option>
-                      </Select>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 text-muted-foreground hover:text-foreground bg-muted/30 border-border"
-                      onClick={refreshPorts}
-                      title="Refresh Ports"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    {t("cp.baud")}
-                  </span>
-                  <div className="w-25">
-                    <SelectDropdown
-                      options={[
-                        9600, 19200, 38400, 57600, 74880, 115200, 230400,
-                        460800, 921600,
-                      ].map(
-                        (r): DropdownOption<number> => ({
-                          value: r,
-                          label: r.toString(),
-                        }),
-                      )}
-                      value={config.baudRate}
-                      onChange={(value) => handleChange("baudRate", value)}
-                      disabled={isConnected}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    Data Bits
-                  </span>
-                  <div className="w-24">
-                    <SelectDropdown
-                      options={
-                        [
-                          { value: "Eight", label: "8-bit" },
-                          { value: "Seven", label: "7-bit" },
-                        ] as DropdownOption<SerialConfig["dataBits"]>[]
-                      }
-                      value={config.dataBits}
-                      onChange={(value) => handleChange("dataBits", value)}
-                      disabled={isConnected}
-                      size="sm"
-                      menuMinWidth={120}
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    Parity
-                  </span>
-                  <div className="w-24">
-                    <SelectDropdown
-                      options={
-                        [
-                          { value: "None", label: "None" },
-                          { value: "Even", label: "Even" },
-                          { value: "Odd", label: "Odd" },
-                        ] as DropdownOption<SerialConfig["parity"]>[]
-                      }
-                      value={config.parity}
-                      onChange={(value) => handleChange("parity", value)}
-                      disabled={isConnected}
-                      size="sm"
-                      menuMinWidth={120}
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    Stop Bits
-                  </span>
-                  <div className="w-24">
-                    <SelectDropdown
-                      options={
-                        [
-                          { value: "One", label: "1-bit" },
-                          { value: "Two", label: "2-bit" },
-                        ] as DropdownOption<SerialConfig["stopBits"]>[]
-                      }
-                      value={config.stopBits}
-                      onChange={(value) => handleChange("stopBits", value)}
-                      disabled={isConnected}
-                      size="sm"
-                      menuMinWidth={120}
-                    />
-                  </div>
-                </div>
-
-                {/* Framing Strategy Section */}
-                <div className="flex flex-col gap-1.5 relative">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    {t("cp.framing")}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    {/* Protocol Framing Toggle */}
-                    {protocols.length > 0 && (
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "h-9 px-2 text-xs gap-1.5 border-border bg-muted/30",
-                          protocolFramingEnabled &&
-                            activeProtocol &&
-                            "border-emerald-500/50 text-emerald-600 bg-emerald-500/5",
-                        )}
-                        onClick={() => {
-                          if (protocolFramingEnabled) {
-                            setProtocolFramingEnabled(false);
-                            setActiveProtocolId(undefined);
-                          } else if (protocols.length === 1) {
-                            // Auto-select if only one protocol
-                            setActiveProtocolId(protocols[0].id);
-                            setProtocolFramingEnabled(true);
-                          } else {
-                            // Show protocol selector (for now, just enable with first)
-                            setActiveProtocolId(protocols[0].id);
-                            setProtocolFramingEnabled(true);
-                          }
-                        }}
-                        title={
-                          protocolFramingEnabled && activeProtocol
-                            ? `Using framing from: ${activeProtocol.name}`
-                            : "Enable protocol-defined framing"
-                        }
-                      >
-                        <Link2
-                          className={cn(
-                            "w-3.5 h-3.5",
-                            protocolFramingEnabled && "text-emerald-500",
-                          )}
-                        />
-                        {protocolFramingEnabled && activeProtocol
-                          ? activeProtocol.name.length > 8
-                            ? activeProtocol.name.slice(0, 8) + "…"
-                            : activeProtocol.name
-                          : "Proto"}
-                      </Button>
-                    )}
-                    {/* Custom Framing Button */}
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "h-9 px-3 text-xs gap-2 border-border bg-muted/30",
-                        !protocolFramingEnabled &&
-                          strategy !== "NONE" &&
-                          "border-primary/50 text-primary bg-primary/5",
-                      )}
-                      onClick={() => setShowFramingModal(true)}
-                      disabled={protocolFramingEnabled}
-                      title={
-                        protocolFramingEnabled
-                          ? "Disable protocol framing to use custom framing"
-                          : "Configure custom framing strategy"
-                      }
-                    >
-                      <Scissors className="w-3.5 h-3.5" />
-                      {protocolFramingEnabled
-                        ? "Custom"
-                        : strategy === "NONE"
-                          ? "None"
-                          : strategy === "TIMEOUT"
-                            ? "Timeout"
-                            : strategy === "PREFIX_LENGTH"
-                              ? "Prefix"
-                              : strategy === "SCRIPT"
-                                ? "Script"
-                                : "Delim"}
-                    </Button>
-                  </div>
-                </div>
-              </>
+              <SerialConfigPanel
+                config={config}
+                isConnected={isConnected}
+                availablePorts={availablePorts}
+                selectedPortIndex={selectedPortIndex}
+                onSelectedPortIndexChange={setSelectedPortIndex}
+                onConfigChange={handleChange}
+                onRefreshPorts={refreshPorts}
+                onShowFramingModal={() => setShowFramingModal(true)}
+                protocols={protocols}
+                protocolFramingEnabled={protocolFramingEnabled}
+                activeProtocol={activeProtocol}
+                onProtocolFramingToggle={handleProtocolFramingToggle}
+                t={t}
+              />
             ) : (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    Host (WebSocket/IP)
-                  </span>
-                  <Input
-                    value={networkConfig.host}
-                    onChange={(e) =>
-                      handleNetworkChange("host", e.target.value)
-                    }
-                    disabled={isConnected}
-                    className="h-9 w-55 text-xs font-mono bg-muted/30 border-border"
-                    placeholder="192.168.1.100"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    Port
-                  </span>
-                  <Input
-                    type="number"
-                    value={networkConfig.port}
-                    onChange={(e) =>
-                      handleNetworkChange("port", parseInt(e.target.value))
-                    }
-                    disabled={isConnected}
-                    className="h-9 w-20 text-xs font-mono bg-muted/30 border-border"
-                    placeholder="8080"
-                  />
-                </div>
-              </>
+              <NetworkConfigPanel
+                networkConfig={networkConfig}
+                isConnected={isConnected}
+                onNetworkConfigChange={handleNetworkChange}
+              />
             )}
 
-            {/* --- Preset Management Toolbar --- */}
-            <div className="h-full w-px bg-border/50 mx-2"></div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-transparent select-none uppercase tracking-wider">
-                {t("cp.profile")}
-              </span>
-              <div className="flex items-center gap-1.5 bg-muted/30 p-1 rounded-md border border-border h-9">
-                {loadedPresetId ? (
-                  <>
-                    <div
-                      className={cn(
-                        "px-2 text-xs font-medium max-w-30 truncate flex items-center gap-1.5",
-                        isPresetDirty ? "text-amber-500" : "text-foreground",
-                      )}
-                    >
-                      {activePresetName}
-                      {isPresetDirty && (
-                        <span
-                          className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"
-                          title="Unsaved Changes"
-                        ></span>
-                      )}
-                    </div>
-                    {isPresetDirty && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                          onClick={onUpdateLoadedPreset}
-                          title="Update Profile"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                          onClick={onRevertLoadedPreset}
-                          title="Revert Changes"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                      onClick={() => {
-                        setSaveModalDefault(`${activePresetName} (Copy)`);
-                        setIsSaveModalOpen(true);
-                      }}
-                      title="Save As New Preset (Copy)"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                    </Button>
-                    <div className="w-px h-4 bg-border/50"></div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        setLoadedPresetId(null);
-                        addToast(
-                          "info",
-                          "Detached",
-                          "Configuration is now custom.",
-                        );
-                      }}
-                      title="Detach (Cancel) Profile"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </>
-                ) : (
-                  <div className="px-1 flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground italic px-1">
-                      {t("cp.custom")}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-[10px] gap-1 px-2 border border-dashed border-border"
-                      onClick={() => {
-                        setSaveModalDefault("");
-                        setIsSaveModalOpen(true);
-                      }}
-                    >
-                      <Plus className="w-3 h-3" /> {t("cp.save_as")}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <PresetToolbar
+              loadedPresetId={loadedPresetId}
+              activePresetName={activePresetName}
+              isPresetDirty={isPresetDirty}
+              onUpdate={onUpdateLoadedPreset}
+              onRevert={onRevertLoadedPreset}
+              onCopy={() => {
+                setSaveModalDefault(`${activePresetName} (Copy)`);
+                setIsSaveModalOpen(true);
+              }}
+              onDetach={() => {
+                setLoadedPresetId(null);
+                addToast("info", "Detached", "Configuration is now custom.");
+              }}
+              onSaveAs={() => {
+                setSaveModalDefault("");
+                setIsSaveModalOpen(true);
+              }}
+              t={t}
+            />
           </div>
         </div>
 
         <div className="flex items-end gap-3">
-          {/* Project Management */}
-          <div className="flex flex-col gap-1.5 justify-end">
-            <span className="text-[10px] font-bold text-transparent select-none uppercase tracking-wider">
-              Project
-            </span>
-            <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-md border border-border">
-              <FileInput
-                ref={fileInputRef}
-                accept=".json"
-                onChange={handleImportProfile}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.open()}
-                className="h-7 w-7 rounded-sm hover:bg-background hover:shadow-sm"
-                title="Load Project Backup"
-              >
-                <Upload className="w-3.5 h-3.5" />
-              </Button>
-              <div className="w-px h-4 bg-border/50"></div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleExportProfile}
-                className="h-7 w-7 rounded-sm hover:bg-background hover:shadow-sm"
-                title="Save Project Backup"
-              >
-                <Download className="w-3.5 h-3.5" />
-              </Button>
-              <div className="w-px h-4 bg-border/50"></div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenAIGenerator}
-                className="h-7 w-7 rounded-sm hover:bg-background hover:shadow-sm text-purple-500 hover:text-purple-600"
-                title="AI Project Generator (From manual/text)"
-              >
-                <Wand2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          </div>
+          <ProjectActions
+            fileInputRef={fileInputRef}
+            onImport={handleImportProfile}
+            onExport={handleExportProfile}
+            onOpenAIGenerator={onOpenAIGenerator}
+          />
 
           <div className="w-px h-9 bg-border mx-1 mb-0.5"></div>
 
-          {/* Connection Button */}
-          <div className="flex flex-col gap-1.5 justify-end">
-            <span className="text-[10px] font-bold text-transparent select-none uppercase tracking-wider">
-              Action
-            </span>
-            {!isConnected ? (
-              <Button
-                onClick={handleConnectClick}
-                variant="primary"
-                className="h-9 px-8 shadow-md font-semibold tracking-wide transition-all hover:scale-105 active:scale-95"
-              >
-                <Play className="w-4 h-4 mr-2 fill-current" />{" "}
-                {connectionType === "SERIAL" ? t("cp.open") : t("cp.connect")}
-              </Button>
-            ) : (
-              <Button
-                variant="destructive"
-                onClick={onDisconnect}
-                className="h-9 px-8 shadow-md font-semibold tracking-wide transition-all hover:scale-105 active:scale-95"
-              >
-                <Square className="w-4 h-4 mr-2 fill-current" />{" "}
-                {connectionType === "SERIAL"
-                  ? t("cp.close")
-                  : t("cp.disconnect")}
-              </Button>
-            )}
-          </div>
+          <ConnectionButton
+            isConnected={isConnected}
+            connectionType={connectionType}
+            onConnect={handleConnectClick}
+            onDisconnect={onDisconnect}
+            t={t}
+          />
         </div>
       </div>
 
@@ -933,47 +515,12 @@ const ControlPanel: React.FC<Props> = ({
         />
       )}
 
-      {showFramingModal &&
-        createPortal(
-          <div
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-60 flex items-center justify-center p-4"
-            onClick={() => setShowFramingModal(false)}
-          >
-            <div
-              className="w-full max-w-2xl bg-card border border-border rounded-lg shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between pb-2 border-b border-border">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Scissors className="w-4 h-4" /> Framing Strategy
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowFramingModal(false)}
-                  className="h-8 w-8"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <FramingConfigEditor
-                config={config.framing}
-                onChange={handleFramingChange}
-              />
-
-              <div className="flex justify-end pt-2">
-                <Button
-                  onClick={() => setShowFramingModal(false)}
-                  className="w-full sm:w-auto"
-                >
-                  Done
-                </Button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      <FramingModal
+        isOpen={showFramingModal}
+        config={config.framing}
+        onFramingChange={handleFramingChange}
+        onClose={() => setShowFramingModal(false)}
+      />
     </>
   );
 };
