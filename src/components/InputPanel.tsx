@@ -13,6 +13,7 @@ import {
   TextEncoding,
 } from "../types";
 import { cn } from "../lib/utils";
+import { appendLineEnding } from "../lib/dataUtils";
 import { useStore } from "../lib/store";
 
 interface Props {
@@ -96,17 +97,7 @@ const InputPanel: React.FC<Props> = ({
 
     // For TEXT, we append line endings here.
     if (sendMode === "TEXT") {
-      switch (config.lineEnding) {
-        case "LF":
-          finalData += "\n";
-          break;
-        case "CR":
-          finalData += "\r";
-          break;
-        case "CRLF":
-          finalData += "\r\n";
-          break;
-      }
+      finalData = appendLineEnding(finalData, config.lineEnding);
     }
 
     onSend(finalData);

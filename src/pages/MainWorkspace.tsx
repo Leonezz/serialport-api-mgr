@@ -8,6 +8,7 @@
 import React, { useState, useMemo } from "react";
 import { Activity, Plus, X, Wifi, Usb } from "lucide-react";
 import { getBytes } from "../lib/utils";
+import { appendLineEnding } from "../lib/dataUtils";
 import { SavedCommand, SequenceStep, Session } from "../types";
 import { AIProjectResult } from "../services/geminiService";
 import ConsoleViewer from "../components/ConsoleViewer";
@@ -519,17 +520,7 @@ const MainWorkspace: React.FC = () => {
           onSend={(values) => {
             let finalData = pendingParamCommand.payload;
             if (pendingParamCommand.mode === "TEXT") {
-              switch (config.lineEnding) {
-                case "LF":
-                  finalData += "\n";
-                  break;
-                case "CR":
-                  finalData += "\r";
-                  break;
-                case "CRLF":
-                  finalData += "\r\n";
-                  break;
-              }
+              finalData = appendLineEnding(finalData, config.lineEnding);
             }
             if (pendingParamCommand.mode !== sendMode)
               setSendMode(pendingParamCommand.mode);
