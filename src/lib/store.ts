@@ -5,7 +5,6 @@ import { z, ZodError } from "zod";
 import { createUISlice, UISlice } from "./slices/uiSlice";
 import { createProjectSlice, ProjectSlice } from "./slices/projectSlice";
 import { createSessionSlice, SessionSlice } from "./slices/sessionSlice";
-import { createDeviceSlice, DeviceSlice } from "./slices/deviceSlice";
 import { createProtocolSlice, ProtocolSlice } from "./slices/protocolSlice";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import {
@@ -342,18 +341,13 @@ function recoverPartialState(
 
 const tauriStorage = createSchemaAwareTauriStorage();
 
-type AppState = UISlice &
-  ProjectSlice &
-  SessionSlice &
-  DeviceSlice &
-  ProtocolSlice;
+type AppState = UISlice & ProjectSlice & SessionSlice & ProtocolSlice;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createSlices = (...a: [any, any, any]) => ({
   ...createUISlice(...a),
   ...createProjectSlice(...a),
   ...createSessionSlice(...a),
-  ...createDeviceSlice(...a),
   ...createProtocolSlice(...a),
 });
 

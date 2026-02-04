@@ -497,7 +497,7 @@ const Sidebar: React.FC<Props> = ({ onSendCommand, onRunSequence }) => {
           onClose={() => setIsNewProtocolModalOpen(false)}
         />
       )}
-      <DeviceFormModal />
+      {useStore((s) => s.showDeviceModal) && <DeviceFormModal />}
       {confirmation && (
         <ConfirmationModal
           title={confirmation.title}

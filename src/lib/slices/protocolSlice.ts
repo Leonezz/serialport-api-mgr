@@ -11,10 +11,11 @@ import type {
   Protocol,
   MessageStructure,
   CommandTemplate,
-  Device,
   Sequence,
   DeviceProtocolBinding,
 } from "../protocolTypes";
+import type { Device, DeviceAttachment, BaseEntity } from "../../types";
+import { ProjectSliceState } from "./projectSlice";
 import { DEFAULT_PROTOCOLS, DEFAULT_DEVICES } from "../defaults/index";
 
 // ============================================================================
@@ -89,7 +90,21 @@ export interface ProtocolSliceActions {
   updateSequence: (id: string, updates: Partial<Sequence>) => void;
   deleteSequence: (id: string) => void;
 
-  // Note: addCommandToDevice and removeCommandFromDevice moved to deviceSlice
+  // Device attachment management
+  addDeviceAttachment: (deviceId: string, attachment: DeviceAttachment) => void;
+  removeDeviceAttachment: (deviceId: string, attachmentId: string) => void;
+
+  // Device-entity relationship management
+  assignToDevice: (
+    entityType: "command" | "sequence" | "preset",
+    entityId: string,
+    deviceId: string | null,
+  ) => void;
+
+  // Device-Command relationship management (many-to-many via device.commandIds)
+  addCommandToDevice: (deviceId: string, commandId: string) => void;
+  removeCommandFromDevice: (deviceId: string, commandId: string) => void;
+
   setDeviceDefaultProtocol: (
     deviceId: string,
     protocolId: string | null,
@@ -115,7 +130,15 @@ export type ProtocolSlice = ProtocolSliceState & ProtocolSliceActions;
 // SLICE CREATOR
 // ============================================================================
 
-export const createProtocolSlice: StateCreator<ProtocolSlice> = (set, get) => ({
+// Combined type to access other slices (needed for assignToDevice, deleteDevice cascade)
+type StoreState = ProtocolSlice & ProjectSliceState;
+
+export const createProtocolSlice: StateCreator<
+  StoreState,
+  [],
+  [],
+  ProtocolSlice
+> = (set, get) => ({
   // Initial state - uses imported defaults from src/lib/defaults/
   protocols: DEFAULT_PROTOCOLS,
   devices: DEFAULT_DEVICES,
@@ -316,6 +339,16 @@ export const createProtocolSlice: StateCreator<ProtocolSlice> = (set, get) => ({
   deleteDevice: (id) =>
     set((state) => ({
       devices: state.devices.filter((d) => d.id !== id),
+      // Cascade cleanup: nullify deviceId on related entities
+      commands: state.commands.map((cmd) =>
+        cmd.deviceId === id ? { ...cmd, deviceId: null } : cmd,
+      ),
+      sequences: state.sequences.map((seq) =>
+        seq.deviceId === id ? { ...seq, deviceId: null } : seq,
+      ),
+      presets: state.presets.map((p) =>
+        p.deviceId === id ? { ...p, deviceId: null } : p,
+      ),
     })),
 
   // Device Protocol Binding
@@ -360,6 +393,87 @@ export const createProtocolSlice: StateCreator<ProtocolSlice> = (set, get) => ({
       ),
     })),
 
+  // Device attachment management
+  addDeviceAttachment: (deviceId, attachment) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              attachments: [...d.attachments, attachment],
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
+    })),
+
+  removeDeviceAttachment: (deviceId, attachmentId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              attachments: d.attachments.filter((a) => a.id !== attachmentId),
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
+    })),
+
+  // Single-direction linking: only update the entity's deviceId
+  // Device -> Entity relationship is derived by filtering entities by deviceId
+  assignToDevice: (entityType, entityId, deviceId) =>
+    set((state) => {
+      const updateEntity = (items: BaseEntity[]) =>
+        items.map((item) =>
+          item.id === entityId
+            ? { ...item, deviceId: deviceId, updatedAt: Date.now() }
+            : item,
+        );
+
+      return {
+        commands:
+          entityType === "command"
+            ? updateEntity(state.commands)
+            : state.commands,
+        sequences:
+          entityType === "sequence"
+            ? updateEntity(state.sequences)
+            : state.sequences,
+        presets:
+          entityType === "preset" ? updateEntity(state.presets) : state.presets,
+      };
+    }),
+
+  // Device-Command relationship management (many-to-many via device.commandIds)
+  addCommandToDevice: (deviceId, commandId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              commandIds: d.commandIds?.includes(commandId)
+                ? d.commandIds
+                : [...(d.commandIds || []), commandId],
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
+    })),
+
+  removeCommandFromDevice: (deviceId, commandId) =>
+    set((state) => ({
+      devices: state.devices.map((d) =>
+        d.id === deviceId
+          ? {
+              ...d,
+              commandIds: (d.commandIds || []).filter((id) => id !== commandId),
+              updatedAt: Date.now(),
+            }
+          : d,
+      ),
+    })),
+
   // Sequence CRUD
   addSequence: (sequenceData) => {
     const timestamp = Date.now();
@@ -385,8 +499,6 @@ export const createProtocolSlice: StateCreator<ProtocolSlice> = (set, get) => ({
     set((state) => ({
       sequences: state.sequences.filter((s) => s.id !== id),
     })),
-
-  // Note: addCommandToDevice and removeCommandFromDevice moved to deviceSlice
 
   setDeviceDefaultProtocol: (deviceId, protocolId) =>
     set((state) => ({
