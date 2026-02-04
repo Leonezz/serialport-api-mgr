@@ -99,96 +99,124 @@ const DeviceFormModal: React.FC = () => {
 
   const fileInputRef = useRef<FileInputRef>(null);
 
+  // Derive initial values from editingDevice (avoids setState in useEffect)
+  const initialValues = useMemo(() => {
+    if (editingDevice) {
+      return {
+        name: editingDevice.name || "",
+        manufacturer: editingDevice.manufacturer || "",
+        model: editingDevice.model || "",
+        serialNumber: editingDevice.serialNumber || "",
+        firmwareVersion: editingDevice.firmwareVersion || "",
+        description: editingDevice.description || "",
+        icon: editingDevice.icon || "cpu",
+        baudRate: editingDevice.defaultSerialOptions?.baudRate || 115200,
+        dataBits:
+          editingDevice.defaultSerialOptions?.dataBits || ("Eight" as const),
+        stopBits:
+          editingDevice.defaultSerialOptions?.stopBits || ("One" as const),
+        parity: editingDevice.defaultSerialOptions?.parity || ("None" as const),
+        flowControl:
+          editingDevice.defaultSerialOptions?.flowControl || ("None" as const),
+        selectedProtocols: (editingDevice.protocols || []).map(
+          (p) => p.protocolId,
+        ),
+        defaultProtocolId: editingDevice.defaultProtocolId,
+        attachments: editingDevice.attachments || [],
+        localCommandIds: editingDevice.commandIds || [],
+      };
+    }
+    return {
+      name: "",
+      manufacturer: "",
+      model: "",
+      serialNumber: "",
+      firmwareVersion: "",
+      description: "",
+      icon: "cpu",
+      baudRate: 115200,
+      dataBits: "Eight" as const,
+      stopBits: "One" as const,
+      parity: "None" as const,
+      flowControl: "None" as const,
+      selectedProtocols: [] as string[],
+      defaultProtocolId: undefined as string | undefined,
+      attachments: [] as DeviceAttachment[],
+      localCommandIds: [] as string[],
+    };
+  }, [editingDevice]);
+
   // Tab state
   const [activeTab, setActiveTab] = useState<
     "basic" | "serial" | "protocols" | "commands" | "attachments"
   >("basic");
 
   // Basic info state
-  const [name, setName] = useState("");
-  const [manufacturer, setManufacturer] = useState("");
-  const [model, setModel] = useState("");
-  const [serialNumber, setSerialNumber] = useState("");
-  const [firmwareVersion, setFirmwareVersion] = useState("");
-  const [description, setDescription] = useState("");
-  const [icon, setIcon] = useState("cpu");
+  const [name, setName] = useState(initialValues.name);
+  const [manufacturer, setManufacturer] = useState(initialValues.manufacturer);
+  const [model, setModel] = useState(initialValues.model);
+  const [serialNumber, setSerialNumber] = useState(initialValues.serialNumber);
+  const [firmwareVersion, setFirmwareVersion] = useState(
+    initialValues.firmwareVersion,
+  );
+  const [description, setDescription] = useState(initialValues.description);
+  const [icon, setIcon] = useState(initialValues.icon);
 
   // Serial options state
-  const [baudRate, setBaudRate] = useState(115200);
+  const [baudRate, setBaudRate] = useState(initialValues.baudRate);
   const [dataBits, setDataBits] = useState<"Five" | "Six" | "Seven" | "Eight">(
-    "Eight",
+    initialValues.dataBits,
   );
-  const [stopBits, setStopBits] = useState<"One" | "Two">("One");
-  const [parity, setParity] = useState<"None" | "Even" | "Odd">("None");
+  const [stopBits, setStopBits] = useState<"One" | "Two">(
+    initialValues.stopBits,
+  );
+  const [parity, setParity] = useState<"None" | "Even" | "Odd">(
+    initialValues.parity,
+  );
   const [flowControl, setFlowControl] = useState<
     "None" | "Hardware" | "Software"
-  >("None");
+  >(initialValues.flowControl);
 
   // Protocol bindings state
-  const [selectedProtocols, setSelectedProtocols] = useState<string[]>([]);
+  const [selectedProtocols, setSelectedProtocols] = useState<string[]>(
+    initialValues.selectedProtocols,
+  );
   const [defaultProtocolId, setDefaultProtocolId] = useState<
     string | undefined
-  >(undefined);
+  >(initialValues.defaultProtocolId);
 
   // Attachments state
-  const [attachments, setAttachments] = useState<DeviceAttachment[]>([]);
+  const [attachments, setAttachments] = useState<DeviceAttachment[]>(
+    initialValues.attachments,
+  );
 
   // Command IDs state (for new devices, track locally; for existing, managed via store actions)
-  const [localCommandIds, setLocalCommandIds] = useState<string[]>([]);
+  const [localCommandIds, setLocalCommandIds] = useState<string[]>(
+    initialValues.localCommandIds,
+  );
 
+  // Sync local form state when editingDevice changes (intentional derived-state sync)
+  /* eslint-disable react-hooks/set-state-in-effect -- Syncing form fields from derived initialValues on prop change */
   useEffect(() => {
-    if (editingDevice) {
-      setName(editingDevice.name || "");
-      setManufacturer(editingDevice.manufacturer || "");
-      setModel(editingDevice.model || "");
-      setSerialNumber(editingDevice.serialNumber || "");
-      setFirmwareVersion(editingDevice.firmwareVersion || "");
-      setDescription(editingDevice.description || "");
-      setIcon(editingDevice.icon || "cpu");
-
-      // Serial options
-      if (editingDevice.defaultSerialOptions) {
-        setBaudRate(editingDevice.defaultSerialOptions.baudRate || 115200);
-        setDataBits(editingDevice.defaultSerialOptions.dataBits || "Eight");
-        setStopBits(editingDevice.defaultSerialOptions.stopBits || "One");
-        setParity(editingDevice.defaultSerialOptions.parity || "None");
-        setFlowControl(
-          editingDevice.defaultSerialOptions.flowControl || "None",
-        );
-      }
-
-      // Protocol bindings
-      setSelectedProtocols(
-        (editingDevice.protocols || []).map((p) => p.protocolId),
-      );
-      setDefaultProtocolId(editingDevice.defaultProtocolId);
-
-      // Attachments
-      setAttachments(editingDevice.attachments || []);
-
-      // Command IDs
-      setLocalCommandIds(editingDevice.commandIds || []);
-    } else {
-      // Reset all fields
-      setName("");
-      setManufacturer("");
-      setModel("");
-      setSerialNumber("");
-      setFirmwareVersion("");
-      setDescription("");
-      setIcon("cpu");
-      setBaudRate(115200);
-      setDataBits("Eight");
-      setStopBits("One");
-      setParity("None");
-      setFlowControl("None");
-      setSelectedProtocols([]);
-      setDefaultProtocolId(undefined);
-      setAttachments([]);
-      setLocalCommandIds([]);
-    }
+    setName(initialValues.name);
+    setManufacturer(initialValues.manufacturer);
+    setModel(initialValues.model);
+    setSerialNumber(initialValues.serialNumber);
+    setFirmwareVersion(initialValues.firmwareVersion);
+    setDescription(initialValues.description);
+    setIcon(initialValues.icon);
+    setBaudRate(initialValues.baudRate);
+    setDataBits(initialValues.dataBits);
+    setStopBits(initialValues.stopBits);
+    setParity(initialValues.parity);
+    setFlowControl(initialValues.flowControl);
+    setSelectedProtocols(initialValues.selectedProtocols);
+    setDefaultProtocolId(initialValues.defaultProtocolId);
+    setAttachments(initialValues.attachments);
+    setLocalCommandIds(initialValues.localCommandIds);
     setActiveTab("basic");
-  }, [editingDevice, showDeviceModal]);
+  }, [initialValues]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -196,8 +224,6 @@ const DeviceFormModal: React.FC = () => {
       return;
     }
 
-    // eslint-disable-next-line react-hooks/purity -- Event handler, not render
-    const timestamp = Date.now();
     const deviceData = {
       name,
       manufacturer: manufacturer || undefined,
@@ -231,12 +257,7 @@ const DeviceFormModal: React.FC = () => {
         `Device "${name}" updated successfully.`,
       );
     } else {
-      addDevice({
-        id: generateId(),
-        ...deviceData,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      });
+      addDevice(deviceData);
       addToast(
         "success",
         "Device Created",
@@ -343,16 +364,18 @@ const DeviceFormModal: React.FC = () => {
   // Get commands for this device
   // Use device.commandIds as source of truth (many-to-many relationship)
   // For new devices: use localCommandIds (commands to assign on save)
+  const editingDeviceCommandIds = editingDevice?.commandIds;
+  const editingDeviceId = editingDevice?.id;
   const deviceCommands = useMemo(() => {
-    if (editingDevice?.id) {
+    if (editingDeviceId) {
       // Existing device: filter commands by device.commandIds
-      const commandIds = editingDevice.commandIds || [];
+      const commandIds = editingDeviceCommandIds || [];
       return commands.filter((cmd) => commandIds.includes(cmd.id));
     } else {
       // New device: use local tracking
       return commands.filter((cmd) => localCommandIds.includes(cmd.id));
     }
-  }, [commands, editingDevice?.id, editingDevice?.commandIds, localCommandIds]);
+  }, [commands, editingDeviceId, editingDeviceCommandIds, localCommandIds]);
 
   // Group commands by category/group
   const groupedDeviceCommands = useMemo(() => {
@@ -596,7 +619,7 @@ const DeviceFormModal: React.FC = () => {
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {/* Linked Protocols */}
-              {selectedProtocols.map((protocolId, index) => {
+              {selectedProtocols.map((protocolId, _index) => {
                 const protocol = protocols.find((p) => p.id === protocolId);
                 if (!protocol) return null;
                 const isDefault =
