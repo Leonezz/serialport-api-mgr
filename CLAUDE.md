@@ -78,10 +78,11 @@ npx playwright-cli close
 ### Frontend Architecture
 
 **State Management (Zustand with Slices):**
-- Store located at `src/lib/store.ts` combines three slices:
+- Store located at `src/lib/store.ts` combines four slices:
   - `uiSlice.ts` - UI state (modals, toasts, theme, sidebar visibility)
   - `projectSlice.ts` - Project data (presets, commands, sequences, contexts)
   - `sessionSlice.ts` - Session state (connections, logs, config per session)
+  - `protocolSlice.ts` - Protocol definitions, devices, and device management (CRUD, attachments, command-device linking)
 - Each slice uses `StateCreator<>` pattern from zustand
 - Access via `useStore()` hook throughout components
 

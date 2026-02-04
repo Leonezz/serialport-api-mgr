@@ -269,6 +269,24 @@ const DeviceFormModal: React.FC = () => {
   };
 
   const handleClose = () => {
+    // Reset form fields so reopening "Add New Device" starts clean
+    setName("");
+    setManufacturer("");
+    setModel("");
+    setSerialNumber("");
+    setFirmwareVersion("");
+    setDescription("");
+    setIcon("cpu");
+    setBaudRate(115200);
+    setDataBits("Eight");
+    setStopBits("One");
+    setParity("None");
+    setFlowControl("None");
+    setSelectedProtocols([]);
+    setDefaultProtocolId(undefined);
+    setAttachments([]);
+    setLocalCommandIds([]);
+    setActiveTab("basic");
     setShowDeviceModal(false);
     setEditingDevice(null);
   };
