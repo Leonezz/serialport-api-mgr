@@ -20,6 +20,7 @@ const DeviceLibrary: React.FC = () => {
   const {
     devices,
     commands,
+    showDeviceModal,
     setShowDeviceModal,
     setEditingDevice,
     deleteDevice,
@@ -130,7 +131,7 @@ const DeviceLibrary: React.FC = () => {
       )}
 
       {/* Device Form Modal */}
-      <DeviceFormModal />
+      {showDeviceModal && <DeviceFormModal />}
     </div>
   );
 };
