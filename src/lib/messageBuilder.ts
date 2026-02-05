@@ -14,6 +14,7 @@
  * - RESERVED: Reserved/unused bytes
  */
 
+import { match } from "ts-pattern";
 import type {
   MessageStructure,
   MessageElement,
@@ -76,93 +77,65 @@ function encodeNumericValue(
   dataType: DataType,
   byteOrder: ByteOrder,
 ): Uint8Array {
-  let bytes: number[];
+  const isBE = byteOrder === "BE";
 
-  switch (dataType) {
-    case "UINT8":
-      bytes = [value & 0xff];
-      break;
-
-    case "INT8":
-      bytes = [value < 0 ? (value + 256) & 0xff : value & 0xff];
-      break;
-
-    case "UINT16":
-      if (byteOrder === "BE") {
-        bytes = [(value >> 8) & 0xff, value & 0xff];
-      } else {
-        bytes = [value & 0xff, (value >> 8) & 0xff];
-      }
-      break;
-
-    case "INT16": {
+  const bytes: number[] = match(dataType)
+    .with("UINT8", () => [value & 0xff])
+    .with("INT8", () => [value < 0 ? (value + 256) & 0xff : value & 0xff])
+    .with("UINT16", () =>
+      isBE
+        ? [(value >> 8) & 0xff, value & 0xff]
+        : [value & 0xff, (value >> 8) & 0xff],
+    )
+    .with("INT16", () => {
       const unsigned = value < 0 ? value + 65536 : value;
-      if (byteOrder === "BE") {
-        bytes = [(unsigned >> 8) & 0xff, unsigned & 0xff];
-      } else {
-        bytes = [unsigned & 0xff, (unsigned >> 8) & 0xff];
-      }
-      break;
-    }
-
-    case "UINT32":
-      if (byteOrder === "BE") {
-        bytes = [
-          (value >>> 24) & 0xff,
-          (value >>> 16) & 0xff,
-          (value >>> 8) & 0xff,
-          value & 0xff,
-        ];
-      } else {
-        bytes = [
-          value & 0xff,
-          (value >>> 8) & 0xff,
-          (value >>> 16) & 0xff,
-          (value >>> 24) & 0xff,
-        ];
-      }
-      break;
-
-    case "INT32": {
+      return isBE
+        ? [(unsigned >> 8) & 0xff, unsigned & 0xff]
+        : [unsigned & 0xff, (unsigned >> 8) & 0xff];
+    })
+    .with("UINT32", () =>
+      isBE
+        ? [
+            (value >>> 24) & 0xff,
+            (value >>> 16) & 0xff,
+            (value >>> 8) & 0xff,
+            value & 0xff,
+          ]
+        : [
+            value & 0xff,
+            (value >>> 8) & 0xff,
+            (value >>> 16) & 0xff,
+            (value >>> 24) & 0xff,
+          ],
+    )
+    .with("INT32", () => {
       const unsigned = value < 0 ? value + 4294967296 : value;
-      if (byteOrder === "BE") {
-        bytes = [
-          (unsigned >>> 24) & 0xff,
-          (unsigned >>> 16) & 0xff,
-          (unsigned >>> 8) & 0xff,
-          unsigned & 0xff,
-        ];
-      } else {
-        bytes = [
-          unsigned & 0xff,
-          (unsigned >>> 8) & 0xff,
-          (unsigned >>> 16) & 0xff,
-          (unsigned >>> 24) & 0xff,
-        ];
-      }
-      break;
-    }
-
-    case "FLOAT32": {
+      return isBE
+        ? [
+            (unsigned >>> 24) & 0xff,
+            (unsigned >>> 16) & 0xff,
+            (unsigned >>> 8) & 0xff,
+            unsigned & 0xff,
+          ]
+        : [
+            unsigned & 0xff,
+            (unsigned >>> 8) & 0xff,
+            (unsigned >>> 16) & 0xff,
+            (unsigned >>> 24) & 0xff,
+          ];
+    })
+    .with("FLOAT32", () => {
       const buffer = new ArrayBuffer(4);
-      const view = new DataView(buffer);
-      view.setFloat32(0, value, byteOrder === "LE");
-      bytes = Array.from(new Uint8Array(buffer));
-      break;
-    }
-
-    case "FLOAT64": {
+      new DataView(buffer).setFloat32(0, value, !isBE);
+      return Array.from(new Uint8Array(buffer));
+    })
+    .with("FLOAT64", () => {
       const buffer = new ArrayBuffer(8);
-      const view = new DataView(buffer);
-      view.setFloat64(0, value, byteOrder === "LE");
-      bytes = Array.from(new Uint8Array(buffer));
-      break;
-    }
-
-    default:
-      // Default to single byte
-      bytes = [value & 0xff];
-  }
+      new DataView(buffer).setFloat64(0, value, !isBE);
+      return Array.from(new Uint8Array(buffer));
+    })
+    .with("STRING", "BYTES", () => [value & 0xff])
+    .exhaustive();
 
   return new Uint8Array(bytes);
 }
@@ -171,22 +144,12 @@ function encodeNumericValue(
  * Get the size in bytes for a data type
  */
 function getDataTypeSize(dataType: DataType): number {
-  switch (dataType) {
-    case "UINT8":
-    case "INT8":
-      return 1;
-    case "UINT16":
-    case "INT16":
-      return 2;
-    case "UINT32":
-    case "INT32":
-    case "FLOAT32":
-      return 4;
-    case "FLOAT64":
-      return 8;
-    default:
-      return 1;
-  }
+  return match(dataType)
+    .with("UINT8", "INT8", "STRING", "BYTES", () => 1)
+    .with("UINT16", "INT16", () => 2)
+    .with("UINT32", "INT32", "FLOAT32", () => 4)
+    .with("FLOAT64", () => 8)
+    .exhaustive();
 }
 
 /**

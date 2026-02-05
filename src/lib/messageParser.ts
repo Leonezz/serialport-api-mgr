@@ -13,6 +13,7 @@
  * - PADDING/RESERVED: Skips bytes
  */
 
+import { match } from "ts-pattern";
 import type {
   MessageStructure,
   MessageElement,
@@ -106,56 +107,29 @@ function decodeNumericValue(
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const isLE = byteOrder === "LE";
 
-  switch (dataType) {
-    case "UINT8":
-      return bytes[0];
-
-    case "INT8":
-      return bytes[0] > 127 ? bytes[0] - 256 : bytes[0];
-
-    case "UINT16":
-      return view.getUint16(0, isLE);
-
-    case "INT16":
-      return view.getInt16(0, isLE);
-
-    case "UINT32":
-      return view.getUint32(0, isLE);
-
-    case "INT32":
-      return view.getInt32(0, isLE);
-
-    case "FLOAT32":
-      return view.getFloat32(0, isLE);
-
-    case "FLOAT64":
-      return view.getFloat64(0, isLE);
-
-    default:
-      return bytes[0];
-  }
+  return match(dataType)
+    .with("UINT8", () => bytes[0])
+    .with("INT8", () => (bytes[0] > 127 ? bytes[0] - 256 : bytes[0]))
+    .with("UINT16", () => view.getUint16(0, isLE))
+    .with("INT16", () => view.getInt16(0, isLE))
+    .with("UINT32", () => view.getUint32(0, isLE))
+    .with("INT32", () => view.getInt32(0, isLE))
+    .with("FLOAT32", () => view.getFloat32(0, isLE))
+    .with("FLOAT64", () => view.getFloat64(0, isLE))
+    .with("STRING", "BYTES", () => bytes[0])
+    .exhaustive();
 }
 
 /**
  * Get the size in bytes for a data type
  */
 function getDataTypeSize(dataType: DataType): number {
-  switch (dataType) {
-    case "UINT8":
-    case "INT8":
-      return 1;
-    case "UINT16":
-    case "INT16":
-      return 2;
-    case "UINT32":
-    case "INT32":
-    case "FLOAT32":
-      return 4;
-    case "FLOAT64":
-      return 8;
-    default:
-      return 1;
-  }
+  return match(dataType)
+    .with("UINT8", "INT8", "STRING", "BYTES", () => 1)
+    .with("UINT16", "INT16", () => 2)
+    .with("UINT32", "INT32", "FLOAT32", () => 4)
+    .with("FLOAT64", () => 8)
+    .exhaustive();
 }
 
 /**
