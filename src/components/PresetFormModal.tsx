@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { createPortal } from "react-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   SerialPreset,
   SerialConfig,
@@ -20,6 +23,16 @@ import {
   SegmentedControl,
   SelectDropdown,
 } from "./ui";
+import { SerialConfigSchema, NetworkConfigSchema } from "../lib/schemas";
+
+const PresetFormSchema = z.object({
+  name: z.string().min(1, "Preset name is required"),
+  type: z.enum(["SERIAL", "NETWORK"]),
+  config: SerialConfigSchema,
+  network: NetworkConfigSchema,
+});
+
+type PresetFormData = z.infer<typeof PresetFormSchema>;
 
 interface Props {
   initialData: SerialPreset;
@@ -38,48 +51,42 @@ const PresetFormModal: React.FC<Props> = ({
   onSave,
   onClose,
 }) => {
-  const [name, setName] = useState(initialData.name);
-  const [type, setType] = useState<ConnectionType>(initialData.type);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<PresetFormData>({
+    resolver: zodResolver(PresetFormSchema),
+    defaultValues: {
+      name: initialData.name,
+      type: initialData.type,
+      config: initialData.config,
+      network: initialData.network || { host: "localhost", port: 8080 },
+    },
+  });
 
-  // Local state for configs
-  const [localConfig, setLocalConfig] = useState<SerialConfig>(
-    initialData.config,
-  );
-  const [localNetwork, setLocalNetwork] = useState<NetworkConfig>(
-    initialData.network || { host: "localhost", port: 8080 },
-  );
-
-  const handleSerialChange = (
-    key: keyof SerialConfig,
-    value: SerialConfig[keyof SerialConfig],
-  ) => {
-    setLocalConfig((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleNetworkChange = (
-    key: keyof NetworkConfig,
-    value: NetworkConfig[keyof NetworkConfig],
-  ) => {
-    setLocalNetwork((prev) => ({ ...prev, [key]: value }));
-  };
+  const type = watch("type");
+  const localConfig = watch("config");
+  const localNetwork = watch("network");
 
   const loadActiveSettings = () => {
-    setType(currentConnectionType);
+    setValue("type", currentConnectionType);
     if (currentConnectionType === "SERIAL") {
-      setLocalConfig({ ...currentConfig });
+      setValue("config", { ...currentConfig });
     } else {
-      setLocalNetwork({ ...currentNetworkConfig });
+      setValue("network", { ...currentNetworkConfig });
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (data: PresetFormData) => {
     onSave({
       ...initialData,
-      name,
-      type,
-      config: localConfig,
-      network: type === "NETWORK" ? localNetwork : undefined,
+      name: data.name,
+      type: data.type,
+      config: data.config,
+      network: data.type === "NETWORK" ? data.network : undefined,
     });
     onClose();
   };
@@ -106,19 +113,18 @@ const PresetFormModal: React.FC<Props> = ({
         </CardHeader>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit)}
           className="flex-1 overflow-hidden flex flex-col"
         >
           <CardContent className="pt-6 space-y-5 overflow-y-auto">
             <div className="space-y-2">
               <Label htmlFor="presetName">Preset Name</Label>
-              <Input
-                id="presetName"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-                required
-              />
+              <Input id="presetName" {...register("name")} autoFocus />
+              {errors.name && (
+                <p className="text-xs text-destructive">
+                  {errors.name.message}
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end">
@@ -139,7 +145,7 @@ const PresetFormModal: React.FC<Props> = ({
               <Label>Connection Type</Label>
               <SegmentedControl
                 value={type}
-                onChange={(v) => setType(v as ConnectionType)}
+                onChange={(v) => setValue("type", v as ConnectionType)}
                 size="sm"
                 options={[
                   { value: "SERIAL", label: "Serial Port" },
@@ -163,7 +169,7 @@ const PresetFormModal: React.FC<Props> = ({
                       }),
                     )}
                     value={localConfig.baudRate}
-                    onChange={(value) => handleSerialChange("baudRate", value)}
+                    onChange={(value) => setValue("config.baudRate", value)}
                     size="sm"
                   />
                 </div>
@@ -178,7 +184,7 @@ const PresetFormModal: React.FC<Props> = ({
                       ] as DropdownOption<SerialConfig["dataBits"]>[]
                     }
                     value={localConfig.dataBits}
-                    onChange={(value) => handleSerialChange("dataBits", value)}
+                    onChange={(value) => setValue("config.dataBits", value)}
                     size="sm"
                   />
                 </div>
@@ -194,7 +200,7 @@ const PresetFormModal: React.FC<Props> = ({
                       ] as DropdownOption<SerialConfig["parity"]>[]
                     }
                     value={localConfig.parity}
-                    onChange={(value) => handleSerialChange("parity", value)}
+                    onChange={(value) => setValue("config.parity", value)}
                     size="sm"
                   />
                 </div>
@@ -209,7 +215,7 @@ const PresetFormModal: React.FC<Props> = ({
                       ] as DropdownOption<SerialConfig["stopBits"]>[]
                     }
                     value={localConfig.stopBits}
-                    onChange={(value) => handleSerialChange("stopBits", value)}
+                    onChange={(value) => setValue("config.stopBits", value)}
                     size="sm"
                   />
                 </div>
@@ -226,9 +232,7 @@ const PresetFormModal: React.FC<Props> = ({
                       ] as DropdownOption<SerialConfig["lineEnding"]>[]
                     }
                     value={localConfig.lineEnding}
-                    onChange={(value) =>
-                      handleSerialChange("lineEnding", value)
-                    }
+                    onChange={(value) => setValue("config.lineEnding", value)}
                     size="sm"
                   />
                 </div>
@@ -243,9 +247,7 @@ const PresetFormModal: React.FC<Props> = ({
                       ] as DropdownOption<SerialConfig["flowControl"]>[]
                     }
                     value={localConfig.flowControl}
-                    onChange={(value) =>
-                      handleSerialChange("flowControl", value)
-                    }
+                    onChange={(value) => setValue("config.flowControl", value)}
                     size="sm"
                   />
                 </div>
@@ -255,10 +257,7 @@ const PresetFormModal: React.FC<Props> = ({
                 <div className="space-y-1.5">
                   <Label className="text-xs">Host / IP</Label>
                   <Input
-                    value={localNetwork.host}
-                    onChange={(e) =>
-                      handleNetworkChange("host", e.target.value)
-                    }
+                    {...register("network.host")}
                     className="h-8 text-xs bg-background"
                     placeholder="localhost"
                   />
@@ -269,7 +268,7 @@ const PresetFormModal: React.FC<Props> = ({
                     type="number"
                     value={localNetwork.port}
                     onChange={(e) =>
-                      handleNetworkChange("port", parseInt(e.target.value))
+                      setValue("network.port", parseInt(e.target.value))
                     }
                     className="h-8 text-xs bg-background"
                     placeholder="8080"
