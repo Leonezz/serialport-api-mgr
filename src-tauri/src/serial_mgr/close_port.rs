@@ -10,6 +10,7 @@ use crate::state::AppState;
 
 /// Close an open serial port.
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 pub async fn close_port(
     app: AppHandle,
     state: tauri::State<'_, AppState>,

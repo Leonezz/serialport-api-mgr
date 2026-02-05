@@ -12,6 +12,7 @@ use crate::state::AppState;
 /// the tracing span for debugging purposes but are not stored in the backend.
 /// Frontend manages the mapping between commands, logs, and their contexts.
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 pub async fn execute_saved_command(
     state: tauri::State<'_, AppState>,
     port_name: String,

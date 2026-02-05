@@ -8,6 +8,7 @@ use crate::state::AppState;
 
 /// Write data to a serial port.
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 pub async fn write_port(
     state: tauri::State<'_, AppState>,
     port_name: String,
@@ -25,6 +26,7 @@ pub async fn write_port(
 
 /// Set the Request to Send (RTS) signal.
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 pub async fn write_request_to_send(
     state: tauri::State<'_, AppState>,
     port_name: String,
@@ -41,6 +43,7 @@ pub async fn write_request_to_send(
 
 /// Set the Data Terminal Ready (DTR) signal.
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 pub async fn write_data_terminal_ready(
     state: tauri::State<'_, AppState>,
     port_name: String,

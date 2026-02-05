@@ -1,34 +1,40 @@
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 #[inline]
 pub fn log(prefix: String, content: String) {
     tracing::trace!("[WEB] {}: {}", prefix, content);
 }
 
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 #[inline]
 pub fn info(prefix: String, content: String) {
     tracing::info!("[WEB] {}: {}", prefix, content);
 }
 
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 #[inline]
 pub fn warn(prefix: String, content: String) {
     tracing::warn!("[WEB] {}: {}", prefix, content);
 }
 
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 #[inline]
 pub fn error(prefix: String, content: String) {
     tracing::error!("[WEB] {}: {}", prefix, content);
 }
 
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 #[inline]
 pub fn debug(prefix: String, content: String) {
     tracing::debug!("[WEB] {}: {}", prefix, content);
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct LogEntryDto {
     pub id: i64,
     pub session_id: String,
@@ -40,6 +46,7 @@ pub struct LogEntryDto {
 }
 
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 pub async fn get_logs(
     state: tauri::State<'_, crate::state::AppState>,
     session_id: String,

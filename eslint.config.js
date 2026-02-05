@@ -7,7 +7,7 @@ import react from 'eslint-plugin-react';
 import prettier from 'eslint-plugin-prettier/recommended';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src-tauri', '.gemini', 'coverage', 'public'] },
+  { ignores: ['dist', 'node_modules', 'src-tauri', '.gemini', 'coverage', 'public', 'src/lib/tauri/bindings.ts'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

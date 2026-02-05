@@ -8,7 +8,7 @@ use crate::{
 };
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, specta::Type)]
 pub struct OpenedPortProfile {
     pub baud_rate: u32,
     pub flow_control: FlowControl,
@@ -22,13 +22,13 @@ pub struct OpenedPortProfile {
     pub timeout_ms: u64,
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, specta::Type)]
 pub enum PortStatus {
     Opened(OpenedPortProfile),
     Closed,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
 pub struct PortInfo {
     pub port_name: String,
     pub port_type: PortType,
