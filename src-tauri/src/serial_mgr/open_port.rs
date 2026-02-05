@@ -5,6 +5,8 @@ use tauri::{AppHandle, Emitter, Manager};
 use tokio_stream::{wrappers::WatchStream, StreamExt};
 use tracing::Instrument;
 
+use dashmap::mapref::entry::Entry;
+
 use crate::{
     events::{event_names, PortOpenedEvent},
     serial::{data_bits::DataBits, flow_control::FlowControl, parity::Parity, stop_bits::StopBits},
@@ -269,26 +271,25 @@ pub async fn open_port(
         err.to_string()
     })?;
 
-    // Check port exists
-    if !state.ports.contains_key(&port_name) {
-        return Err(format!("no such port: {}", port_name));
-    }
-
-    // Check port not already open
-    // Note: The underlying OS prevents opening the same serial port twice, so even in the
-    // unlikely event of a race condition, the open_port_unchecked call would fail safely.
-    if state.port_handles.contains_key(&port_name) {
-        return Err(format!("{} already opened", port_name));
-    }
-
-    // Get device fingerprint
+    // Check port exists and get device fingerprint
     let device_fingerprint = state
         .ports
         .get(&port_name)
         .map(|entry| generate_device_fingerprint(&port_name, &entry.port_type))
-        .ok_or_else(|| format!("port {} not found", port_name))?;
+        .ok_or_else(|| format!("no such port: {}", port_name))?;
 
-    // Open port
+    // Use DashMap's entry() API for atomic check-and-insert to prevent TOCTOU race.
+    // The shard lock is held from the contains_key check through the insert, so two
+    // concurrent open_port calls on the same port cannot both pass the guard.
+    // open_port_unchecked is synchronous, so the guard is not held across .await points.
+    let vacant = match state.port_handles.entry(port_name.clone()) {
+        Entry::Occupied(_) => {
+            return Err(format!("{} already opened", port_name));
+        }
+        Entry::Vacant(entry) => entry,
+    };
+
+    // Open port (synchronous — safe to call while holding DashMap entry guard)
     let (write_tx, session_id) = open_port_unchecked(
         port_name.clone(),
         baud_rate,
@@ -307,13 +308,10 @@ pub async fn open_port(
     })?;
     tracing::info!("open port succeed");
 
-    // Insert handle
-    state.port_handles.insert(
-        port_name.clone(),
-        PortHandles {
-            write_port_tx: write_tx,
-        },
-    );
+    // Insert handle atomically (still holding the shard lock)
+    vacant.insert(PortHandles {
+        write_port_tx: write_tx,
+    });
     tracing::info!("insert new port handle");
 
     // Update port status
