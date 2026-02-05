@@ -115,7 +115,6 @@ export const useStoreActions = () =>
 
       // Toasts
       addToast: state.addToast,
-      removeToast: state.removeToast,
 
       // Other
       setPresets: state.setPresets,
@@ -165,11 +164,6 @@ export const useModals = () =>
       showAppSettings: state.showAppSettings,
     })),
   );
-
-/**
- * Get toasts
- */
-export const useToasts = () => useStore((state) => state.toasts);
 
 // --- Project Data Selectors ---
 

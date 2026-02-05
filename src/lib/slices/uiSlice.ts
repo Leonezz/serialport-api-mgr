@@ -1,4 +1,5 @@
 import { StateCreator } from "zustand";
+import { toast } from "sonner";
 import { generateId } from "../utils";
 import { ToastMessage } from "../../components/ui";
 import {
@@ -32,9 +33,8 @@ export interface UISliceState {
   // AI Settings
   geminiApiKey: string;
 
-  // System Logs & Toasts
+  // System Logs
   systemLogs: SystemLogEntry[];
-  toasts: ToastMessage[];
 
   // Modal & Visibility State
   editingCommand: Partial<SavedCommand> | null;
@@ -88,8 +88,6 @@ export interface UISliceActions {
       duration?: number;
     },
   ) => void;
-  removeToast: (id: string) => void;
-
   // Modals & Visibility State
   setEditingCommand: (cmd: Partial<SavedCommand> | null) => void;
   setIsCommandModalOpen: (open: boolean) => void;
@@ -164,25 +162,14 @@ export const createUISlice: StateCreator<UISlice> = (set, get) => ({
     })),
   clearSystemLogs: () => set({ systemLogs: [] }),
 
-  toasts: [],
   addToast: (type, title, message, options) => {
-    const id = generateId();
-    set((state) => ({
-      toasts: [
-        ...state.toasts,
-        {
-          id,
-          type,
-          title,
-          message,
-          action: options?.action,
-          duration: options?.duration,
-        },
-      ],
-    }));
+    const toastFn = toast[type] ?? toast;
+    toastFn(title, {
+      description: message,
+      duration: options?.duration ?? 4000,
+      action: options?.action,
+    });
   },
-  removeToast: (id) =>
-    set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
 
   editingCommand: null,
   isCommandModalOpen: false,
