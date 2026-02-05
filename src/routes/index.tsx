@@ -22,8 +22,6 @@ import {
 } from "react-router-dom";
 import { ArrowLeft, Home, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button, ToastContainer } from "../components/ui";
-import { useStore } from "../lib/store";
-import { useShallow } from "zustand/react/shallow";
 
 // Lazy load pages for better performance
 const MainWorkspace = React.lazy(() => import("../pages/MainWorkspace"));
@@ -91,19 +89,12 @@ const RouteErrorBoundary: React.FC = () => {
 
 // Root layout with navigation
 const RootLayout: React.FC = () => {
-  const { toasts, removeToast } = useStore(
-    useShallow((state) => ({
-      toasts: state.toasts,
-      removeToast: state.removeToast,
-    })),
-  );
-
   return (
     <div className="h-screen w-full bg-background text-foreground overflow-hidden">
       <React.Suspense fallback={<PageLoader />}>
         <Outlet />
       </React.Suspense>
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
+      <ToastContainer />
     </div>
   );
 };

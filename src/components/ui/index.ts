@@ -51,7 +51,7 @@ export type { TabItem } from "./TabBar";
 export { TabPanel } from "./TabPanel";
 export { TabRailButton, tabRailButtonVariants } from "./TabRailButton";
 export { Textarea, textareaVariants } from "./Textarea";
-export { ToastContainer, ToastItem } from "./Toast";
+export { ToastContainer } from "./Toast";
 export type { ToastMessage } from "./Toast";
 export { Toggle } from "./Toggle";
 export { Tooltip } from "./Tooltip";
