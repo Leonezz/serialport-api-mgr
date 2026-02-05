@@ -135,7 +135,7 @@ npx playwright-cli close
 **Concurrency:**
 - Uses tokio async runtime
 - Each open port spawns dedicated read task (`spawn_serial_task`)
-- State shared via `tokio::sync::RwLock` in `AppState`
+- State shared via `DashMap` in `AppState` (concurrent HashMap with fine-grained locking)
 
 ### Type System & Schemas
 

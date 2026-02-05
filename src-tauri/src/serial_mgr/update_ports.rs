@@ -10,15 +10,13 @@ pub async fn update_available_ports<'a>(
         "get all available ports from system success, cnt: {}",
         system_ports_res.len()
     );
-    let mut current_ports = state.ports.write().await;
-    let current_port_names: Vec<String> = current_ports.keys().map(|k| k.clone()).collect();
     for port in system_ports_res.iter() {
-        if current_port_names.contains(&port.port_name) {
+        if state.ports.contains_key(&port.port_name) {
             continue;
         }
 
         tracing::trace!("found new port: {}", port.port_name);
-        current_ports.insert(
+        state.ports.insert(
             port.port_name.clone(),
             PortInfo {
                 port_name: port.port_name.clone(),
@@ -29,7 +27,11 @@ pub async fn update_available_ports<'a>(
             },
         );
     }
-    Ok(current_ports.values().map(|v| v.clone()).collect())
+    Ok(state
+        .ports
+        .iter()
+        .map(|entry| entry.value().clone())
+        .collect())
 }
 
 #[tauri::command(rename_all = "camelCase")]
