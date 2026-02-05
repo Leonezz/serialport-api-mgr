@@ -66,20 +66,18 @@ fn setup_port_task(
                             .await
                             .map_err(|e| tracing::error!("Failed to log read: {}", e));
 
-                        app_for_read
+                        if let Some(mut entry) = app_for_read
                             .state::<AppState>()
                             .ports
-                            .write()
-                            .await
-                            .entry(port_name_for_read.clone())
-                            .and_modify(|entry| {
-                                entry.bytes_read += len as u128;
-                                tracing::debug!(
-                                    "update bytes read: {}, total: {}",
-                                    len,
-                                    entry.bytes_read
-                                );
-                            });
+                            .get_mut(&port_name_for_read)
+                        {
+                            entry.bytes_read += len as u128;
+                            tracing::debug!(
+                                "update bytes read: {}, total: {}",
+                                len,
+                                entry.bytes_read
+                            );
+                        }
                     }
                     SerialEvent::Error(err) => {
                         if let Err(emit_err) =
@@ -101,13 +99,12 @@ fn setup_port_task(
         async move {
             let mut rx = WatchStream::new(status_rx);
             while let Some(status) = rx.next().await {
-                app_for_status
+                if let Some(mut entry) = app_for_status
                     .state::<AppState>()
                     .ports
-                    .write()
-                    .await
-                    .entry(port_name_for_read.clone())
-                    .and_modify(|entry| match &mut entry.port_status {
+                    .get_mut(&port_name_for_read)
+                {
+                    match &mut entry.port_status {
                         PortStatus::Closed => {
                             tracing::error!(
                                 "invalid port state, got status update while port is closed"
@@ -132,7 +129,8 @@ fn setup_port_task(
                                 );
                             }
                         }
-                    });
+                    }
+                }
             }
             tracing::info!("status update closed");
         }
@@ -145,20 +143,18 @@ fn setup_port_task(
     tokio::spawn(
         async move {
             while let Some(len) = write_notifier_rx.recv().await {
-                app_for_write
+                if let Some(mut entry) = app_for_write
                     .state::<AppState>()
                     .ports
-                    .write()
-                    .await
-                    .entry(port_name_for_write.clone())
-                    .and_modify(|entry| {
-                        entry.bytes_write += len as u128;
-                        tracing::debug!(
-                            "update port bytes written: {}, total: {}",
-                            len,
-                            entry.bytes_write
-                        );
-                    });
+                    .get_mut(&port_name_for_write)
+                {
+                    entry.bytes_write += len as u128;
+                    tracing::debug!(
+                        "update port bytes written: {}, total: {}",
+                        len,
+                        entry.bytes_write
+                    );
+                }
 
                 let storage = app_for_write.state::<AppState>().storage.clone();
                 let msg = format!("<{} bytes written>", len).into_bytes();
@@ -176,21 +172,18 @@ fn setup_port_task(
                     .await
                     .map_err(|e| tracing::error!("Failed to log write: {}", e));
             }
-            app_for_write
+            // Port closed: update status and remove handle
+            if let Some(mut entry) = app_for_write
                 .state::<AppState>()
                 .ports
-                .write()
-                .await
-                .entry(port_name_for_write.clone())
-                .and_modify(|entry| {
-                    entry.port_status = PortStatus::Closed;
-                });
+                .get_mut(&port_name_for_write)
+            {
+                entry.port_status = PortStatus::Closed;
+            }
             tracing::info!("reset port state to closed");
             app_for_write
                 .state::<AppState>()
                 .port_handles
-                .write()
-                .await
                 .remove(&port_name_for_write);
             tracing::info!("remove port handle, port write closed");
         }
@@ -276,31 +269,26 @@ pub async fn open_port(
         err.to_string()
     })?;
 
-    // Acquire write lock on port_handles early and hold it across the entire operation
-    // to prevent TOCTOU race conditions where another thread could open the same port
-    // between our check and the actual open operation.
-    let mut port_handles = state.port_handles.write().await;
-
     // Check port exists
-    if !state.ports.read().await.contains_key(&port_name) {
+    if !state.ports.contains_key(&port_name) {
         return Err(format!("no such port: {}", port_name));
     }
 
-    // Check port not already open (while holding write lock)
-    if port_handles.contains_key(&port_name) {
+    // Check port not already open
+    // Note: The underlying OS prevents opening the same serial port twice, so even in the
+    // unlikely event of a race condition, the open_port_unchecked call would fail safely.
+    if state.port_handles.contains_key(&port_name) {
         return Err(format!("{} already opened", port_name));
     }
 
     // Get device fingerprint
-    let device_fingerprint = {
-        let ports = state.ports.read().await;
-        let port_info = ports
-            .get(&port_name)
-            .ok_or_else(|| format!("port {} not found", port_name))?;
-        generate_device_fingerprint(&port_name, &port_info.port_type)
-    };
+    let device_fingerprint = state
+        .ports
+        .get(&port_name)
+        .map(|entry| generate_device_fingerprint(&port_name, &entry.port_type))
+        .ok_or_else(|| format!("port {} not found", port_name))?;
 
-    // Open port (while still holding write lock on port_handles)
+    // Open port
     let (write_tx, session_id) = open_port_unchecked(
         port_name.clone(),
         baud_rate,
@@ -319,8 +307,8 @@ pub async fn open_port(
     })?;
     tracing::info!("open port succeed");
 
-    // Insert handle (still holding write lock - atomically marks port as open)
-    port_handles.insert(
+    // Insert handle
+    state.port_handles.insert(
         port_name.clone(),
         PortHandles {
             write_port_tx: write_tx,
@@ -328,28 +316,21 @@ pub async fn open_port(
     );
     tracing::info!("insert new port handle");
 
-    // Drop port_handles lock before acquiring ports write lock to avoid potential deadlock
-    drop(port_handles);
-
-    state
-        .ports
-        .write()
-        .await
-        .entry(port_name)
-        .and_modify(|entry| {
-            entry.port_status = PortStatus::Opened(OpenedPortProfile {
-                baud_rate,
-                data_bits,
-                stop_bits,
-                parity,
-                flow_control,
-                carrier_detect: false,
-                clear_to_send: false,
-                data_set_ready: false,
-                ring_indicator: false,
-                timeout_ms,
-            });
+    // Update port status
+    if let Some(mut entry) = state.ports.get_mut(&port_name) {
+        entry.port_status = PortStatus::Opened(OpenedPortProfile {
+            baud_rate,
+            data_bits,
+            stop_bits,
+            parity,
+            flow_control,
+            carrier_detect: false,
+            clear_to_send: false,
+            data_set_ready: false,
+            ring_indicator: false,
+            timeout_ms,
         });
+    }
     tracing::info!("set port state to opened");
     Ok(OpenPortResult { session_id })
 }

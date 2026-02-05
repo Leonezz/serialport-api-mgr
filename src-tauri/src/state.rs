@@ -6,7 +6,7 @@ use crate::{
     serial_mgr::port_task::WritePortSender,
     serial_mgr::storage::Storage,
 };
-use std::collections::HashMap;
+use dashmap::DashMap;
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct OpenedPortProfile {
@@ -44,7 +44,7 @@ pub struct PortHandles {
 
 #[derive(Default)]
 pub struct AppState {
-    pub ports: tokio::sync::RwLock<HashMap<String, PortInfo>>,
-    pub port_handles: tokio::sync::RwLock<HashMap<String, PortHandles>>,
+    pub ports: DashMap<String, PortInfo>,
+    pub port_handles: DashMap<String, PortHandles>,
     pub storage: Storage,
 }

@@ -9,6 +9,7 @@ mod serial_mgr;
 mod state;
 mod util;
 
+use dashmap::DashMap;
 use serial_mgr::{
     close_port::close_port,
     execute_saved_command::execute_saved_command,
@@ -18,7 +19,6 @@ use serial_mgr::{
     update_ports::get_all_port_info,
     write_port::{write_data_terminal_ready, write_port, write_request_to_send},
 };
-use std::collections::HashMap;
 use tauri::{self, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_fs::FsExt;
 use time::macros::{format_description, offset};
@@ -122,8 +122,8 @@ pub fn run() {
                 .recv()
                 .map_err(|e| format!("Failed to receive storage from async task: {}", e))?;
             let app_state = AppState {
-                ports: tokio::sync::RwLock::new(HashMap::new()),
-                port_handles: tokio::sync::RwLock::new(HashMap::new()),
+                ports: DashMap::new(),
+                port_handles: DashMap::new(),
                 storage,
             };
             app.manage(app_state);

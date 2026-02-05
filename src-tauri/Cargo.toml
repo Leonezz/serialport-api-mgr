@@ -48,3 +48,4 @@ uuid = { version = "1.11", features = ["v4"] }
 hex = "0.4"
 thiserror = "1.0"
 anyhow = "1.0"
+dashmap = "6.1"
