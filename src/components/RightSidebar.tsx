@@ -21,10 +21,7 @@ import {
 import { cn } from "../lib/utils";
 import { useStore } from "../lib/store";
 import { useTranslation } from "react-i18next";
-import { Button } from "./ui/Button";
-import { IconButton } from "./ui/IconButton";
-import { TabRailButton } from "./ui/TabRailButton";
-import { Badge } from "./ui/Badge";
+import { Badge, Button, IconButton, TabRailButton } from "./ui";
 import type { RightSidebarTab } from "../types";
 import AIAssistantContent from "./RightSidebar/AIAssistantContent";
 import CommandEditor from "./RightSidebar/CommandEditor";

@@ -10,7 +10,7 @@ import {
   ProjectContext,
   Device,
 } from "../types";
-import { FileInputRef } from "./ui/FileInput";
+import { FileInputRef } from "./ui";
 import { Usb, Globe } from "lucide-react";
 import { cn, generateId } from "../lib/utils";
 import SimpleInputModal from "./SimpleInputModal";

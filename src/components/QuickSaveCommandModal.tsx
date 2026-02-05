@@ -1,18 +1,18 @@
 import React, { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { X, Save, Pencil, Cpu, Layers } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Label } from "./ui/Label";
-import { SelectDropdown } from "./ui/Select";
 import {
+  Badge,
+  Button,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   CardFooter,
-} from "./ui/Card";
-import { Badge } from "./ui/Badge";
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  SelectDropdown,
+} from "./ui";
 import { useStore } from "../lib/store";
 import type { DataMode } from "../types";
 

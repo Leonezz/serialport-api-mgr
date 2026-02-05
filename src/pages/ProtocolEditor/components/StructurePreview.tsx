@@ -7,9 +7,7 @@
 import { useState, useMemo } from "react";
 import { Eye, Play } from "lucide-react";
 import { cn } from "../../../lib/utils";
-import { Button } from "../../../components/ui/Button";
-import { Input } from "../../../components/ui/Input";
-import { Label } from "../../../components/ui/Label";
+import { Button, Input, Label } from "../../../components/ui";
 import type { MessageStructure } from "../../../lib/protocolTypes";
 import { getElementDefaultBytes } from "../helpers";
 

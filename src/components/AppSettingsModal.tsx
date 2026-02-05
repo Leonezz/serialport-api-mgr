@@ -17,11 +17,16 @@ import {
   Palette,
 } from "lucide-react";
 import { useStore } from "../lib/store";
-import { Button } from "./ui/Button";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
-import { SelectDropdown } from "./ui/Select";
-import { DropdownOption } from "./ui/Dropdown";
-import { Label } from "./ui/Label";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  DropdownOption,
+  Label,
+  SelectDropdown,
+} from "./ui";
 import { ThemeMode, ThemeColor } from "../types";
 import { useTranslation } from "react-i18next";
 

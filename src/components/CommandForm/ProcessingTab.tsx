@@ -1,13 +1,15 @@
 import React from "react";
 import { Search, FileCode } from "lucide-react";
-import { Input } from "../ui/Input";
-import { Label } from "../ui/Label";
-import { SelectDropdown } from "../ui/Select";
-import { CardContent } from "../ui/Card";
-import { Checkbox } from "../ui/Checkbox";
-import CodeEditor from "../ui/CodeEditor";
+import {
+  CardContent,
+  Checkbox,
+  CodeEditor,
+  Input,
+  Label,
+  SelectDropdown,
+  type DropdownOption,
+} from "../ui";
 import { cn } from "../../lib/utils";
-import type { DropdownOption } from "../ui/Dropdown";
 import type { MatchType } from "../../types";
 
 interface ProcessingTabProps {

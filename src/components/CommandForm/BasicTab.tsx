@@ -9,17 +9,19 @@ import {
   ExternalLink,
   Info,
 } from "lucide-react";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Textarea } from "../ui/Textarea";
-import { Label } from "../ui/Label";
-import { SelectDropdown } from "../ui/Select";
-import { CardContent } from "../ui/Card";
-import { Badge } from "../ui/Badge";
-import { Checkbox } from "../ui/Checkbox";
+import {
+  Badge,
+  Button,
+  CardContent,
+  Checkbox,
+  Input,
+  Label,
+  SelectDropdown,
+  Textarea,
+  type DropdownOption,
+} from "../ui";
 import { cn } from "../../lib/utils";
 import { substituteParameters } from "../../lib/commandBuilder";
-import type { DropdownOption } from "../ui/Dropdown";
 import type { DataMode, TextEncoding } from "../../types";
 import type {
   Protocol,

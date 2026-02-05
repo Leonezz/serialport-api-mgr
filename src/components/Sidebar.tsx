@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SavedCommand, SerialSequence, SerialPreset } from "../types";
 import { PanelLeftClose, PanelLeft } from "lucide-react";
-import { IconButton } from "./ui/IconButton";
+import { IconButton } from "./ui";
 import { generateId } from "../lib/utils";
 import SequenceFormModal from "./SequenceFormModal";
 import CommandFormModal from "./CommandFormModal";

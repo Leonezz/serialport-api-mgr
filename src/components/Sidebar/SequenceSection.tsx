@@ -9,9 +9,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import { IconButton } from "../ui/IconButton";
-import { Badge } from "../ui/Badge";
-import { EmptyState } from "../ui/EmptyState";
+import { Badge, EmptyState, IconButton } from "../ui";
 import type { TFunction } from "i18next";
 
 interface SequenceSectionProps {

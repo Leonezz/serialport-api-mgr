@@ -19,7 +19,7 @@ import {
   Customized,
 } from "recharts";
 import { getBytes, cn } from "../../lib/utils";
-import { Button } from "../ui/Button";
+import { Button } from "../ui";
 import { LogEntry } from "@/types";
 
 /**

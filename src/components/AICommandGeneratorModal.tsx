@@ -23,19 +23,20 @@ import {
   Sliders,
   Coins,
 } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Textarea } from "./ui/Textarea";
-import { Input } from "./ui/Input";
-import { Label } from "./ui/Label";
-import { FileInput, FileInputRef } from "./ui/FileInput";
 import {
+  Badge,
+  Button,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   CardFooter,
-} from "./ui/Card";
-import { Badge } from "./ui/Badge";
+  CardHeader,
+  CardTitle,
+  FileInput,
+  FileInputRef,
+  Input,
+  Label,
+  Textarea,
+} from "./ui";
 import { cn } from "../lib/utils";
 import { SavedCommand } from "../types";
 import CommandFormModal from "./CommandFormModal";

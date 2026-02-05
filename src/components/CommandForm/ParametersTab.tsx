@@ -1,11 +1,13 @@
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Label } from "../ui/Label";
-import { SelectDropdown } from "../ui/Select";
-import { CardContent } from "../ui/Card";
-import type { DropdownOption } from "../ui/Dropdown";
+import {
+  Button,
+  CardContent,
+  Input,
+  Label,
+  SelectDropdown,
+  type DropdownOption,
+} from "../ui";
 import type { CommandParameter, ParameterType } from "../../types";
 
 interface ParametersTabProps {

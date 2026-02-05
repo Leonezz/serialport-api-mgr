@@ -6,14 +6,23 @@ import {
   ChevronRight,
   AlertCircle,
 } from "lucide-react";
-import { Button } from "../ui/Button";
-import { IconButton } from "../ui/IconButton";
-import { Input } from "../ui/Input";
-import { Textarea } from "../ui/Textarea";
-import { SelectDropdown } from "../ui/Select";
-import { DropdownOption } from "../ui/Dropdown";
-import { Label } from "../ui/Label";
-import { SegmentedControl } from "../ui/SegmentedControl";
+import {
+  Button,
+  Checkbox,
+  CodeEditor,
+  DropdownOption,
+  IconButton,
+  Input,
+  Label,
+  NumberInput,
+  ParameterModeEditor,
+  Radio,
+  RadioGroup,
+  SegmentedControl,
+  SelectDropdown,
+  Textarea,
+  VariableExtractionEditor,
+} from "../ui";
 import { cn, generateId } from "../../lib/utils";
 import { useStore } from "../../lib/store";
 import type {
@@ -28,12 +37,6 @@ import type {
   VariableExtractionRule,
   ValidationMode,
 } from "../../types";
-import CodeEditor from "../ui/CodeEditor";
-import ParameterModeEditor from "../ui/ParameterModeEditor";
-import VariableExtractionEditor from "../ui/VariableExtractionEditor";
-import { Checkbox } from "../ui/Checkbox";
-import { Radio, RadioGroup } from "../ui/Radio";
-import { NumberInput } from "../ui/NumberInput";
 import { useTranslation } from "react-i18next";
 import ProtocolCommandCustomizer from "./ProtocolCommandCustomizer";
 

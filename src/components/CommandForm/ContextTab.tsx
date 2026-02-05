@@ -1,10 +1,5 @@
 import React from "react";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Textarea } from "../ui/Textarea";
-import { Label } from "../ui/Label";
-import { CardContent } from "../ui/Card";
-import { Checkbox } from "../ui/Checkbox";
+import { Button, CardContent, Checkbox, Input, Label, Textarea } from "../ui";
 import { generateId } from "../../lib/utils";
 import type { ProjectContext } from "../../types";
 

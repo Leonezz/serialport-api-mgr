@@ -25,22 +25,23 @@ import {
   Check,
 } from "lucide-react";
 import { useStore } from "../lib/store";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
-import { NumberInput } from "../components/ui/NumberInput";
-import { Label } from "../components/ui/Label";
-import { Textarea } from "../components/ui/Textarea";
-import { SelectDropdown } from "../components/ui/Select";
-import { Checkbox } from "../components/ui/Checkbox";
 import {
+  Badge,
+  Breadcrumb,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
+  Checkbox,
+  Input,
+  Label,
+  NumberInput,
+  SelectDropdown,
+  Textarea,
+  workspaceItem,
+} from "../components/ui";
 import { PageHeader } from "../routes";
-import { Breadcrumb, workspaceItem } from "../components/ui/Breadcrumb";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { cn, generateId } from "../lib/utils";
 import type { SerialSequence, SequenceStep } from "../types";

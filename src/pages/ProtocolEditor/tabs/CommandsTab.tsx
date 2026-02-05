@@ -6,9 +6,7 @@
 
 import { useState } from "react";
 import { Command, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
-import { Button } from "../../../components/ui/Button";
-import { Input } from "../../../components/ui/Input";
-import { EmptyState } from "../../../components/ui/EmptyState";
+import { Button, EmptyState, Input } from "../../../components/ui";
 import type {
   CommandTemplate,
   SimpleCommand,

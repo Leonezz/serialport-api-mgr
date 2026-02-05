@@ -2,7 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { Scissors, X } from "lucide-react";
 import { FramingConfig } from "../../types";
-import { Button } from "../ui/Button";
+import { Button } from "../ui";
 import { FramingConfigEditor } from "../shared/FramingConfigEditor";
 
 interface FramingModalProps {

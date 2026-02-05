@@ -6,13 +6,15 @@
 
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
-import { Button } from "../../../components/ui/Button";
-import { Input } from "../../../components/ui/Input";
-import { Label } from "../../../components/ui/Label";
-import { Textarea } from "../../../components/ui/Textarea";
-import { Select } from "../../../components/ui/Select";
-import { Checkbox } from "../../../components/ui/Checkbox";
-import { Radio } from "../../../components/ui/Radio";
+import {
+  Button,
+  Checkbox,
+  Input,
+  Label,
+  Radio,
+  Select,
+  Textarea,
+} from "../../../components/ui";
 import { cn } from "../../../lib/utils";
 import type {
   SimpleCommand,

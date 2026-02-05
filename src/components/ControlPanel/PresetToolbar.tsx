@@ -1,6 +1,6 @@
 import React from "react";
 import { Check, RotateCcw, Copy, X, Plus } from "lucide-react";
-import { Button } from "../ui/Button";
+import { Button } from "../ui";
 import { cn } from "../../lib/utils";
 import type { TFunction } from "i18next";
 

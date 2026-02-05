@@ -11,20 +11,20 @@ import { Plus, Search, Upload, Folder, LayoutGrid, List } from "lucide-react";
 import { useStore } from "../lib/store";
 import { cn, getErrorMessage } from "../lib/utils";
 import { SavedCommandSchema } from "../lib/schemas";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
-import { Badge } from "../components/ui/Badge";
 import {
   Accordion,
+  AccordionContent,
   AccordionItem,
   AccordionTrigger,
-  AccordionContent,
-} from "../components/ui/Accordion";
+  Badge,
+  Button,
+  EmptyState,
+  Input,
+} from "../components/ui";
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import CommandFormModal from "../components/CommandFormModal";
 import { CommandCard } from "../components/CommandViews";
-import { EmptyState } from "../components/ui/EmptyState";
 import type { SavedCommand } from "../types";
 
 const CommandLibrary: React.FC = () => {

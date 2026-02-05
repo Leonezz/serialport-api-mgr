@@ -1,6 +1,6 @@
 import { StateCreator } from "zustand";
 import { generateId } from "../utils";
-import { ToastMessage } from "../../components/ui/Toast";
+import { ToastMessage } from "../../components/ui";
 import {
   encryptForStorage,
   decryptFromStorage,

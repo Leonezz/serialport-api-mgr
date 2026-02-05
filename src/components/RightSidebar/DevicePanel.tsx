@@ -1,7 +1,7 @@
 import React from "react";
 import { useStore } from "../../lib/store";
 import { Plus, ArrowRight, Cpu, Pencil, BookOpen } from "lucide-react";
-import { Button } from "../ui/Button";
+import { Button } from "../ui";
 import { AttachmentManager } from "../AttachmentManager";
 import type { RightSidebarTab } from "../../types";
 

@@ -22,8 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { useStore } from "../lib/store";
-import { Button } from "../components/ui/Button";
-import { Breadcrumb, workspaceItem } from "../components/ui/Breadcrumb";
+import { Breadcrumb, Button, workspaceItem } from "../components/ui";
 import { PageHeader } from "../routes";
 import type {
   Protocol,

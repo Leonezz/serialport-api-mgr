@@ -11,8 +11,7 @@ import { LogEntry, DataMode } from "../types";
 import { ArrowDown, History, Loader2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useStore } from "../lib/store";
-import { IconButton } from "./ui/IconButton";
-import { Button } from "./ui/Button";
+import { Button, EmptyState, IconButton } from "./ui";
 import { TauriSerialAPI } from "../lib/tauri/api";
 import {
   ConsoleToolbar,
@@ -28,7 +27,6 @@ import { LogItem } from "./console/LogItem";
 import DashboardPanel from "./console/DashboardPanel";
 import PlotterPanel from "./console/PlotterPanel";
 import { ErrorFallback } from "./ErrorFallback";
-import { EmptyState } from "./ui/EmptyState";
 
 // Starting index for virtuoso to handle prepended history logs
 const INITIAL_INDEX = 1_000_000;

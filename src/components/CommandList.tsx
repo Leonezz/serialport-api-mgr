@@ -1,7 +1,6 @@
 import React from "react";
 import { Play, Trash2 } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Badge } from "./ui/Badge";
+import { Badge, Button } from "./ui";
 import { SavedCommand } from "@/types";
 import { getEffectiveMode, getEffectivePayload } from "@/lib/commandBuilder";
 

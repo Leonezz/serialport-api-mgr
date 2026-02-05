@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { Check } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Modal } from "./ui/Modal";
+import { Button, Input, Modal } from "./ui";
 
 interface Props {
   title: string;

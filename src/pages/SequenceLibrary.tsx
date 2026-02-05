@@ -21,12 +21,10 @@ import {
 import { useStore } from "../lib/store";
 import { getErrorMessage } from "../lib/utils";
 import { SerialSequenceSchema } from "../lib/schemas";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
+import { Button, EmptyState, Input } from "../components/ui";
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import SequenceFormModal from "../components/SequenceFormModal";
-import { EmptyState } from "../components/ui/EmptyState";
 import { SequenceCard } from "../components/SequenceViews";
 import type { SerialSequence } from "../types";
 

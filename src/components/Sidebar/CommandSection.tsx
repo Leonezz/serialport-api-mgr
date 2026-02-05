@@ -12,16 +12,16 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import { IconButton } from "../ui/IconButton";
-import { Badge } from "../ui/Badge";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "../ui/Accordion";
+  Badge,
+  EmptyState,
+  IconButton,
+} from "../ui";
 import { cn } from "../../lib/utils";
-import { EmptyState } from "../ui/EmptyState";
 import type { TFunction } from "i18next";
 
 interface CommandGroup {

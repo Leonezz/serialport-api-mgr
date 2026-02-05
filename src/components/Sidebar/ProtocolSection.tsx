@@ -8,9 +8,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Protocol } from "../../lib/protocolTypes";
-import { IconButton } from "../ui/IconButton";
-import { Badge } from "../ui/Badge";
-import { EmptyState } from "../ui/EmptyState";
+import { Badge, EmptyState, IconButton } from "../ui";
 
 interface ProtocolSectionProps {
   protocols: Protocol[];
