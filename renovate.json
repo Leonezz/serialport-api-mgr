@@ -1,0 +1,30 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "Asia/Shanghai",
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Auto-merge patch updates",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Group Tauri-related updates",
+      "matchPackagePatterns": ["^tauri", "^@tauri-apps/"],
+      "groupName": "tauri"
+    },
+    {
+      "description": "Group React-related updates",
+      "matchPackagePatterns": ["^react", "^@types/react"],
+      "groupName": "react"
+    },
+    {
+      "description": "Group Rust crate updates",
+      "matchManagers": ["cargo"],
+      "groupName": "rust dependencies",
+      "schedule": ["before 6am on Monday"]
+    }
+  ]
+}

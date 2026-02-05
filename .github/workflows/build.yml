@@ -63,6 +63,9 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
       - name: Install frontend dependencies
         run: pnpm install
 
@@ -70,6 +73,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUSTC_WRAPPER: sccache
         with:
           args: --target ${{ matrix.target }}
 
