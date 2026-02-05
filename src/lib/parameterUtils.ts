@@ -3,6 +3,7 @@
  * Handles variable detection and replacement based on parameter application modes
  */
 
+import { match } from "ts-pattern";
 import type {
   VariableSyntax,
   CommandParameter,
@@ -14,27 +15,20 @@ import { executeUserScript } from "./scripting";
 /**
  * Get the regex pattern for a variable syntax
  */
+const SHELL_PATTERN =
+  /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}|\$([a-zA-Z_][a-zA-Z0-9_]*)/g;
+
 const getVariablePattern = (
   syntax: VariableSyntax,
   customPattern?: string,
-): RegExp => {
-  switch (syntax) {
-    case "SHELL":
-      // ${name} or $name
-      return /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}|\$([a-zA-Z_][a-zA-Z0-9_]*)/g;
-    case "MUSTACHE":
-      // {{name}}
-      return /\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g;
-    case "BATCH":
-      // %name%
-      return /%([a-zA-Z_][a-zA-Z0-9_]*)%/g;
-    case "COLON":
-      // :name
-      return /:([a-zA-Z_][a-zA-Z0-9_]*)/g;
-    case "BRACES":
-      // {name}
-      return /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
-    case "CUSTOM":
+): RegExp =>
+  match(syntax)
+    .with("SHELL", () => SHELL_PATTERN)
+    .with("MUSTACHE", () => /\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g)
+    .with("BATCH", () => /%([a-zA-Z_][a-zA-Z0-9_]*)%/g)
+    .with("COLON", () => /:([a-zA-Z_][a-zA-Z0-9_]*)/g)
+    .with("BRACES", () => /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g)
+    .with("CUSTOM", () => {
       if (customPattern) {
         try {
           return new RegExp(customPattern, "g");
@@ -45,10 +39,8 @@ const getVariablePattern = (
         }
       }
       return /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
-    default:
-      return /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
-  }
-};
+    })
+    .exhaustive();
 
 /**
  * Detect variables in payload based on syntax
@@ -83,34 +75,33 @@ const applySubstitute = (
   const strValue = String(value);
   const type = config?.type || "DIRECT";
 
-  switch (type) {
-    case "QUOTED": {
+  return match(type)
+    .with("QUOTED", () => {
       const quoteStyle = config?.quoteStyle || "DOUBLE";
       const quote =
         quoteStyle === "DOUBLE" ? '"' : quoteStyle === "SINGLE" ? "'" : "`";
       return `${quote}${strValue}${quote}`;
-    }
-    case "ESCAPED": {
+    })
+    .with("ESCAPED", () => {
       const escapeChars = config?.escapeChars || '"\\';
       let escaped = strValue;
       for (const char of escapeChars) {
         escaped = escaped.split(char).join("\\" + char);
       }
       return escaped;
-    }
-    case "URL_ENCODED":
-      return encodeURIComponent(strValue);
-    case "BASE64":
-      return btoa(strValue);
-    case "DIRECT":
-    default:
-      return strValue;
-  }
+    })
+    .with("URL_ENCODED", () => encodeURIComponent(strValue))
+    .with("BASE64", () => btoa(strValue))
+    .with("DIRECT", () => strValue)
+    .otherwise(() => strValue);
 };
 
 /**
  * Apply transform mode to a value
  */
+const toBytes = (value: unknown): Uint8Array =>
+  value instanceof Uint8Array ? value : new TextEncoder().encode(String(value));
+
 const applyTransform = async (
   value: unknown,
   config: ParameterApplication["transform"],
@@ -118,42 +109,31 @@ const applyTransform = async (
 ): Promise<string> => {
   const preset = config?.preset || "CUSTOM";
 
-  switch (preset) {
-    case "UPPERCASE":
-      return String(value).toUpperCase();
-    case "LOWERCASE":
-      return String(value).toLowerCase();
-    case "TO_HEX": {
+  return match(preset)
+    .with("UPPERCASE", () => String(value).toUpperCase())
+    .with("LOWERCASE", () => String(value).toLowerCase())
+    .with("TO_HEX", () => {
       const num = typeof value === "number" ? value : parseInt(String(value));
       return isNaN(num) ? String(value) : num.toString(16);
-    }
-    case "FROM_HEX": {
+    })
+    .with("FROM_HEX", () => {
       const parsed = parseInt(String(value), 16);
       return isNaN(parsed) ? String(value) : String(parsed);
-    }
-    case "CHECKSUM_MOD256": {
-      const bytes =
-        value instanceof Uint8Array
-          ? value
-          : new TextEncoder().encode(String(value));
+    })
+    .with("CHECKSUM_MOD256", () => {
+      const bytes = toBytes(value);
       let sum = 0;
       for (const b of bytes) sum = (sum + b) % 256;
       return sum.toString(16).padStart(2, "0");
-    }
-    case "CHECKSUM_XOR": {
-      const bytes =
-        value instanceof Uint8Array
-          ? value
-          : new TextEncoder().encode(String(value));
+    })
+    .with("CHECKSUM_XOR", () => {
+      const bytes = toBytes(value);
       let xor = 0;
       for (const b of bytes) xor ^= b;
       return xor.toString(16).padStart(2, "0");
-    }
-    case "CHECKSUM_CRC16": {
-      const bytes =
-        value instanceof Uint8Array
-          ? value
-          : new TextEncoder().encode(String(value));
+    })
+    .with("CHECKSUM_CRC16", () => {
+      const bytes = toBytes(value);
       let crc = 0xffff;
       for (let i = 0; i < bytes.length; i++) {
         crc ^= bytes[i];
@@ -166,26 +146,26 @@ const applyTransform = async (
         }
       }
       return crc.toString(16).padStart(4, "0");
-    }
-    case "JSON_STRINGIFY":
-      return JSON.stringify(value);
-    case "JSON_PARSE":
+    })
+    .with("JSON_STRINGIFY", () => JSON.stringify(value))
+    .with("JSON_PARSE", () => {
       try {
         return String(JSON.parse(String(value)));
       } catch {
         return String(value);
       }
-    case "LENGTH":
-      return String(
+    })
+    .with("LENGTH", () =>
+      String(
         typeof value === "string"
           ? value.length
           : Array.isArray(value)
             ? value.length
             : String(value).length,
-      );
-    case "TRIM":
-      return String(value).trim();
-    case "CUSTOM":
+      ),
+    )
+    .with("TRIM", () => String(value).trim())
+    .with("CUSTOM", async () => {
       if (config?.expression) {
         try {
           const result = await executeUserScript(config.expression, {
@@ -204,9 +184,8 @@ const applyTransform = async (
         }
       }
       return String(value);
-    default:
-      return String(value);
-  }
+    })
+    .otherwise(() => String(value));
 };
 
 /**
@@ -445,20 +424,14 @@ const applyParameterValue = async (
 ): Promise<string> => {
   const mode = application?.mode || "SUBSTITUTE";
 
-  switch (mode) {
-    case "SUBSTITUTE":
-      return applySubstitute(value, application?.substitute);
-    case "TRANSFORM":
-      return await applyTransform(value, application?.transform, params);
-    case "FORMAT":
-      return applyFormat(value, application?.format);
-    case "POSITION":
-      // Position mode is handled separately for binary data
-      // For text payloads, just return the value as string
-      return String(value);
-    default:
-      return String(value);
-  }
+  return match(mode)
+    .with("SUBSTITUTE", () => applySubstitute(value, application?.substitute))
+    .with("TRANSFORM", () =>
+      applyTransform(value, application?.transform, params),
+    )
+    .with("FORMAT", () => applyFormat(value, application?.format))
+    .with("POSITION", () => String(value))
+    .otherwise(() => String(value));
 };
 
 /**

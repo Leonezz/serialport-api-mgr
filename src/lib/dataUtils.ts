@@ -1,3 +1,4 @@
+import { match } from "ts-pattern";
 import { ChecksumAlgorithm, LineEnding, TextEncoding } from "../types";
 
 /**
@@ -82,46 +83,33 @@ export const calculateChecksum = (
 export const appendLineEnding = (
   data: string,
   lineEnding: LineEnding,
-): string => {
-  switch (lineEnding) {
-    case "LF":
-      return data + "\n";
-    case "CR":
-      return data + "\r";
-    case "CRLF":
-      return data + "\r\n";
-    default:
-      return data;
-  }
-};
+): string =>
+  match(lineEnding)
+    .with("LF", () => data + "\n")
+    .with("CR", () => data + "\r")
+    .with("CRLF", () => data + "\r\n")
+    .with("NONE", () => data)
+    .exhaustive();
 
-export const encodeText = (
-  text: string,
-  encoding: TextEncoding,
-): Uint8Array => {
-  if (encoding === "UTF-8") {
-    return new TextEncoder().encode(text);
-  }
-
-  if (encoding === "ASCII") {
-    const arr = new Uint8Array(text.length);
-    for (let i = 0; i < text.length; i++) {
-      arr[i] = text.charCodeAt(i) & 0x7f; // Force 7-bit
-    }
-    return arr;
-  }
-
-  if (encoding === "ISO-8859-1") {
-    const arr = new Uint8Array(text.length);
-    for (let i = 0; i < text.length; i++) {
-      const code = text.charCodeAt(i);
-      arr[i] = code > 255 ? 63 : code; // Replace >255 with '?' (63)
-    }
-    return arr;
-  }
-
-  return new TextEncoder().encode(text);
-};
+export const encodeText = (text: string, encoding: TextEncoding): Uint8Array =>
+  match(encoding)
+    .with("UTF-8", () => new TextEncoder().encode(text))
+    .with("ASCII", () => {
+      const arr = new Uint8Array(text.length);
+      for (let i = 0; i < text.length; i++) {
+        arr[i] = text.charCodeAt(i) & 0x7f; // Force 7-bit
+      }
+      return arr;
+    })
+    .with("ISO-8859-1", () => {
+      const arr = new Uint8Array(text.length);
+      for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        arr[i] = code > 255 ? 63 : code; // Replace >255 with '?' (63)
+      }
+      return arr;
+    })
+    .exhaustive();
 
 /**
  * Convert hex string to bytes
