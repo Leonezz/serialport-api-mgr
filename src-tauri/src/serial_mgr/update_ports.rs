@@ -33,6 +33,7 @@ pub async fn update_available_ports<'a>(
 }
 
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 pub async fn get_all_port_info(state: tauri::State<'_, AppState>) -> Result<Vec<PortInfo>, String> {
     tracing::info!("get all port info");
     let res = update_available_ports(&state).await;

@@ -21,7 +21,7 @@ fn generate_session_id() -> String {
 }
 
 /// Result of opening a port, containing the session ID for log queries
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, specta::Type)]
 pub struct OpenPortResult {
     pub session_id: String,
 }
@@ -238,6 +238,7 @@ pub fn open_port_unchecked(
 
 // remember to call `.manage(MyState::default())`
 #[tauri::command(rename_all = "camelCase")]
+#[specta::specta]
 pub async fn open_port(
     state: tauri::State<'_, AppState>,
     app: AppHandle,

@@ -18,9 +18,11 @@ use serial_mgr::{
     update_ports::get_all_port_info,
     write_port::{write_data_terminal_ready, write_port, write_request_to_send},
 };
+use specta_typescript::{BigIntExportBehavior, Typescript};
 use std::collections::HashMap;
 use tauri::{self, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_fs::FsExt;
+use tauri_specta::{collect_commands, Builder};
 use time::macros::{format_description, offset};
 #[cfg(all(desktop, not(debug_assertions)))]
 use tracing_appender::rolling::Rotation;
@@ -69,24 +71,41 @@ pub fn setup_logging(app: &tauri::App) {
     }
 }
 
+fn typescript_config() -> Typescript {
+    Typescript::default().bigint(BigIntExportBehavior::Number)
+}
+
+/// Create the tauri-specta builder with all commands registered.
+/// Used by both the app runtime and the binding export test.
+pub fn create_specta_builder() -> Builder<tauri::Wry> {
+    Builder::<tauri::Wry>::new().commands(collect_commands![
+        get_all_port_info,
+        open_port,
+        close_port,
+        execute_saved_command,
+        write_data_terminal_ready,
+        write_request_to_send,
+        write_port,
+        debug,
+        info,
+        log,
+        warn,
+        error,
+        get_logs
+    ])
+}
+
 pub fn run() {
+    let specta_builder = create_specta_builder();
+
+    #[cfg(debug_assertions)]
+    specta_builder
+        .export(typescript_config(), "../src/lib/tauri/bindings.ts")
+        .expect("Failed to export TypeScript bindings");
+
     let builder = tauri::Builder::default();
     builder
-        .invoke_handler(tauri::generate_handler![
-            get_all_port_info,
-            open_port,
-            close_port,
-            execute_saved_command,
-            write_data_terminal_ready,
-            write_request_to_send,
-            write_port,
-            debug,
-            info,
-            log,
-            warn,
-            error,
-            get_logs
-        ])
+        .invoke_handler(specta_builder.invoke_handler())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
@@ -193,4 +212,16 @@ pub fn run() {
             }
             _ => {}
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn export_typescript_bindings() {
+        create_specta_builder()
+            .export(typescript_config(), "../src/lib/tauri/bindings.ts")
+            .expect("Failed to export TypeScript bindings");
+    }
 }
