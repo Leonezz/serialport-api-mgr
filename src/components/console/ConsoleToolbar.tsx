@@ -1,9 +1,7 @@
 import * as React from "react";
 import { Trash2, Palette } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { Button } from "../ui/Button";
-import { SegmentedControl } from "../ui/SegmentedControl";
-import { Tooltip } from "../ui/Tooltip";
+import { Button, SegmentedControl, Tooltip } from "../ui";
 
 // Debounce delay for view changes during heavy streaming (fixes #18)
 const VIEW_CHANGE_DEBOUNCE_MS = 100;

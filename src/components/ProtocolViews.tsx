@@ -8,7 +8,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Edit, Copy, Download, Trash2 } from "lucide-react";
-import { Button } from "./ui/Button";
+import { Button } from "./ui";
 import type { Protocol } from "../lib/protocolTypes";
 
 interface ProtocolCardProps {

@@ -1,9 +1,6 @@
 import React from "react";
 import { FramingConfig, FramingStrategy } from "../../types";
-import { Input } from "../ui/Input";
-import { SelectDropdown } from "../ui/Select";
-import { DropdownOption } from "../ui/Dropdown";
-import CodeEditor from "../ui/CodeEditor";
+import { CodeEditor, DropdownOption, Input, SelectDropdown } from "../ui";
 import { FRAMING } from "../../lib/constants";
 
 interface FramingConfigEditorProps {

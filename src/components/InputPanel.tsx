@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button } from "./ui/Button";
-import { Textarea } from "./ui/Textarea";
-import { HexInput } from "./ui/HexInput";
-import { SelectDropdown } from "./ui/Select";
-import { DropdownOption } from "./ui/Dropdown";
+import {
+  Button,
+  DropdownOption,
+  HexInput,
+  SelectDropdown,
+  Textarea,
+} from "./ui";
 import { Send, ArrowDownToLine, Zap, Paperclip, X, Save } from "lucide-react";
 import QuickSaveCommandModal from "./QuickSaveCommandModal";
 import {

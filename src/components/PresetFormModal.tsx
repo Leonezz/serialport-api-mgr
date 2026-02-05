@@ -7,19 +7,19 @@ import {
   ConnectionType,
 } from "../types";
 import { X, Check, ArrowDownCircle } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Label } from "./ui/Label";
-import { SelectDropdown } from "./ui/Select";
-import { DropdownOption } from "./ui/Dropdown";
-import { SegmentedControl } from "./ui/SegmentedControl";
 import {
+  Button,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   CardFooter,
-} from "./ui/Card";
+  CardHeader,
+  CardTitle,
+  DropdownOption,
+  Input,
+  Label,
+  SegmentedControl,
+  SelectDropdown,
+} from "./ui";
 
 interface Props {
   initialData: SerialPreset;

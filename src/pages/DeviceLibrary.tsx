@@ -9,11 +9,10 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Cpu, Edit, Trash2 } from "lucide-react";
 import { useStore } from "../lib/store";
-import { Button } from "../components/ui/Button";
+import { Button, EmptyState } from "../components/ui";
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import DeviceFormModal from "../components/DeviceFormModal";
-import { EmptyState } from "../components/ui/EmptyState";
 
 const DeviceLibrary: React.FC = () => {
   const navigate = useNavigate();

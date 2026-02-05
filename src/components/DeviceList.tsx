@@ -14,8 +14,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "../lib/utils";
-import { Button } from "./ui/Button";
-import { EmptyState } from "./ui/EmptyState";
+import { Button, EmptyState } from "./ui";
 
 // Map icon strings to Lucide components
 const ICON_MAP: Record<string, React.ElementType> = {

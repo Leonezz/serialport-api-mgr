@@ -6,21 +6,21 @@
 
 import { useState } from "react";
 import { Code, Eye, Info, Plus, Trash2 } from "lucide-react";
-import { Button } from "../../../components/ui/Button";
-import { Input } from "../../../components/ui/Input";
-import { Label } from "../../../components/ui/Label";
-import { Select } from "../../../components/ui/Select";
-import { Textarea } from "../../../components/ui/Textarea";
-import { NumberInput } from "../../../components/ui/NumberInput";
-import { HexInput } from "../../../components/ui/HexInput";
-import { Checkbox } from "../../../components/ui/Checkbox";
-import { Card } from "../../../components/ui/Card";
-import { Badge } from "../../../components/ui/Badge";
 import {
-  SortableList,
+  Badge,
+  Button,
+  Card,
+  Checkbox,
   DragHandle,
+  HexInput,
+  Input,
+  Label,
+  NumberInput,
+  Select,
+  SortableList,
+  Textarea,
   type DragHandleProps,
-} from "../../../components/ui/SortableList";
+} from "../../../components/ui";
 import { cn } from "../../../lib/utils";
 import type {
   FramingConfig,

@@ -7,10 +7,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
-import { Button } from "../../../components/ui/Button";
-import { Input } from "../../../components/ui/Input";
-import { Label } from "../../../components/ui/Label";
-import { Textarea } from "../../../components/ui/Textarea";
+import { Button, Input, Label, Textarea } from "../../../components/ui";
 import type { GeneralTabProps } from "../protocolEditorTypes";
 
 export const GeneralTab: React.FC<GeneralTabProps> = ({

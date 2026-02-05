@@ -1,6 +1,6 @@
 import React from "react";
 import { FileClock, Settings, Coins } from "lucide-react";
-import { IconButton } from "../ui/IconButton";
+import { IconButton } from "../ui";
 import type { TFunction } from "i18next";
 
 interface SidebarFooterProps {

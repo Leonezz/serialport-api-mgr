@@ -12,10 +12,16 @@ import {
 } from "../types";
 import { useStore } from "../lib/store";
 import { X, Check, Layers } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Card, CardHeader, CardTitle, CardFooter } from "./ui/Card";
-import { Badge } from "./ui/Badge";
-import { TabBar, type TabItem } from "./ui/TabBar";
+import {
+  Badge,
+  Button,
+  Card,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  TabBar,
+  type TabItem,
+} from "./ui";
 import { cn, generateId } from "../lib/utils";
 import type { ModbusParams } from "../services/protocolUtils";
 import { useTranslation } from "react-i18next";

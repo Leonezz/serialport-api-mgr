@@ -1,7 +1,6 @@
 import React from "react";
 import { Upload, Download, Wand2 } from "lucide-react";
-import { Button } from "../ui/Button";
-import { FileInput, FileInputRef } from "../ui/FileInput";
+import { Button, FileInput, FileInputRef } from "../ui";
 
 interface ProjectActionsProps {
   fileInputRef: React.RefObject<FileInputRef | null>;

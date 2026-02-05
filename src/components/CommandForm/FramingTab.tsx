@@ -1,12 +1,14 @@
 import React from "react";
 import { AlertTriangle } from "lucide-react";
-import { Input } from "../ui/Input";
-import { Label } from "../ui/Label";
-import { SelectDropdown } from "../ui/Select";
-import { CardContent } from "../ui/Card";
-import { Checkbox } from "../ui/Checkbox";
-import CodeEditor from "../ui/CodeEditor";
-import type { DropdownOption } from "../ui/Dropdown";
+import {
+  CardContent,
+  Checkbox,
+  CodeEditor,
+  Input,
+  Label,
+  SelectDropdown,
+  type DropdownOption,
+} from "../ui";
 import type { FramingStrategy, FramingConfig } from "../../types";
 
 interface FramingTabProps {

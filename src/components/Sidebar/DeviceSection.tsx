@@ -9,9 +9,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Device } from "../../types";
-import { IconButton } from "../ui/IconButton";
-import { Badge } from "../ui/Badge";
-import { EmptyState } from "../ui/EmptyState";
+import { Badge, EmptyState, IconButton } from "../ui";
 import { cn } from "../../lib/utils";
 import { useStore } from "../../lib/store";
 

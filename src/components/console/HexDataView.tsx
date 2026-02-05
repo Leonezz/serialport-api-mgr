@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { cn } from "../../lib/utils";
 import { ScanLine } from "lucide-react";
-import { Checkbox } from "../ui/Checkbox";
+import { Checkbox } from "../ui";
 
 /**
  * HexDataView Component

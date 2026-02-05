@@ -12,12 +12,17 @@ import {
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { LogLevel, LogCategory } from "../types";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { SelectDropdown } from "./ui/Select";
-import { DropdownOption } from "./ui/Dropdown";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
-import { Badge } from "./ui/Badge";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  DropdownOption,
+  Input,
+  SelectDropdown,
+} from "./ui";
 import { cn } from "../lib/utils";
 
 const SystemLogViewer: React.FC = () => {

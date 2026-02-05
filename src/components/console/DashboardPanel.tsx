@@ -18,12 +18,14 @@ import {
 } from "lucide-react";
 import { useStore } from "../../lib/store";
 import { cn } from "../../lib/utils";
-import { Button } from "../ui/Button";
-import { Card } from "../ui/Card";
-import { Label } from "../ui/Label";
-import { Input } from "../ui/Input";
-import { SelectDropdown } from "../ui/Select";
-import { DropdownOption } from "../ui/Dropdown";
+import {
+  Button,
+  Card,
+  DropdownOption,
+  Input,
+  Label,
+  SelectDropdown,
+} from "../ui";
 import ConfirmationModal from "../ConfirmationModal";
 
 // Import Widget Sub-components

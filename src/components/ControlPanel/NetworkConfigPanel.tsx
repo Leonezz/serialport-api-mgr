@@ -1,6 +1,6 @@
 import React from "react";
 import { NetworkConfig } from "../../types";
-import { Input } from "../ui/Input";
+import { Input } from "../ui";
 
 interface NetworkConfigPanelProps {
   networkConfig: NetworkConfig;

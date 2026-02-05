@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { CommandParameter, SavedCommand } from "../types";
 import { Play, RotateCcw } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Label } from "./ui/Label";
-import { SelectDropdown } from "./ui/Select";
-import { DropdownOption } from "./ui/Dropdown";
-import { Modal } from "./ui/Modal";
-import { Checkbox } from "./ui/Checkbox";
+import {
+  Button,
+  Checkbox,
+  DropdownOption,
+  Input,
+  Label,
+  Modal,
+  SelectDropdown,
+} from "./ui";
 
 interface Props {
   command: SavedCommand;

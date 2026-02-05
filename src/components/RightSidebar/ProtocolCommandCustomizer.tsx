@@ -22,18 +22,20 @@ import {
   Copy,
   Check,
 } from "lucide-react";
-import { Button } from "../ui/Button";
-import { IconButton } from "../ui/IconButton";
-import { Input } from "../ui/Input";
-import { Textarea } from "../ui/Textarea";
-import { SelectDropdown } from "../ui/Select";
-import { DropdownOption } from "../ui/Dropdown";
-import { Label } from "../ui/Label";
-import { Badge } from "../ui/Badge";
-import { Checkbox } from "../ui/Checkbox";
-import { NumberInput } from "../ui/NumberInput";
-import CodeEditor from "../ui/CodeEditor";
-import VariableExtractionEditor from "../ui/VariableExtractionEditor";
+import {
+  Badge,
+  Button,
+  Checkbox,
+  CodeEditor,
+  DropdownOption,
+  IconButton,
+  Input,
+  Label,
+  NumberInput,
+  SelectDropdown,
+  Textarea,
+  VariableExtractionEditor,
+} from "../ui";
 import { cn, generateId } from "../../lib/utils";
 import { useStore } from "../../lib/store";
 import {

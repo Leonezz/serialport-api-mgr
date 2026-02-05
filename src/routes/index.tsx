@@ -21,8 +21,7 @@ import {
   isRouteErrorResponse,
 } from "react-router-dom";
 import { ArrowLeft, Home, AlertTriangle, RefreshCw } from "lucide-react";
-import { Button } from "../components/ui/Button";
-import ToastContainer from "../components/ui/Toast";
+import { Button, ToastContainer } from "../components/ui";
 import { useStore } from "../lib/store";
 import { useShallow } from "zustand/react/shallow";
 

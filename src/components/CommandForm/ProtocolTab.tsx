@@ -1,12 +1,14 @@
 import React from "react";
 import { Calculator, Terminal } from "lucide-react";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Label } from "../ui/Label";
-import { SelectDropdown } from "../ui/Select";
-import { CardContent } from "../ui/Card";
+import {
+  Button,
+  CardContent,
+  Input,
+  Label,
+  SelectDropdown,
+  type DropdownOption,
+} from "../ui";
 import { cn } from "../../lib/utils";
-import type { DropdownOption } from "../ui/Dropdown";
 import {
   generateModbusFrame,
   MODBUS_FUNCTIONS,

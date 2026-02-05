@@ -6,11 +6,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { Button } from "../../../components/ui/Button";
-import { Input } from "../../../components/ui/Input";
-import { Label } from "../../../components/ui/Label";
-import { Select } from "../../../components/ui/Select";
-import { Textarea } from "../../../components/ui/Textarea";
+import { Button, Input, Label, Select, Textarea } from "../../../components/ui";
 import type { MessageStructure } from "../../../lib/protocolTypes";
 
 interface StructureEditModalProps {

@@ -1,6 +1,6 @@
 import React from "react";
 import { Play, Square } from "lucide-react";
-import { Button } from "../ui/Button";
+import { Button } from "../ui";
 import type { TFunction } from "i18next";
 
 interface ConnectionButtonProps {

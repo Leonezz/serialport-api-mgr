@@ -6,11 +6,7 @@
 
 import { useState } from "react";
 import { AlertCircle, X } from "lucide-react";
-import { Button } from "../../../components/ui/Button";
-import { Checkbox } from "../../../components/ui/Checkbox";
-import { Input } from "../../../components/ui/Input";
-import { Label } from "../../../components/ui/Label";
-import { Select } from "../../../components/ui/Select";
+import { Button, Checkbox, Input, Label, Select } from "../../../components/ui";
 import { generateId } from "../../../lib/utils";
 import type { MessageElement, ElementConfig } from "../../../lib/protocolTypes";
 

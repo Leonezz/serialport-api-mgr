@@ -18,14 +18,17 @@ import {
   Terminal,
   Layers,
 } from "lucide-react";
-import { Modal } from "./ui/Modal";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Label } from "./ui/Label";
-import { Textarea } from "./ui/Textarea";
-import { SelectDropdown } from "./ui/Select";
-import { DropdownOption } from "./ui/Dropdown";
-import { FileInput, FileInputRef } from "./ui/FileInput";
+import {
+  Button,
+  DropdownOption,
+  FileInput,
+  FileInputRef,
+  Input,
+  Label,
+  Modal,
+  SelectDropdown,
+  Textarea,
+} from "./ui";
 import { useStore } from "../lib/store";
 import { generateId } from "../lib/utils";
 import type {

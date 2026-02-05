@@ -13,24 +13,26 @@ import {
   ListOrdered,
   Variable,
 } from "lucide-react";
-import { SortableList, DragHandle, DragHandleProps } from "./ui/SortableList";
-import { Button } from "./ui/Button";
-import { IconButton } from "./ui/IconButton";
-import { Input } from "./ui/Input";
-import { SelectDropdown } from "./ui/Select";
-import { DropdownOption } from "./ui/Dropdown";
-import { Label } from "./ui/Label";
 import {
+  Button,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   CardFooter,
-} from "./ui/Card";
-import { Textarea } from "./ui/Textarea";
-import { Checkbox } from "./ui/Checkbox";
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  DragHandle,
+  DragHandleProps,
+  DropdownOption,
+  IconButton,
+  Input,
+  Label,
+  NumberInput,
+  SelectDropdown,
+  SortableList,
+  Textarea,
+} from "./ui";
 import { cn } from "../lib/utils";
-import { NumberInput } from "./ui/NumberInput";
 
 interface Props {
   initialData?: Partial<SerialSequence>;

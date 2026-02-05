@@ -2,8 +2,7 @@ import React, { useState, useRef } from "react";
 import { useStore } from "../lib/store";
 import { FileText, Upload, Trash2, Download, Loader2 } from "lucide-react";
 import { cn, generateId } from "../lib/utils";
-import { Button } from "./ui/Button";
-import { Badge } from "./ui/Badge";
+import { Badge, Button } from "./ui";
 import {
   fileToBase64,
   formatBytes,

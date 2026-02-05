@@ -29,19 +29,20 @@ import {
   List,
 } from "lucide-react";
 import { useStore } from "../lib/store";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
-import { Label } from "../components/ui/Label";
-import { Textarea } from "../components/ui/Textarea";
-import { SelectDropdown } from "../components/ui/Select";
 import {
+  Badge,
+  Breadcrumb,
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
-import { Breadcrumb, workspaceItem } from "../components/ui/Breadcrumb";
+  Input,
+  Label,
+  SelectDropdown,
+  Textarea,
+  workspaceItem,
+} from "../components/ui";
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import CommandFormModal from "../components/CommandFormModal";

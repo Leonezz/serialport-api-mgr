@@ -16,7 +16,17 @@ import {
   Brush,
 } from "recharts";
 import { useStore } from "../../lib/store";
-import { Button } from "../ui/Button";
+import {
+  Button,
+  Card,
+  Checkbox,
+  DropdownOption,
+  Input,
+  Label,
+  SegmentedControl,
+  SegmentOption,
+  SelectDropdown,
+} from "../ui";
 import {
   Pause,
   Play,
@@ -29,15 +39,8 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { Card } from "../ui/Card";
-import { Label } from "../ui/Label";
-import { SelectDropdown } from "../ui/Select";
-import { DropdownOption } from "../ui/Dropdown";
-import { Input } from "../ui/Input";
 import { handleChartWheel } from "../../hooks/useChartZoomPan";
 import { PlotterParserType, PlotterDataPoint } from "@/types";
-import { SegmentedControl, SegmentOption } from "../ui/SegmentedControl";
-import { Checkbox } from "../ui/Checkbox";
 
 // Series colors per FIGMA-DESIGN.md 9.6
 const CHART_COLORS = [
