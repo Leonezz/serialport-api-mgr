@@ -1,0 +1,12 @@
+# cargo-audit configuration
+# https://github.com/rustsec/rustsec/tree/main/cargo-audit#configuration-file
+
+[advisories]
+# Ignore advisories with no available fix (reviewed and accepted risk)
+ignore = [
+    # rsa: Marvin Attack timing sidechannel - no fix available
+    # Risk accepted: only used by sqlx-mysql, not exposed to external attackers
+    "RUSTSEC-2023-0071",
+]
+# Treat unmaintained crate warnings as non-fatal
+informational_warnings = ["unmaintained"]
