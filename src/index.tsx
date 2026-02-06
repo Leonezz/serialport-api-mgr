@@ -1,5 +1,14 @@
+import { scan } from "react-scan";
 import React from "react";
 import ReactDOM from "react-dom/client";
+
+// Initialize react-scan in development mode only
+if (import.meta.env.DEV) {
+  scan({
+    enabled: true,
+    log: true,
+  });
+}
 import { ErrorBoundary } from "react-error-boundary";
 import { invoke } from "@tauri-apps/api/core";
 import { Agentation } from "agentation";
