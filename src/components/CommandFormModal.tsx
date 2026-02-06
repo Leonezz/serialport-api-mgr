@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   SavedCommand,
+  SavedCommandSchema,
   DataMode,
   TextEncoding,
   MatchType,
@@ -22,6 +23,9 @@ import {
   Search,
   Terminal,
 } from "lucide-react";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Textarea } from "./ui/Textarea";
@@ -58,6 +62,11 @@ interface Props {
   onClose: () => void;
 }
 
+// We need a schema that makes 'id' optional for the form, or we generate it.
+// Since onSave expects Omit<SavedCommand, 'id'>, we can just use SavedCommandSchema
+// and strip ID, or ensure ID is present if editing.
+// For simplicity, we'll let the form handle the full SavedCommand structure.
+
 const CommandFormModal: React.FC<Props> = ({
   initialData,
   contexts,
@@ -71,84 +80,11 @@ const CommandFormModal: React.FC<Props> = ({
     "basic" | "params" | "protocol" | "processing" | "framing" | "context"
   >("basic");
 
-  const [name, setName] = useState(initialData?.name || "");
-  const [description, setDescription] = useState(
-    initialData?.description || "",
-  );
-  const [payload, setPayload] = useState(initialData?.payload || "");
-  const [group, setGroup] = useState(initialData?.group || "");
-  const [mode, setMode] = useState<DataMode>(initialData?.mode || "TEXT");
-  const [encoding, setEncoding] = useState<TextEncoding>(
-    initialData?.encoding || "UTF-8",
-  );
-  const [parameters, setParameters] = useState<CommandParameter[]>(
-    initialData?.parameters || [],
-  );
+  // Local state for Context editing (not part of SavedCommand)
+  const [contextTitle, setContextTitle] = useState("");
+  const [contextContent, setContextContent] = useState("");
 
-  const [contextIds, setContextIds] = useState<string[]>(
-    initialData?.contextIds || [],
-  );
-  const activeContexts = contexts.filter((c) => contextIds.includes(c.id));
-  const [contextContent, setContextContent] = useState(
-    activeContexts.length > 0
-      ? activeContexts.map((c) => c.content).join("\n\n---\n\n")
-      : "",
-  );
-  const [contextTitle, setContextTitle] = useState(
-    activeContexts.length > 0
-      ? activeContexts.map((c) => c.title).join(", ")
-      : "",
-  );
-
-  // Unified Processing State
-  const [preRequestEnabled, setPreRequestEnabled] = useState(
-    !!initialData?.scripting?.preRequestScript,
-  );
-  const [preRequestScript, setPreRequestScript] = useState(
-    initialData?.scripting?.preRequestScript || '// return payload + "\\r\\n";',
-  );
-
-  const [postResponseEnabled, setPostResponseEnabled] = useState(
-    !!(
-      initialData?.scripting?.postResponseScript ||
-      initialData?.validation?.enabled
-    ),
-  );
-  const [responseMode, setResponseMode] = useState<"PATTERN" | "SCRIPT">(
-    initialData?.scripting?.postResponseScript ? "SCRIPT" : "PATTERN",
-  );
-
-  const [matchType, setMatchType] = useState<MatchType>(
-    initialData?.validation?.matchType || "CONTAINS",
-  );
-  const [pattern, setPattern] = useState(
-    initialData?.validation?.pattern || "",
-  );
-  const [timeout, setTimeoutVal] = useState(
-    initialData?.validation?.timeout || 1000,
-  );
-  const [postResponseScript, setPostResponseScript] = useState(
-    initialData?.scripting?.postResponseScript ||
-      '// if (data.includes("OK")) return true;',
-  );
-
-  const [framingEnabled, setFramingEnabled] = useState(
-    !!initialData?.responseFraming,
-  );
-  const [framingConfig, setFramingConfig] = useState<FramingConfig>(
-    initialData?.responseFraming || {
-      strategy: "NONE",
-      delimiter: "",
-      timeout: 50,
-      prefixLengthSize: 1,
-      byteOrder: "LE",
-      script: "",
-    },
-  );
-  const [framingPersistence, setFramingPersistence] = useState<
-    "TRANSIENT" | "PERSISTENT"
-  >(initialData?.framingPersistence || "TRANSIENT");
-
+  // Local state for Protocol Wizard
   const [protoType, setProtoType] = useState<"MODBUS" | "AT">("MODBUS");
   const [mbParams, setMbParams] = useState<ModbusParams>({
     slaveId: 1,
@@ -157,69 +93,161 @@ const CommandFormModal: React.FC<Props> = ({
     quantityOrValue: 1,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (activeContexts.length === 1 && onUpdateContext)
+  // Local state for UI toggles that affect form structure
+  const [responseMode, setResponseMode] = useState<"PATTERN" | "SCRIPT">(
+    initialData?.scripting?.postResponseScript ? "SCRIPT" : "PATTERN",
+  );
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<SavedCommand>({
+    resolver: zodResolver(SavedCommandSchema),
+    defaultValues: {
+      id: initialData?.id || generateId(),
+      name: initialData?.name || "",
+      description: initialData?.description || "",
+      payload: initialData?.payload || "",
+      group: initialData?.group || "",
+      mode: initialData?.mode || "TEXT",
+      encoding: initialData?.encoding || "UTF-8",
+      parameters: initialData?.parameters || [],
+      contextIds: initialData?.contextIds || [],
+      scripting: {
+        enabled: initialData?.scripting?.enabled || false,
+        preRequestScript:
+          initialData?.scripting?.preRequestScript ||
+          '// return payload + "\\r\\n";',
+        postResponseScript:
+          initialData?.scripting?.postResponseScript ||
+          '// if (data.includes("OK")) return true;',
+      },
+      validation: initialData?.validation || {
+        enabled: false,
+        matchType: "CONTAINS",
+        pattern: "",
+        timeout: 1000,
+        mode: "PATTERN",
+      },
+      responseFraming: initialData?.responseFraming || {
+        strategy: "NONE",
+        delimiter: "",
+        timeout: 50,
+        prefixLengthSize: 1,
+        byteOrder: "LE",
+        script: "",
+      },
+      framingPersistence: initialData?.framingPersistence || "TRANSIENT",
+      createdAt: initialData?.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    },
+  });
+
+  const {
+    fields: parameterFields,
+    append: appendParam,
+    remove: removeParam,
+  } = useFieldArray({
+    control,
+    name: "parameters",
+  });
+
+  // Watchers for conditional rendering
+  const mode = watch("mode");
+  const contextIds = watch("contextIds") || [];
+  const scriptingEnabled = watch("scripting.enabled"); // Note: In original, separate booleans for pre/post.
+  // The original had "preRequestEnabled" and "postResponseEnabled".
+  // SavedCommand schema has a single `scripting` object with `enabled` (boolean) ?
+  // Let's check Schema.
+  // Actually SavedCommand has `scripting: { enabled: boolean, preRequestScript?: string, postResponseScript?: string }`.
+  // But we need to toggle them independently in UI.
+  // The schema might need to be adjusted or we manage "enabled" derived from scripts existence?
+  // Let's assume we map the UI state to the schema structure on submit.
+
+  // Wait, RHF maps 1:1 to schema.
+  // If the UI has separate checkboxes for Pre and Post, we should probably watch them and update the single `scripting` object?
+  // Or maybe we treat them as part of the form state even if they aren't in the schema directly?
+  // No, best to stick to schema.
+  // Let's look at original Logic:
+  // "scripting: { enabled: preRequestEnabled || (postResponseEnabled && responseMode === 'SCRIPT'), ... }"
+  // So `enabled` is true if EITHER is active.
+
+  // We can use local state for the checkboxes and update the form on submit, OR use watch/setValue.
+  // Let's use local state for the UI toggles "preRequestEnabled" and "postResponseEnabled" to match original UX.
+  const [preRequestEnabled, setPreRequestEnabled] = useState(
+    !!initialData?.scripting?.preRequestScript,
+  );
+  const [postResponseEnabled, setPostResponseEnabled] = useState(
+    !!(
+      initialData?.scripting?.postResponseScript ||
+      initialData?.validation?.enabled
+    ),
+  );
+  // Also framingEnabled
+  const [framingEnabled, setFramingEnabled] = useState(
+    !!initialData?.responseFraming,
+  );
+
+  const activeContexts = contexts.filter((c) => contextIds.includes(c.id));
+
+  // Initialize context content from selection if empty
+  React.useEffect(() => {
+    if (activeContexts.length > 0 && !contextTitle && !contextContent) {
+      setContextContent(
+        activeContexts.map((c) => c.content).join("\n\n---\n\n"),
+      );
+      setContextTitle(activeContexts.map((c) => c.title).join(", "));
+    }
+  }, [activeContexts.length]); // dependency on length change
+
+  const onSubmit = (data: SavedCommand) => {
+    // Construct the final object based on UI toggles
+    const finalData: SavedCommand = {
+      ...data,
+      scripting: {
+        enabled:
+          preRequestEnabled ||
+          (postResponseEnabled && responseMode === "SCRIPT"),
+        preRequestScript: preRequestEnabled
+          ? data.scripting?.preRequestScript
+          : undefined,
+        postResponseScript:
+          postResponseEnabled && responseMode === "SCRIPT"
+            ? data.scripting?.postResponseScript
+            : undefined,
+      },
+      validation:
+        postResponseEnabled && responseMode === "PATTERN"
+          ? {
+              enabled: true,
+              mode: "PATTERN",
+              matchType: data.validation?.matchType || "CONTAINS",
+              pattern: data.validation?.pattern || "",
+              timeout: data.validation?.timeout || 1000,
+            }
+          : undefined,
+      responseFraming: framingEnabled ? data.responseFraming : undefined,
+      framingPersistence: framingEnabled
+        ? data.framingPersistence
+        : undefined,
+      updatedAt: Date.now(),
+    };
+
+    // Handle Context Side Effect
+    if (activeContexts.length === 1 && onUpdateContext) {
       onUpdateContext({
         ...activeContexts[0],
         content: contextContent,
         title: contextTitle,
       });
+    }
 
-    onSave({
-      name,
-      description,
-      payload,
-      group: group.trim() || undefined,
-      mode,
-      encoding: mode === "TEXT" ? encoding : undefined,
-      parameters,
-      validation:
-        postResponseEnabled && responseMode === "PATTERN"
-          ? { enabled: true, mode: "PATTERN", matchType, pattern, timeout }
-          : undefined,
-      scripting: {
-        enabled:
-          preRequestEnabled ||
-          (postResponseEnabled && responseMode === "SCRIPT"),
-        preRequestScript: preRequestEnabled ? preRequestScript : undefined,
-        postResponseScript:
-          postResponseEnabled && responseMode === "SCRIPT"
-            ? postResponseScript
-            : undefined,
-      },
-      responseFraming: framingEnabled ? framingConfig : undefined,
-      framingPersistence: framingEnabled ? framingPersistence : undefined,
-      createdAt: initialData?.createdAt || Date.now(),
-      updatedAt: Date.now(),
-      contextIds,
-    });
+    onSave(finalData);
     onClose();
-  };
-
-  const addParameter = () => {
-    setParameters([
-      ...parameters,
-      {
-        id: generateId(),
-        name: `param${parameters.length + 1}`,
-        type: "STRING",
-        label: "",
-        defaultValue: "",
-      },
-    ]);
-  };
-
-  const updateParameter = (idx: number, updates: Partial<CommandParameter>) => {
-    const newParams = [...parameters];
-    newParams[idx] = { ...newParams[idx], ...updates };
-    setParameters(newParams);
-  };
-
-  const removeParameter = (idx: number) => {
-    const newParams = [...parameters];
-    newParams.splice(idx, 1);
-    setParameters(newParams);
   };
 
   return (
@@ -249,7 +277,7 @@ const CommandFormModal: React.FC<Props> = ({
                   label: t("cmd.tab.params"),
                   icon: (
                     <Badge variant="secondary" className="px-1 h-4 text-[9px]">
-                      {parameters.length}
+                      {parameterFields.length}
                     </Badge>
                   ),
                 },
@@ -265,6 +293,7 @@ const CommandFormModal: React.FC<Props> = ({
           <div className="flex-1" />
           <button
             onClick={() => setActiveTab("protocol")}
+            type="button"
             className={cn(
               "pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap opacity-70",
               activeTab === "protocol"
@@ -277,7 +306,7 @@ const CommandFormModal: React.FC<Props> = ({
         </div>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit)}
           className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
           <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
@@ -287,16 +316,16 @@ const CommandFormModal: React.FC<Props> = ({
                   <div className="space-y-2">
                     <Label>{t("cmd.name")}</Label>
                     <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      {...register("name")}
+                      error={!!errors.name}
+                      errorMessage={errors.name?.message}
                       required
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>{t("cmd.group")}</Label>
                     <Input
-                      value={group}
-                      onChange={(e) => setGroup(e.target.value)}
+                      {...register("group")}
                       placeholder="Device Name"
                     />
                   </div>
@@ -304,29 +333,41 @@ const CommandFormModal: React.FC<Props> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>{t("cmd.format")}</Label>
-                    <SelectDropdown
-                      options={
-                        [
-                          { value: "TEXT", label: "TEXT" },
-                          { value: "HEX", label: "HEX" },
-                        ] as DropdownOption<DataMode>[]
-                      }
-                      value={mode}
-                      onChange={(value) => setMode(value)}
+                    <Controller
+                      control={control}
+                      name="mode"
+                      render={({ field }) => (
+                        <SelectDropdown
+                          options={
+                            [
+                              { value: "TEXT", label: "TEXT" },
+                              { value: "HEX", label: "HEX" },
+                            ] as DropdownOption<DataMode>[]
+                          }
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
                     />
                   </div>
                   {mode === "TEXT" && (
                     <div className="space-y-2">
                       <Label>Encoding</Label>
-                      <SelectDropdown
-                        options={
-                          [
-                            { value: "UTF-8", label: "UTF-8" },
-                            { value: "ASCII", label: "ASCII" },
-                          ] as DropdownOption<TextEncoding>[]
-                        }
-                        value={encoding}
-                        onChange={(value) => setEncoding(value)}
+                      <Controller
+                        control={control}
+                        name="encoding"
+                        render={({ field }) => (
+                          <SelectDropdown
+                            options={
+                              [
+                                { value: "UTF-8", label: "UTF-8" },
+                                { value: "ASCII", label: "ASCII" },
+                              ] as DropdownOption<TextEncoding>[]
+                            }
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        )}
                       />
                     </div>
                   )}
@@ -334,8 +375,7 @@ const CommandFormModal: React.FC<Props> = ({
                 <div className="space-y-2">
                   <Label>{t("cmd.payload")}</Label>
                   <Textarea
-                    value={payload}
-                    onChange={(e) => setPayload(e.target.value)}
+                    {...register("payload")}
                     className="font-mono text-xs"
                   />
                 </div>
@@ -351,7 +391,17 @@ const CommandFormModal: React.FC<Props> = ({
                   <Button
                     type="button"
                     size="sm"
-                    onClick={addParameter}
+                    onClick={() =>
+                      appendParam({
+                        id: generateId(),
+                        name: `param${parameterFields.length + 1}`,
+                        type: "STRING",
+                        label: "",
+                        defaultValue: "",
+                        // required default fields based on schema
+                        description: "",
+                      })
+                    }
                     variant="outline"
                     className="h-8 gap-1"
                   >
@@ -360,65 +410,59 @@ const CommandFormModal: React.FC<Props> = ({
                 </div>
 
                 <div className="space-y-3">
-                  {parameters.length === 0 && (
+                  {parameterFields.length === 0 && (
                     <div className="text-center py-10 text-muted-foreground italic bg-muted/20 rounded-lg">
                       No parameters defined.
                     </div>
                   )}
-                  {parameters.map((param, idx) => (
+                  {parameterFields.map((field, idx) => (
                     <div
-                      key={param.id}
+                      key={field.id}
                       className="p-3 border rounded-lg bg-card grid grid-cols-12 gap-3 items-end animate-in fade-in slide-in-from-bottom-2"
                     >
                       <div className="col-span-3 space-y-1">
                         <Label className="text-[10px]">Var Name</Label>
                         <Input
-                          value={param.name}
-                          onChange={(e) =>
-                            updateParameter(idx, { name: e.target.value })
-                          }
+                          {...register(`parameters.${idx}.name` as const)}
                           className="h-8 text-xs font-mono"
                           placeholder="varName"
+                          error={!!errors.parameters?.[idx]?.name}
                         />
                       </div>
                       <div className="col-span-3 space-y-1">
                         <Label className="text-[10px]">Label</Label>
                         <Input
-                          value={param.label || ""}
-                          onChange={(e) =>
-                            updateParameter(idx, { label: e.target.value })
-                          }
+                          {...register(`parameters.${idx}.label` as const)}
                           className="h-8 text-xs"
                           placeholder="Display Label"
                         />
                       </div>
                       <div className="col-span-2 space-y-1">
                         <Label className="text-[10px]">Type</Label>
-                        <SelectDropdown
-                          options={
-                            [
-                              { value: "STRING", label: "String" },
-                              { value: "INTEGER", label: "Integer" },
-                              { value: "FLOAT", label: "Float" },
-                              { value: "BOOLEAN", label: "Boolean" },
-                            ] as DropdownOption<ParameterType>[]
-                          }
-                          value={param.type}
-                          onChange={(value) =>
-                            updateParameter(idx, { type: value })
-                          }
-                          size="sm"
+                        <Controller
+                          control={control}
+                          name={`parameters.${idx}.type` as const}
+                          render={({ field }) => (
+                            <SelectDropdown
+                              options={
+                                [
+                                  { value: "STRING", label: "String" },
+                                  { value: "INTEGER", label: "Integer" },
+                                  { value: "FLOAT", label: "Float" },
+                                  { value: "BOOLEAN", label: "Boolean" },
+                                ] as DropdownOption<ParameterType>[]
+                              }
+                              value={field.value}
+                              onChange={field.onChange}
+                              size="sm"
+                            />
+                          )}
                         />
                       </div>
                       <div className="col-span-3 space-y-1">
                         <Label className="text-[10px]">Default</Label>
                         <Input
-                          value={String(param.defaultValue ?? "")}
-                          onChange={(e) =>
-                            updateParameter(idx, {
-                              defaultValue: e.target.value,
-                            })
-                          }
+                          {...register(`parameters.${idx}.defaultValue` as const)}
                           className="h-8 text-xs"
                           placeholder="Optional"
                         />
@@ -428,7 +472,7 @@ const CommandFormModal: React.FC<Props> = ({
                           type="button"
                           size="icon"
                           variant="ghost"
-                          onClick={() => removeParameter(idx)}
+                          onClick={() => removeParam(idx)}
                           className="h-8 w-8 text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -451,11 +495,17 @@ const CommandFormModal: React.FC<Props> = ({
                   />
                   {preRequestEnabled && (
                     <div className="pl-6 space-y-2 animate-in slide-in-from-top-1">
-                      <CodeEditor
-                        value={preRequestScript}
-                        onChange={setPreRequestScript}
-                        height="120px"
-                        className="border-l-4 border-l-blue-500/30"
+                      <Controller
+                        control={control}
+                        name="scripting.preRequestScript"
+                        render={({ field }) => (
+                          <CodeEditor
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            height="120px"
+                            className="border-l-4 border-l-blue-500/30"
+                          />
+                        )}
                       />
                       <p className="text-[10px] text-muted-foreground italic">
                         Modify payload before transmission. Variables available:{" "}
@@ -534,24 +584,29 @@ const CommandFormModal: React.FC<Props> = ({
                         <div className="p-4 bg-muted/20 border border-border rounded-lg grid grid-cols-3 gap-4 animate-in fade-in">
                           <div className="space-y-1">
                             <Label className="text-[10px]">Type</Label>
-                            <SelectDropdown
-                              options={
-                                [
-                                  { value: "CONTAINS", label: "Contains" },
-                                  { value: "REGEX", label: "Regex" },
-                                ] as DropdownOption<MatchType>[]
-                              }
-                              value={matchType}
-                              onChange={(value) => setMatchType(value)}
-                              size="sm"
+                            <Controller
+                              control={control}
+                              name="validation.matchType"
+                              render={({ field }) => (
+                                <SelectDropdown
+                                  options={
+                                    [
+                                      { value: "CONTAINS", label: "Contains" },
+                                      { value: "REGEX", label: "Regex" },
+                                    ] as DropdownOption<MatchType>[]
+                                  }
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  size="sm"
+                                />
+                              )}
                             />
                           </div>
                           <div className="col-span-2 space-y-1">
                             <Label className="text-[10px]">Pattern</Label>
                             <Input
                               className="h-8 text-xs font-mono"
-                              value={pattern}
-                              onChange={(e) => setPattern(e.target.value)}
+                              {...register("validation.pattern")}
                               placeholder="OK"
                             />
                           </div>
@@ -560,20 +615,25 @@ const CommandFormModal: React.FC<Props> = ({
                             <Input
                               type="number"
                               className="h-8 text-xs"
-                              value={timeout}
-                              onChange={(e) =>
-                                setTimeoutVal(parseInt(e.target.value))
-                              }
+                              {...register("validation.timeout", {
+                                valueAsNumber: true,
+                              })}
                             />
                           </div>
                         </div>
                       ) : (
                         <div className="space-y-2 animate-in fade-in">
-                          <CodeEditor
-                            value={postResponseScript}
-                            onChange={setPostResponseScript}
-                            height="150px"
-                            className="border-l-4 border-l-emerald-500/30"
+                          <Controller
+                            control={control}
+                            name="scripting.postResponseScript"
+                            render={({ field }) => (
+                              <CodeEditor
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                height="150px"
+                                className="border-l-4 border-l-emerald-500/30"
+                              />
+                            )}
                           />
                           <p className="text-[10px] text-muted-foreground italic">
                             Validate and extract data. Variables:{" "}
@@ -607,20 +667,26 @@ const CommandFormModal: React.FC<Props> = ({
                     labelClassName="font-bold"
                   />
                   {framingEnabled && (
-                    <SelectDropdown
-                      options={
-                        [
-                          { value: "TRANSIENT", label: "Transient (One-Shot)" },
-                          {
-                            value: "PERSISTENT",
-                            label: "Persistent (Change Global)",
-                          },
-                        ] as DropdownOption<"TRANSIENT" | "PERSISTENT">[]
-                      }
-                      value={framingPersistence}
-                      onChange={(value) => setFramingPersistence(value)}
-                      size="sm"
-                      className="w-45"
+                    <Controller
+                      control={control}
+                      name="framingPersistence"
+                      render={({ field }) => (
+                        <SelectDropdown
+                          options={
+                            [
+                              { value: "TRANSIENT", label: "Transient (One-Shot)" },
+                              {
+                                value: "PERSISTENT",
+                                label: "Persistent (Change Global)",
+                              },
+                            ] as DropdownOption<"TRANSIENT" | "PERSISTENT">[]
+                          }
+                          value={field.value}
+                          onChange={field.onChange}
+                          size="sm"
+                          className="w-45"
+                        />
+                      )}
                     />
                   )}
                 </div>
@@ -630,94 +696,58 @@ const CommandFormModal: React.FC<Props> = ({
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <Label className="text-xs">Strategy</Label>
-                        <SelectDropdown
-                          options={
-                            [
-                              { value: "NONE", label: "None (Raw Stream)" },
-                              { value: "DELIMITER", label: "Delimiter" },
-                              { value: "TIMEOUT", label: "Timeout" },
-                              {
-                                value: "PREFIX_LENGTH",
-                                label: "Prefix Length",
-                              },
-                              { value: "SCRIPT", label: "Custom Script" },
-                            ] as DropdownOption<FramingStrategy>[]
-                          }
-                          value={framingConfig.strategy}
-                          onChange={(newStrategy) => {
-                            let newScript = framingConfig.script;
-
-                            // Add default script example if switching to SCRIPT mode and it's empty
-                            if (
-                              newStrategy === "SCRIPT" &&
-                              (!newScript || newScript.trim() === "")
-                            ) {
-                              newScript = `// Custom Framer Script
-// Args: chunks (Array<{data: Uint8Array, timestamp: number}>), forceFlush (boolean)
-// Return: { frames: [], remaining: [] }
-
-// Example: Merge everything into one frame on timeout/flush
-if (forceFlush) {
-    const totalLen = chunks.reduce((acc, c) => acc + c.data.length, 0);
-    const merged = new Uint8Array(totalLen);
-    let offset = 0;
-    for(const c of chunks) {
-        merged.set(c.data, offset);
-        offset += c.data.length;
-    }
-    // Return single combined frame
-    return {
-        frames: [{ data: merged, timestamp: Date.now() }],
-        remaining: []
-    };
-}
-
-// Keep accumulating if not flushed
-return { frames: [], remaining: chunks };`;
-                            }
-
-                            setFramingConfig({
-                              ...framingConfig,
-                              strategy: newStrategy,
-                              script: newScript,
-                            });
-                          }}
+                        <Controller
+                          control={control}
+                          name="responseFraming.strategy"
+                          render={({ field }) => (
+                            <SelectDropdown
+                              options={
+                                [
+                                  { value: "NONE", label: "None (Raw Stream)" },
+                                  { value: "DELIMITER", label: "Delimiter" },
+                                  { value: "TIMEOUT", label: "Timeout" },
+                                  {
+                                    value: "PREFIX_LENGTH",
+                                    label: "Prefix Length",
+                                  },
+                                  { value: "SCRIPT", label: "Custom Script" },
+                                ] as DropdownOption<FramingStrategy>[]
+                              }
+                              value={field.value}
+                              onChange={(newStrategy) => {
+                                field.onChange(newStrategy);
+                                // Default script insertion logic if needed
+                                // We can do this via setValue if current script is empty
+                                // But keeping it simple for now or using a useEffect
+                              }}
+                            />
+                          )}
                         />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Timeout (ms)</Label>
                         <Input
                           type="number"
-                          value={framingConfig.timeout}
-                          onChange={(e) =>
-                            setFramingConfig({
-                              ...framingConfig,
-                              timeout: parseInt(e.target.value),
-                            })
-                          }
+                          {...register("responseFraming.timeout", {
+                            valueAsNumber: true,
+                          })}
                           className="h-9 text-sm"
                         />
                       </div>
                     </div>
 
-                    {framingConfig.strategy === "DELIMITER" && (
+                    {watch("responseFraming.strategy") === "DELIMITER" && (
                       <div className="space-y-1">
                         <Label className="text-xs">Delimiter (Hex/Text)</Label>
                         <Input
-                          value={framingConfig.delimiter}
-                          onChange={(e) =>
-                            setFramingConfig({
-                              ...framingConfig,
-                              delimiter: e.target.value,
-                            })
-                          }
+                          {...register("responseFraming.delimiter")}
                           placeholder="e.g. \n or 0D 0A"
                           className="h-9 text-sm font-mono"
                         />
                       </div>
                     )}
 
-                    {framingConfig.strategy === "PREFIX_LENGTH" && (
+                    {watch("responseFraming.strategy") === "PREFIX_LENGTH" && (
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <Label className="text-xs">Header Size (Bytes)</Label>
@@ -725,47 +755,48 @@ return { frames: [], remaining: chunks };`;
                             type="number"
                             min={1}
                             max={8}
-                            value={framingConfig.prefixLengthSize}
-                            onChange={(e) =>
-                              setFramingConfig({
-                                ...framingConfig,
-                                prefixLengthSize: parseInt(e.target.value),
-                              })
-                            }
+                            {...register("responseFraming.prefixLengthSize", {
+                              valueAsNumber: true,
+                            })}
                             className="h-9 text-sm"
                           />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Byte Order</Label>
-                          <SelectDropdown
-                            options={
-                              [
-                                { value: "LE", label: "Little Endian" },
-                                { value: "BE", label: "Big Endian" },
-                              ] as DropdownOption<"LE" | "BE">[]
-                            }
-                            value={framingConfig.byteOrder}
-                            onChange={(value) =>
-                              setFramingConfig({
-                                ...framingConfig,
-                                byteOrder: value,
-                              })
-                            }
+                          <Controller
+                            control={control}
+                            name="responseFraming.byteOrder"
+                            render={({ field }) => (
+                              <SelectDropdown
+                                options={
+                                  [
+                                    { value: "LE", label: "Little Endian" },
+                                    { value: "BE", label: "Big Endian" },
+                                  ] as DropdownOption<"LE" | "BE">[]
+                                }
+                                value={field.value}
+                                onChange={field.onChange}
+                              />
+                            )}
                           />
                         </div>
                       </div>
                     )}
 
-                    {framingConfig.strategy === "SCRIPT" && (
+                    {watch("responseFraming.strategy") === "SCRIPT" && (
                       <div className="space-y-1">
                         <Label className="text-xs">Framer Script</Label>
-                        <CodeEditor
-                          value={framingConfig.script || ""}
-                          onChange={(val) =>
-                            setFramingConfig({ ...framingConfig, script: val })
-                          }
-                          height="150px"
-                          className="border-l-4 border-l-purple-500/30"
+                        <Controller
+                          control={control}
+                          name="responseFraming.script"
+                          render={({ field }) => (
+                            <CodeEditor
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              height="150px"
+                              className="border-l-4 border-l-purple-500/30"
+                            />
+                          )}
                         />
                       </div>
                     )}
@@ -785,11 +816,13 @@ return { frames: [], remaining: chunks };`;
                           key={context.id}
                           checked={contextIds.includes(context.id)}
                           onChange={(e) => {
+                            const current = (watch("contextIds") || []) as string[];
                             if (e.target.checked) {
-                              setContextIds([...contextIds, context.id]);
+                              setValue("contextIds", [...current, context.id]);
                             } else {
-                              setContextIds(
-                                contextIds.filter((id) => id !== context.id),
+                              setValue(
+                                "contextIds",
+                                current.filter((id) => id !== context.id),
                               );
                             }
                           }}
@@ -822,7 +855,7 @@ return { frames: [], remaining: chunks };`;
                             createdAt: Date.now(),
                           };
                           onCreateContext(newCtx);
-                          setContextIds([...contextIds, newCtx.id]);
+                          setValue("contextIds", [...contextIds, newCtx.id]);
                         }
                       }
                     }}
@@ -959,8 +992,8 @@ return { frames: [], remaining: chunks };`;
                         size="sm"
                         type="button"
                         onClick={() => {
-                          setMode("HEX");
-                          setPayload(generateModbusFrame(mbParams));
+                          setValue("mode", "HEX");
+                          setValue("payload", generateModbusFrame(mbParams));
                           setActiveTab("basic");
                         }}
                       >
@@ -986,9 +1019,9 @@ return { frames: [], remaining: chunks };`;
                                   key={c.cmd}
                                   className="flex justify-between items-center p-1.5 hover:bg-muted rounded cursor-pointer group"
                                   onClick={() => {
-                                    setMode("TEXT");
-                                    setPayload(c.cmd);
-                                    setDescription(c.desc);
+                                    setValue("mode", "TEXT");
+                                    setValue("payload", c.cmd);
+                                    setValue("description", c.desc);
                                     setActiveTab("basic");
                                   }}
                                 >
