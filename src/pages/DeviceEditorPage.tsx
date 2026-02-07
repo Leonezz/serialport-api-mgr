@@ -11,6 +11,8 @@
 
 import React, { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Settings,
   Paperclip,
@@ -48,6 +50,7 @@ import ConfirmationModal from "../components/ConfirmationModal";
 import CommandFormModal from "../components/CommandFormModal";
 import { CommandCard, CommandListItem } from "../components/CommandViews";
 import { cn, generateId } from "../lib/utils";
+import { DeviceSchema } from "../lib/schemas";
 import type { Device, DeviceAttachment, SavedCommand } from "../types";
 
 // Tab definitions
@@ -97,7 +100,6 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
   const id = device.id;
 
   const [activeTab, setActiveTab] = useState<EditorTab>("general");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,17 +116,22 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
     null,
   );
 
-  // Local edit state
-  const [editState, setEditState] = useState<Device>(() => ({ ...device }));
+  const {
+    register,
+    watch,
+    setValue,
+    reset,
+    formState: { isDirty },
+  } = useForm<Device>({
+    resolver: zodResolver(DeviceSchema),
+    defaultValues: { ...device },
+  });
 
-  const updateField = <K extends keyof Device>(field: K, value: Device[K]) => {
-    setEditState((prev) => ({ ...prev, [field]: value }));
-    setHasUnsavedChanges(true);
-  };
+  const editState = watch();
 
   const handleSave = () => {
     updateDevice(id, editState);
-    setHasUnsavedChanges(false);
+    reset(editState);
     addToast(
       "success",
       "Saved",
@@ -157,10 +164,11 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
           category: guessCategory(file.name, file.type),
         };
         addDeviceAttachment(id, attachment);
-        setEditState((prev) => ({
-          ...prev,
-          attachments: [...(prev.attachments || []), attachment],
-        }));
+        setValue(
+          "attachments",
+          [...(editState.attachments || []), attachment],
+          { shouldDirty: true },
+        );
       };
       reader.readAsDataURL(file);
     }
@@ -187,12 +195,11 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
 
   const handleRemoveAttachment = (attachmentId: string) => {
     removeDeviceAttachment(id, attachmentId);
-    setEditState((prev) => ({
-      ...prev,
-      attachments: (prev.attachments || []).filter(
-        (a) => a.id !== attachmentId,
-      ),
-    }));
+    setValue(
+      "attachments",
+      (editState.attachments || []).filter((a) => a.id !== attachmentId),
+      { shouldDirty: true },
+    );
   };
 
   const handleDownloadAttachment = (attachment: DeviceAttachment) => {
@@ -236,7 +243,7 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
     const currentPresetIds = editState.presetIds || [];
     if (!currentPresetIds.includes(presetId)) {
       const newPresetIds = [...currentPresetIds, presetId];
-      updateField("presetIds", newPresetIds);
+      setValue("presetIds", newPresetIds, { shouldDirty: true });
       updateDevice(id, { presetIds: newPresetIds });
     }
   };
@@ -244,7 +251,7 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
   const handleUnlinkPreset = (presetId: string) => {
     const currentPresetIds = editState.presetIds || [];
     const newPresetIds = currentPresetIds.filter((pid) => pid !== presetId);
-    updateField("presetIds", newPresetIds);
+    setValue("presetIds", newPresetIds, { shouldDirty: true });
     updateDevice(id, { presetIds: newPresetIds });
   };
 
@@ -275,7 +282,7 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
         backLabel="Devices"
         actions={
           <div className="flex items-center gap-2">
-            {hasUnsavedChanges && (
+            {isDirty && (
               <span className="text-sm text-amber-500">Unsaved changes</span>
             )}
             <Button
@@ -341,31 +348,21 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Name</Label>
-                  <Input
-                    value={editState.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                    placeholder="Device name"
-                  />
+                  <Input {...register("name")} placeholder="Device name" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Manufacturer (Optional)</Label>
                     <Input
-                      value={editState.manufacturer || ""}
-                      onChange={(e) =>
-                        updateField("manufacturer", e.target.value || undefined)
-                      }
+                      {...register("manufacturer")}
                       placeholder="e.g., Arduino, Espressif"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Model (Optional)</Label>
                     <Input
-                      value={editState.model || ""}
-                      onChange={(e) =>
-                        updateField("model", e.target.value || undefined)
-                      }
+                      {...register("model")}
                       placeholder="e.g., ESP32-WROOM-32"
                     />
                   </div>
@@ -375,7 +372,9 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
                   <Label>Icon</Label>
                   <SelectDropdown
                     value={editState.icon || ""}
-                    onChange={(v) => updateField("icon", v || undefined)}
+                    onChange={(v) =>
+                      setValue("icon", v || undefined, { shouldDirty: true })
+                    }
                     options={ICON_OPTIONS}
                   />
                 </div>
@@ -383,10 +382,7 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
                 <div className="space-y-2">
                   <Label>Description (Optional)</Label>
                   <Textarea
-                    value={editState.description || ""}
-                    onChange={(e) =>
-                      updateField("description", e.target.value || undefined)
-                    }
+                    {...register("description")}
                     placeholder="Device description, notes, etc."
                     rows={4}
                   />

@@ -10,6 +10,9 @@
 
 import React, { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Settings,
   Workflow,
@@ -44,7 +47,17 @@ import {
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { cn, generateId } from "../lib/utils";
+import { SequenceStepSchema } from "../lib/schemas";
 import type { SerialSequence, SequenceStep } from "../types";
+
+const SequenceEditorFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  deviceId: z.string().optional(),
+  steps: z.array(SequenceStepSchema),
+});
+
+type SequenceEditorFormData = z.infer<typeof SequenceEditorFormSchema>;
 
 // Tab definitions
 type EditorTab = "general" | "steps" | "settings";
@@ -68,42 +81,64 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
   const id = sequence.id;
 
   const [activeTab, setActiveTab] = useState<EditorTab>("general");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  // Local edit state
-  const [editState, setEditState] = useState<SerialSequence>(() => ({
-    ...sequence,
-  }));
+  const {
+    register,
+    watch,
+    setValue,
+    getValues,
+    reset,
+    formState: { isDirty },
+    control,
+  } = useForm<SequenceEditorFormData>({
+    resolver: zodResolver(SequenceEditorFormSchema),
+    defaultValues: {
+      name: sequence.name,
+      description: sequence.description || "",
+      deviceId: sequence.deviceId || "",
+      steps: sequence.steps || [],
+    },
+  });
 
-  const updateField = <K extends keyof SerialSequence>(
-    field: K,
-    value: SerialSequence[K],
-  ) => {
-    setEditState((prev) => ({ ...prev, [field]: value }));
-    setHasUnsavedChanges(true);
-  };
+  const {
+    fields: steps,
+    append,
+    remove,
+    move,
+  } = useFieldArray({
+    control,
+    name: "steps",
+  });
+
+  const editName = watch("name");
+  const editDeviceId = watch("deviceId");
 
   const handleSave = () => {
-    updateSequence(id, editState);
-    setHasUnsavedChanges(false);
+    const formData = getValues();
+    updateSequence(id, {
+      ...sequence,
+      name: formData.name,
+      description: formData.description,
+      deviceId: formData.deviceId || undefined,
+      steps: formData.steps,
+      updatedAt: Date.now(),
+    });
+    reset(formData);
     addToast(
       "success",
       "Saved",
-      `Sequence "${editState.name}" saved successfully.`,
+      `Sequence "${formData.name}" saved successfully.`,
     );
   };
 
   const handleDelete = () => {
     deleteSequence(id);
-    addToast("success", "Deleted", `Sequence "${editState.name}" deleted.`);
+    addToast("success", "Deleted", `Sequence "${editName}" deleted.`);
     navigate("/sequences");
   };
 
   // Steps helpers
-  const steps = editState.steps || [];
-  const setSteps = (newSteps: SequenceStep[]) => updateField("steps", newSteps);
-
   const addStep = () => {
     const newStep: SequenceStep = {
       id: generateId(),
@@ -111,27 +146,25 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
       delay: 500,
       stopOnError: false,
     };
-    setSteps([...steps, newStep]);
+    append(newStep);
   };
 
   const updateStep = (idx: number, updates: Partial<SequenceStep>) => {
-    const newSteps = [...steps];
-    newSteps[idx] = { ...newSteps[idx], ...updates };
-    setSteps(newSteps);
+    const currentSteps = getValues("steps");
+    setValue(
+      `steps.${idx}`,
+      { ...currentSteps[idx], ...updates },
+      { shouldDirty: true },
+    );
   };
 
   const removeStep = (idx: number) => {
-    const newSteps = [...steps];
-    newSteps.splice(idx, 1);
-    setSteps(newSteps);
+    remove(idx);
   };
 
   const moveStep = (fromIdx: number, toIdx: number) => {
     if (toIdx < 0 || toIdx >= steps.length) return;
-    const newSteps = [...steps];
-    const [moved] = newSteps.splice(fromIdx, 1);
-    newSteps.splice(toIdx, 0, moved);
-    setSteps(newSteps);
+    move(fromIdx, toIdx);
   };
 
   const getCommandName = (commandId: string) => {
@@ -158,12 +191,12 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
   return (
     <div className="flex flex-col h-full bg-background">
       <PageHeader
-        title={editState.name}
+        title={editName}
         backTo="/sequences"
         backLabel="Sequences"
         actions={
           <div className="flex items-center gap-2">
-            {hasUnsavedChanges && (
+            {isDirty && (
               <span className="text-sm text-amber-500">Unsaved changes</span>
             )}
             <Button
@@ -179,7 +212,7 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
               size="sm"
               className="gap-2"
               onClick={handleSave}
-              disabled={!hasUnsavedChanges}
+              disabled={!isDirty}
             >
               <Check className="w-4 h-4" />
               Save
@@ -194,7 +227,7 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
           items={[
             workspaceItem,
             { label: "Sequences", href: "/sequences" },
-            { label: editState.name },
+            { label: editName },
           ]}
         />
       </div>
@@ -236,20 +269,13 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Name</Label>
-                  <Input
-                    value={editState.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                    placeholder="Sequence name"
-                  />
+                  <Input {...register("name")} placeholder="Sequence name" />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Description (Optional)</Label>
                   <Textarea
-                    value={editState.description || ""}
-                    onChange={(e) =>
-                      updateField("description", e.target.value || undefined)
-                    }
+                    {...register("description")}
                     placeholder="What does this sequence do?"
                     rows={3}
                   />
@@ -258,8 +284,12 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
                 <div className="space-y-2">
                   <Label>Device (Optional)</Label>
                   <SelectDropdown
-                    value={editState.deviceId || ""}
-                    onChange={(v) => updateField("deviceId", v || undefined)}
+                    value={editDeviceId || ""}
+                    onChange={(v) =>
+                      setValue("deviceId", v || undefined, {
+                        shouldDirty: true,
+                      })
+                    }
                     options={[
                       { label: "-- No Device --", value: "" },
                       ...devices.map((d) => ({ label: d.name, value: d.id })),
@@ -289,7 +319,7 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <p className="text-2xl font-bold text-primary">
-                        {getDeviceName(editState.deviceId) || "None"}
+                        {getDeviceName(editDeviceId) || "None"}
                       </p>
                       <p className="text-xs text-muted-foreground">Device</p>
                     </div>
@@ -512,7 +542,7 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
       {deleteConfirm && (
         <ConfirmationModal
           title="Delete Sequence"
-          message={`Are you sure you want to delete "${editState.name}"? This action cannot be undone.`}
+          message={`Are you sure you want to delete "${editName}"? This action cannot be undone.`}
           confirmLabel="Delete"
           isDestructive
           onConfirm={handleDelete}

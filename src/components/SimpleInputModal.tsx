@@ -1,6 +1,15 @@
-import React, { useState } from "react";
+import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Check } from "lucide-react";
 import { Button, Input, Modal } from "./ui";
+
+const SimpleInputFormSchema = z.object({
+  value: z.string().min(1, "Required"),
+});
+
+type SimpleInputFormData = z.infer<typeof SimpleInputFormSchema>;
 
 interface Props {
   title: string;
@@ -17,14 +26,18 @@ const SimpleInputModal: React.FC<Props> = ({
   onSave,
   onClose,
 }) => {
-  const [value, setValue] = useState(defaultValue);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SimpleInputFormData>({
+    resolver: zodResolver(SimpleInputFormSchema),
+    defaultValues: { value: defaultValue },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (value.trim()) {
-      onSave(value.trim());
-      onClose();
-    }
+  const onSubmit = (data: SimpleInputFormData): void => {
+    onSave(data.value.trim());
+    onClose();
   };
 
   const footer = (
@@ -46,14 +59,13 @@ const SimpleInputModal: React.FC<Props> = ({
       size="sm"
       footer={footer}
     >
-      <form id="simple-input-form" onSubmit={handleSubmit}>
-        <Input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
-          autoFocus
-          required
-        />
+      <form id="simple-input-form" onSubmit={handleSubmit(onSubmit)}>
+        <Input {...register("value")} placeholder={placeholder} autoFocus />
+        {errors.value && (
+          <p className="text-xs text-destructive mt-1">
+            {errors.value.message}
+          </p>
+        )}
       </form>
     </Modal>
   );

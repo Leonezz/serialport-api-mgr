@@ -1,4 +1,7 @@
 import React, { useState, useRef, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Cpu,
   Radio,
@@ -31,10 +34,32 @@ import {
 } from "./ui";
 import { useStore } from "../lib/store";
 import { generateId } from "../lib/utils";
+import { DeviceAttachmentSchema } from "../lib/schemas";
 import type {
   DeviceAttachment,
   AttachmentCategory,
 } from "../lib/protocolTypes";
+
+const DeviceFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  manufacturer: z.string().default(""),
+  model: z.string().default(""),
+  serialNumber: z.string().default(""),
+  firmwareVersion: z.string().default(""),
+  description: z.string().default(""),
+  icon: z.string().default("cpu"),
+  baudRate: z.number().default(115200),
+  dataBits: z.enum(["Five", "Six", "Seven", "Eight"]).default("Eight"),
+  stopBits: z.enum(["One", "Two"]).default("One"),
+  parity: z.enum(["None", "Even", "Odd"]).default("None"),
+  flowControl: z.enum(["None", "Hardware", "Software"]).default("None"),
+  selectedProtocols: z.array(z.string()).default([]),
+  defaultProtocolId: z.string().optional(),
+  attachments: z.array(DeviceAttachmentSchema).default([]),
+  localCommandIds: z.array(z.string()).default([]),
+});
+
+type DeviceFormData = z.infer<typeof DeviceFormSchema>;
 
 const DEVICE_ICONS = [
   { value: "cpu", label: "CPU", icon: Cpu },
@@ -102,92 +127,77 @@ const DeviceFormModal: React.FC = () => {
 
   const fileInputRef = useRef<FileInputRef>(null);
 
-  // Tab state
+  // Tab state (UI-only)
   const [activeTab, setActiveTab] = useState<
     "basic" | "serial" | "protocols" | "commands" | "attachments"
   >("basic");
 
-  // Basic info state (fresh on each mount — component unmounts when modal closes)
-  const [name, setName] = useState(editingDevice?.name || "");
-  const [manufacturer, setManufacturer] = useState(
-    editingDevice?.manufacturer || "",
-  );
-  const [model, setModel] = useState(editingDevice?.model || "");
-  const [serialNumber, setSerialNumber] = useState(
-    editingDevice?.serialNumber || "",
-  );
-  const [firmwareVersion, setFirmwareVersion] = useState(
-    editingDevice?.firmwareVersion || "",
-  );
-  const [description, setDescription] = useState(
-    editingDevice?.description || "",
-  );
-  const [icon, setIcon] = useState(editingDevice?.icon || "cpu");
+  const { register, watch, setValue } = useForm<DeviceFormData>({
+    resolver: zodResolver(DeviceFormSchema),
+    defaultValues: {
+      name: editingDevice?.name || "",
+      manufacturer: editingDevice?.manufacturer || "",
+      model: editingDevice?.model || "",
+      serialNumber: editingDevice?.serialNumber || "",
+      firmwareVersion: editingDevice?.firmwareVersion || "",
+      description: editingDevice?.description || "",
+      icon: editingDevice?.icon || "cpu",
+      baudRate: editingDevice?.defaultSerialOptions?.baudRate || 115200,
+      dataBits: editingDevice?.defaultSerialOptions?.dataBits || "Eight",
+      stopBits: editingDevice?.defaultSerialOptions?.stopBits || "One",
+      parity: editingDevice?.defaultSerialOptions?.parity || "None",
+      flowControl: editingDevice?.defaultSerialOptions?.flowControl || "None",
+      selectedProtocols: (editingDevice?.protocols || []).map(
+        (p) => p.protocolId,
+      ),
+      defaultProtocolId: editingDevice?.defaultProtocolId,
+      attachments: editingDevice?.attachments || [],
+      localCommandIds: editingDevice?.commandIds || [],
+    },
+  });
 
-  // Serial options state
-  const [baudRate, setBaudRate] = useState(
-    editingDevice?.defaultSerialOptions?.baudRate || 115200,
-  );
-  const [dataBits, setDataBits] = useState<"Five" | "Six" | "Seven" | "Eight">(
-    editingDevice?.defaultSerialOptions?.dataBits || "Eight",
-  );
-  const [stopBits, setStopBits] = useState<"One" | "Two">(
-    editingDevice?.defaultSerialOptions?.stopBits || "One",
-  );
-  const [parity, setParity] = useState<"None" | "Even" | "Odd">(
-    editingDevice?.defaultSerialOptions?.parity || "None",
-  );
-  const [flowControl, setFlowControl] = useState<
-    "None" | "Hardware" | "Software"
-  >(editingDevice?.defaultSerialOptions?.flowControl || "None");
-
-  // Protocol bindings state
-  const [selectedProtocols, setSelectedProtocols] = useState<string[]>(
-    (editingDevice?.protocols || []).map((p) => p.protocolId),
-  );
-  const [defaultProtocolId, setDefaultProtocolId] = useState<
-    string | undefined
-  >(editingDevice?.defaultProtocolId);
-
-  // Attachments state
-  const [attachments, setAttachments] = useState<DeviceAttachment[]>(
-    editingDevice?.attachments || [],
-  );
-
-  // Command IDs state (for new devices, track locally; for existing, managed via store actions)
-  const [localCommandIds, setLocalCommandIds] = useState<string[]>(
-    editingDevice?.commandIds || [],
-  );
+  const name = watch("name");
+  const icon = watch("icon");
+  const baudRate = watch("baudRate");
+  const dataBits = watch("dataBits");
+  const stopBits = watch("stopBits");
+  const parity = watch("parity");
+  const flowControl = watch("flowControl");
+  const selectedProtocols = watch("selectedProtocols");
+  const attachments = watch("attachments");
+  const localCommandIds = watch("localCommandIds");
+  const defaultProtocolId = watch("defaultProtocolId");
 
   const handleSave = () => {
-    if (!name.trim()) {
+    const formData = watch();
+    if (!formData.name.trim()) {
       addToast("error", "Validation Error", "Device name is required");
       return;
     }
 
     const deviceData = {
-      name,
-      manufacturer: manufacturer || undefined,
-      model: model || undefined,
-      serialNumber: serialNumber || undefined,
-      firmwareVersion: firmwareVersion || undefined,
-      description: description || undefined,
-      icon,
+      name: formData.name,
+      manufacturer: formData.manufacturer || undefined,
+      model: formData.model || undefined,
+      serialNumber: formData.serialNumber || undefined,
+      firmwareVersion: formData.firmwareVersion || undefined,
+      description: formData.description || undefined,
+      icon: formData.icon,
       defaultSerialOptions: {
-        baudRate,
-        dataBits,
-        stopBits,
-        parity,
-        flowControl,
+        baudRate: formData.baudRate,
+        dataBits: formData.dataBits,
+        stopBits: formData.stopBits,
+        parity: formData.parity,
+        flowControl: formData.flowControl,
       },
-      protocols: selectedProtocols.map((protocolId) => ({
+      protocols: formData.selectedProtocols.map((protocolId) => ({
         protocolId,
         parameterDefaults: {},
       })),
-      defaultProtocolId: defaultProtocolId || undefined,
+      defaultProtocolId: formData.defaultProtocolId || undefined,
       // Only include commandIds for new devices; existing devices manage this via store actions
-      commandIds: editingDevice?.id ? undefined : localCommandIds,
-      attachments,
+      commandIds: editingDevice?.id ? undefined : formData.localCommandIds,
+      attachments: formData.attachments,
     };
 
     if (editingDevice && editingDevice.id) {
@@ -195,14 +205,14 @@ const DeviceFormModal: React.FC = () => {
       addToast(
         "success",
         "Device Updated",
-        `Device "${name}" updated successfully.`,
+        `Device "${formData.name}" updated successfully.`,
       );
     } else {
       addDevice(deviceData);
       addToast(
         "success",
         "Device Created",
-        `Device "${name}" created successfully.`,
+        `Device "${formData.name}" created successfully.`,
       );
     }
 
@@ -237,7 +247,10 @@ const DeviceFormModal: React.FC = () => {
           createdAt: Date.now(),
         };
 
-        setAttachments((prev) => [...prev, newAttachment]);
+        const current = watch("attachments");
+        setValue("attachments", [...current, newAttachment], {
+          shouldDirty: true,
+        });
       };
 
       reader.readAsDataURL(file);
@@ -276,15 +289,23 @@ const DeviceFormModal: React.FC = () => {
   };
 
   const removeAttachment = (id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
+    const current = watch("attachments");
+    setValue(
+      "attachments",
+      current.filter((a) => a.id !== id),
+      { shouldDirty: true },
+    );
   };
 
   const updateAttachmentCategory = (
     id: string,
     category: AttachmentCategory,
   ) => {
-    setAttachments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, category } : a)),
+    const current = watch("attachments");
+    setValue(
+      "attachments",
+      current.map((a) => (a.id === id ? { ...a, category } : a)),
+      { shouldDirty: true },
     );
   };
 
@@ -404,8 +425,7 @@ const DeviceFormModal: React.FC = () => {
               <div className="flex-1 space-y-2">
                 <Label>Name *</Label>
                 <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  {...register("name")}
                   placeholder="e.g. Arduino Uno"
                   autoFocus
                 />
@@ -420,7 +440,11 @@ const DeviceFormModal: React.FC = () => {
                   return (
                     <button
                       key={iconOption.value}
-                      onClick={() => setIcon(iconOption.value)}
+                      onClick={() =>
+                        setValue("icon", iconOption.value, {
+                          shouldDirty: true,
+                        })
+                      }
                       className={`p-2 rounded-md border transition-colors ${
                         icon === iconOption.value
                           ? "border-primary bg-primary/10"
@@ -439,35 +463,25 @@ const DeviceFormModal: React.FC = () => {
               <div className="space-y-2">
                 <Label>Manufacturer</Label>
                 <Input
-                  value={manufacturer}
-                  onChange={(e) => setManufacturer(e.target.value)}
+                  {...register("manufacturer")}
                   placeholder="e.g. Arduino"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Model</Label>
-                <Input
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  placeholder="e.g. R3"
-                />
+                <Input {...register("model")} placeholder="e.g. R3" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Serial Number</Label>
-                <Input
-                  value={serialNumber}
-                  onChange={(e) => setSerialNumber(e.target.value)}
-                  placeholder="Optional"
-                />
+                <Input {...register("serialNumber")} placeholder="Optional" />
               </div>
               <div className="space-y-2">
                 <Label>Firmware Version</Label>
                 <Input
-                  value={firmwareVersion}
-                  onChange={(e) => setFirmwareVersion(e.target.value)}
+                  {...register("firmwareVersion")}
                   placeholder="e.g. 1.0.0"
                 />
               </div>
@@ -476,8 +490,7 @@ const DeviceFormModal: React.FC = () => {
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                {...register("description")}
                 placeholder="Optional notes about this device..."
                 rows={3}
               />
@@ -503,7 +516,9 @@ const DeviceFormModal: React.FC = () => {
                 <SelectDropdown
                   options={BAUD_RATE_OPTIONS}
                   value={baudRate}
-                  onChange={setBaudRate}
+                  onChange={(v) =>
+                    setValue("baudRate", v, { shouldDirty: true })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -511,7 +526,9 @@ const DeviceFormModal: React.FC = () => {
                 <SelectDropdown
                   options={DATA_BITS_OPTIONS}
                   value={dataBits}
-                  onChange={setDataBits}
+                  onChange={(v) =>
+                    setValue("dataBits", v, { shouldDirty: true })
+                  }
                 />
               </div>
             </div>
@@ -522,7 +539,9 @@ const DeviceFormModal: React.FC = () => {
                 <SelectDropdown
                   options={STOP_BITS_OPTIONS}
                   value={stopBits}
-                  onChange={setStopBits}
+                  onChange={(v) =>
+                    setValue("stopBits", v, { shouldDirty: true })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -530,7 +549,7 @@ const DeviceFormModal: React.FC = () => {
                 <SelectDropdown
                   options={PARITY_OPTIONS}
                   value={parity}
-                  onChange={setParity}
+                  onChange={(v) => setValue("parity", v, { shouldDirty: true })}
                 />
               </div>
               <div className="space-y-2">
@@ -538,7 +557,9 @@ const DeviceFormModal: React.FC = () => {
                 <SelectDropdown
                   options={FLOW_CONTROL_OPTIONS}
                   value={flowControl}
-                  onChange={setFlowControl}
+                  onChange={(v) =>
+                    setValue("flowControl", v, { shouldDirty: true })
+                  }
                 />
               </div>
             </div>
@@ -563,8 +584,7 @@ const DeviceFormModal: React.FC = () => {
               {selectedProtocols.map((protocolId, _index) => {
                 const protocol = protocols.find((p) => p.id === protocolId);
                 if (!protocol) return null;
-                const isDefault =
-                  protocolId === editingDevice?.defaultProtocolId;
+                const isDefault = protocolId === defaultProtocolId;
                 const commandCount = protocol.commands?.length ?? 0;
 
                 return (
@@ -580,7 +600,9 @@ const DeviceFormModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        setDefaultProtocolId(protocolId);
+                        setValue("defaultProtocolId", protocolId, {
+                          shouldDirty: true,
+                        });
                       }}
                       className={`shrink-0 p-1 rounded transition-colors ${
                         isDefault
@@ -622,8 +644,10 @@ const DeviceFormModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        setSelectedProtocols((prev) =>
-                          prev.filter((id) => id !== protocolId),
+                        setValue(
+                          "selectedProtocols",
+                          selectedProtocols.filter((id) => id !== protocolId),
+                          { shouldDirty: true },
                         )
                       }
                       className="shrink-0 p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
@@ -658,7 +682,11 @@ const DeviceFormModal: React.FC = () => {
                       value=""
                       onChange={(protocolId) => {
                         if (protocolId) {
-                          setSelectedProtocols((prev) => [...prev, protocolId]);
+                          setValue(
+                            "selectedProtocols",
+                            [...selectedProtocols, protocolId],
+                            { shouldDirty: true },
+                          );
                         }
                       }}
                       placeholder="+ Link Protocol..."
@@ -770,8 +798,12 @@ const DeviceFormModal: React.FC = () => {
                                     cmd.id,
                                   );
                                 } else {
-                                  setLocalCommandIds((prev) =>
-                                    prev.filter((id) => id !== cmd.id),
+                                  setValue(
+                                    "localCommandIds",
+                                    localCommandIds.filter(
+                                      (id) => id !== cmd.id,
+                                    ),
+                                    { shouldDirty: true },
                                   );
                                 }
                               }}
@@ -821,7 +853,11 @@ const DeviceFormModal: React.FC = () => {
                         if (editingDevice?.id) {
                           addCommandToDevice(editingDevice.id, commandId);
                         } else {
-                          setLocalCommandIds((prev) => [...prev, commandId]);
+                          setValue(
+                            "localCommandIds",
+                            [...localCommandIds, commandId],
+                            { shouldDirty: true },
+                          );
                         }
                       }
                     }}

@@ -239,7 +239,13 @@ const SequenceLibrary: React.FC = () => {
       {showAddModal && (
         <SequenceFormModal
           availableCommands={commands}
-          onSave={() => {
+          onSave={(data) => {
+            addSequence(data);
+            addToast(
+              "success",
+              "Sequence Created",
+              `"${data.name}" has been created.`,
+            );
             setShowAddModal(false);
           }}
           onClose={() => {
