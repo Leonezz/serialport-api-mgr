@@ -128,6 +128,8 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
     register,
     watch,
     setValue,
+    getValues,
+    reset,
     formState: { isDirty },
     control,
   } = useForm<SavedCommand>({
@@ -181,6 +183,7 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
 
   const handleSave = () => {
     updateCommand(id, editState);
+    reset(editState);
     addToast(
       "success",
       "Saved",
@@ -203,10 +206,10 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
   };
 
   const updateParameter = (idx: number, updates: Partial<CommandParameter>) => {
-    const current = parameters[idx];
+    const currentParams = getValues("parameters");
     setValue(
       `parameters.${idx}`,
-      { ...current, ...updates },
+      { ...currentParams[idx], ...updates },
       { shouldDirty: true },
     );
   };

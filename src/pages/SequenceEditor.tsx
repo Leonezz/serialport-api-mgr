@@ -87,6 +87,8 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
     register,
     watch,
     setValue,
+    getValues,
+    reset,
     formState: { isDirty },
     control,
   } = useForm<SequenceEditorFormData>({
@@ -113,7 +115,7 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
   const editDeviceId = watch("deviceId");
 
   const handleSave = () => {
-    const formData = watch();
+    const formData = getValues();
     updateSequence(id, {
       ...sequence,
       name: formData.name,
@@ -122,6 +124,7 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
       steps: formData.steps,
       updatedAt: Date.now(),
     });
+    reset(formData);
     addToast(
       "success",
       "Saved",
@@ -147,8 +150,12 @@ const SequenceEditorContent: React.FC<SequenceEditorContentProps> = ({
   };
 
   const updateStep = (idx: number, updates: Partial<SequenceStep>) => {
-    const current = steps[idx];
-    setValue(`steps.${idx}`, { ...current, ...updates }, { shouldDirty: true });
+    const currentSteps = getValues("steps");
+    setValue(
+      `steps.${idx}`,
+      { ...currentSteps[idx], ...updates },
+      { shouldDirty: true },
+    );
   };
 
   const removeStep = (idx: number) => {

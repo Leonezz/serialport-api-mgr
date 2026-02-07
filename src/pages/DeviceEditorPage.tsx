@@ -120,6 +120,7 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
     register,
     watch,
     setValue,
+    reset,
     formState: { isDirty },
   } = useForm<Device>({
     resolver: zodResolver(DeviceSchema),
@@ -130,6 +131,7 @@ const DeviceEditorContent: React.FC<DeviceEditorContentProps> = ({
 
   const handleSave = () => {
     updateDevice(id, editState);
+    reset(editState);
     addToast(
       "success",
       "Saved",

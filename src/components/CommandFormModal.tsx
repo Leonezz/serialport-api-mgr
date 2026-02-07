@@ -113,7 +113,7 @@ const CommandFormModal: React.FC<Props> = ({
     initialContextIds.includes(c.id),
   );
 
-  const { watch, setValue, control } = useForm<CommandFormData>({
+  const { watch, setValue, getValues, control } = useForm<CommandFormData>({
     resolver: zodResolver(CommandFormSchema),
     defaultValues: {
       name: initialData?.name || "",
@@ -323,7 +323,7 @@ const CommandFormModal: React.FC<Props> = ({
         group: group?.trim() || undefined,
         mode,
         encoding: mode === "TEXT" ? encoding : undefined,
-        parameters,
+        parameters: getValues("parameters"),
         deviceId: deviceId || undefined,
         source: "CUSTOM",
         validation:
@@ -369,8 +369,8 @@ const CommandFormModal: React.FC<Props> = ({
   };
 
   const updateParameter = (idx: number, updates: Partial<CommandParameter>) => {
-    const current = parameters[idx];
-    setValue(`parameters.${idx}`, { ...current, ...updates });
+    const currentParams = getValues("parameters");
+    setValue(`parameters.${idx}`, { ...currentParams[idx], ...updates });
   };
 
   const removeParameter = (idx: number) => {
