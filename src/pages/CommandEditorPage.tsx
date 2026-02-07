@@ -13,6 +13,8 @@
 
 import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Settings,
   Code,
@@ -46,6 +48,7 @@ import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { cn } from "../lib/utils";
 import { getEffectiveMode, getEffectivePayload } from "../lib/commandBuilder";
+import { SavedCommandSchema } from "../lib/schemas";
 import type { SavedCommand, CommandParameter, DataMode } from "../types";
 import { useTranslation } from "react-i18next";
 
@@ -119,13 +122,29 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
   const id = command.id;
 
   const [activeTab, setActiveTab] = useState<EditorTab>("basic");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  // Local edit state
-  const [editState, setEditState] = useState<SavedCommand>(() => ({
-    ...command,
-  }));
+  const {
+    register,
+    watch,
+    setValue,
+    formState: { isDirty },
+    control,
+  } = useForm<SavedCommand>({
+    resolver: zodResolver(SavedCommandSchema),
+    defaultValues: { ...command },
+  });
+
+  const {
+    fields: parameters,
+    append: appendParameter,
+    remove: removeParameterAt,
+  } = useFieldArray({
+    control,
+    name: "parameters",
+  });
+
+  const editState = watch();
 
   // Check if this is a PROTOCOL source command
   const isProtocolCommand = editState.source === "PROTOCOL";
@@ -134,49 +153,34 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
   const effectiveMode = getEffectiveMode(editState);
   const effectivePayload = getEffectivePayload(editState);
 
-  const updateField = <K extends keyof SavedCommand>(
-    field: K,
-    value: SavedCommand[K],
-  ) => {
-    setEditState((prev) => ({ ...prev, [field]: value }));
-    setHasUnsavedChanges(true);
-  };
-
   // Update mode - writes to correct location based on source
   const updateMode = (newMode: DataMode) => {
     if (isProtocolCommand && editState.protocolLayer) {
-      setEditState((prev) => ({
-        ...prev,
-        protocolLayer: {
-          ...prev.protocolLayer!,
-          mode: newMode,
-        },
-      }));
+      setValue(
+        "protocolLayer",
+        { ...editState.protocolLayer, mode: newMode },
+        { shouldDirty: true },
+      );
     } else {
-      setEditState((prev) => ({ ...prev, mode: newMode }));
+      setValue("mode", newMode, { shouldDirty: true });
     }
-    setHasUnsavedChanges(true);
   };
 
   // Update payload - writes to correct location based on source
   const updatePayload = (newPayload: string) => {
     if (isProtocolCommand && editState.protocolLayer) {
-      setEditState((prev) => ({
-        ...prev,
-        protocolLayer: {
-          ...prev.protocolLayer!,
-          payload: newPayload,
-        },
-      }));
+      setValue(
+        "protocolLayer",
+        { ...editState.protocolLayer, payload: newPayload },
+        { shouldDirty: true },
+      );
     } else {
-      setEditState((prev) => ({ ...prev, payload: newPayload }));
+      setValue("payload", newPayload, { shouldDirty: true });
     }
-    setHasUnsavedChanges(true);
   };
 
   const handleSave = () => {
     updateCommand(id, editState);
-    setHasUnsavedChanges(false);
     addToast(
       "success",
       "Saved",
@@ -191,27 +195,24 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
   };
 
   // Parameters helpers
-  const parameters = editState.parameters || [];
-  const setParameters = (params: CommandParameter[]) =>
-    updateField("parameters", params);
-
   const addParameter = () => {
-    setParameters([
-      ...parameters,
-      { name: `param${parameters.length + 1}`, type: "STRING" },
-    ]);
+    appendParameter({
+      name: `param${parameters.length + 1}`,
+      type: "STRING",
+    });
   };
 
   const updateParameter = (idx: number, updates: Partial<CommandParameter>) => {
-    const newParams = [...parameters];
-    newParams[idx] = { ...newParams[idx], ...updates };
-    setParameters(newParams);
+    const current = parameters[idx];
+    setValue(
+      `parameters.${idx}`,
+      { ...current, ...updates },
+      { shouldDirty: true },
+    );
   };
 
   const removeParameter = (idx: number) => {
-    const newParams = [...parameters];
-    newParams.splice(idx, 1);
-    setParameters(newParams);
+    removeParameterAt(idx);
   };
 
   // Validation helpers
@@ -226,21 +227,29 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
   const updateValidation = (
     updates: Partial<NonNullable<SavedCommand["validation"]>>,
   ) => {
-    updateField("validation", { ...validation, ...updates });
+    setValue(
+      "validation",
+      { ...validation, ...updates },
+      { shouldDirty: true },
+    );
   };
 
   // Scripting helpers
   const scripting = editState.scripting || { enabled: false };
 
   const updateScripting = (updates: Partial<typeof scripting>) => {
-    updateField("scripting", { ...scripting, ...updates });
+    setValue("scripting", { ...scripting, ...updates }, { shouldDirty: true });
   };
 
   // Framing helpers
   const responseFraming = editState.responseFraming || { strategy: "NONE" };
 
   const updateFraming = (updates: Partial<typeof responseFraming>) => {
-    updateField("responseFraming", { ...responseFraming, ...updates });
+    setValue(
+      "responseFraming",
+      { ...responseFraming, ...updates },
+      { shouldDirty: true },
+    );
   };
 
   // Context helpers
@@ -252,7 +261,7 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
         title={`Edit: ${editState.name}`}
         actions={
           <div className="flex items-center gap-2">
-            {hasUnsavedChanges && (
+            {isDirty && (
               <span className="text-sm text-amber-500">Unsaved changes</span>
             )}
             <Button
@@ -319,20 +328,13 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>Name</Label>
-                    <Input
-                      value={editState.name}
-                      onChange={(e) => updateField("name", e.target.value)}
-                      placeholder="Command name"
-                    />
+                    <Input {...register("name")} placeholder="Command name" />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Group (Optional)</Label>
                     <Input
-                      value={editState.group || ""}
-                      onChange={(e) =>
-                        updateField("group", e.target.value || undefined)
-                      }
+                      {...register("group")}
                       placeholder="e.g., Configuration, Diagnostics"
                     />
                   </div>
@@ -340,10 +342,7 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
                   <div className="space-y-2">
                     <Label>Description (Optional)</Label>
                     <Textarea
-                      value={editState.description || ""}
-                      onChange={(e) =>
-                        updateField("description", e.target.value || undefined)
-                      }
+                      {...register("description")}
                       placeholder="What does this command do?"
                       rows={2}
                     />
@@ -372,9 +371,10 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
                         <SelectDropdown
                           value={editState.encoding || "UTF-8"}
                           onChange={(v) =>
-                            updateField(
+                            setValue(
                               "encoding",
                               v as "UTF-8" | "ASCII" | "ISO-8859-1",
+                              { shouldDirty: true },
                             )
                           }
                           options={ENCODING_OPTIONS}
@@ -787,9 +787,10 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
                     <SelectDropdown
                       value={editState.framingPersistence || "TRANSIENT"}
                       onChange={(v) =>
-                        updateField(
+                        setValue(
                           "framingPersistence",
                           v as "TRANSIENT" | "PERSISTENT",
+                          { shouldDirty: true },
                         )
                       }
                       options={[
@@ -832,14 +833,14 @@ const CommandEditorContent: React.FC<CommandEditorContentProps> = ({
                           checked={contextIds.includes(ctx.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              updateField("contextIds", [
-                                ...contextIds,
-                                ctx.id,
-                              ]);
+                              setValue("contextIds", [...contextIds, ctx.id], {
+                                shouldDirty: true,
+                              });
                             } else {
-                              updateField(
+                              setValue(
                                 "contextIds",
-                                contextIds.filter((id) => id !== ctx.id),
+                                contextIds.filter((cid) => cid !== ctx.id),
+                                { shouldDirty: true },
                               );
                             }
                           }}

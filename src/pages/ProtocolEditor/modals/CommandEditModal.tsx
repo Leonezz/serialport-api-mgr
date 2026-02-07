@@ -5,6 +5,8 @@
  */
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2, X } from "lucide-react";
 import {
   Button,
@@ -16,6 +18,7 @@ import {
   Textarea,
 } from "../../../components/ui";
 import { cn } from "../../../lib/utils";
+import { CommandTemplateSchema } from "../../../lib/protocolSchemas";
 import type {
   SimpleCommand,
   StructuredCommand,
@@ -37,11 +40,16 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
   onSave,
   onClose,
 }) => {
-  const [editState, setEditState] = useState<CommandTemplate>({ ...command });
   const [activeSection, setActiveSection] = useState<
     "basic" | "parameters" | "response" | "hooks"
   >("basic");
 
+  const { watch, setValue, reset } = useForm<CommandTemplate>({
+    resolver: zodResolver(CommandTemplateSchema),
+    defaultValues: { ...command },
+  });
+
+  const editState = watch();
   const isSimple = editState.type === "SIMPLE";
   const isStructured = editState.type === "STRUCTURED";
 
@@ -58,7 +66,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
     if (newType === editState.type) return;
 
     if (newType === "SIMPLE") {
-      setEditState({
+      reset({
         id: editState.id,
         name: editState.name,
         description: editState.description,
@@ -73,7 +81,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
         extractVariables: [],
       } as SimpleCommand);
     } else {
-      setEditState({
+      reset({
         id: editState.id,
         name: editState.name,
         description: editState.description,
@@ -101,10 +109,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
       type: "STRING",
       required: false,
     };
-    setEditState({
-      ...structured,
-      parameters: [...structured.parameters, newParam],
-    } as CommandTemplate);
+    setValue("parameters", [...structured.parameters, newParam]);
   };
 
   const updateParameter = (
@@ -115,23 +120,22 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
     const structured = editState as StructuredCommand;
     const newParams = [...structured.parameters];
     newParams[index] = { ...newParams[index], ...updates };
-    setEditState({ ...structured, parameters: newParams } as CommandTemplate);
+    setValue("parameters", newParams);
   };
 
   const removeParameter = (index: number) => {
     if (!isStructured) return;
     const structured = editState as StructuredCommand;
-    const newParams = structured.parameters.filter((_, i) => i !== index);
-    // Also remove any bindings that reference this parameter
     const paramName = structured.parameters[index].name;
+    const newParams = structured.parameters.filter((_, i) => i !== index);
     const newBindings = structured.bindings.filter(
       (b) => b.parameterName !== paramName,
     );
-    setEditState({
-      ...structured,
-      parameters: newParams,
-      bindings: newBindings,
-    } as CommandTemplate);
+    setValue("parameters", newParams);
+    setValue(
+      "bindings" as "parameters",
+      newBindings as unknown as CommandParameter[],
+    );
   };
 
   // Binding management for structured commands
@@ -151,7 +155,10 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
     } else {
       newBindings = newBindings.filter((b) => b.parameterName !== paramName);
     }
-    setEditState({ ...structured, bindings: newBindings } as CommandTemplate);
+    setValue(
+      "bindings" as "parameters",
+      newBindings as unknown as CommandParameter[],
+    );
   };
 
   // Static values management
@@ -165,13 +172,13 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
       (e) => !usedElementIds.has(e.id),
     );
     if (!availableElement) return;
-    setEditState({
-      ...structured,
-      staticValues: [
+    setValue(
+      "staticValues" as "parameters",
+      [
         ...structured.staticValues,
         { elementId: availableElement.id, value: 0 },
-      ],
-    } as CommandTemplate);
+      ] as unknown as CommandParameter[],
+    );
   };
 
   const updateStaticValue = (
@@ -182,19 +189,21 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
     const structured = editState as StructuredCommand;
     const newStatics = [...structured.staticValues];
     newStatics[index] = { ...newStatics[index], ...updates };
-    setEditState({
-      ...structured,
-      staticValues: newStatics,
-    } as CommandTemplate);
+    setValue(
+      "staticValues" as "parameters",
+      newStatics as unknown as CommandParameter[],
+    );
   };
 
   const removeStaticValue = (index: number) => {
     if (!isStructured) return;
     const structured = editState as StructuredCommand;
-    setEditState({
-      ...structured,
-      staticValues: structured.staticValues.filter((_, i) => i !== index),
-    } as CommandTemplate);
+    setValue(
+      "staticValues" as "parameters",
+      structured.staticValues.filter(
+        (_, i) => i !== index,
+      ) as unknown as CommandParameter[],
+    );
   };
 
   // Validation management
@@ -211,10 +220,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
       enabled: false,
       timeout: 2000,
     };
-    setEditState({
-      ...editState,
-      validation: { ...current, ...updates },
-    } as CommandTemplate);
+    setValue("validation", { ...current, ...updates });
   };
 
   // Hooks management
@@ -223,10 +229,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
     updates: Partial<{ preRequest?: string; postResponse?: string }>,
   ) => {
     const current = editState.hooks || {};
-    setEditState({
-      ...editState,
-      hooks: { ...current, ...updates },
-    } as CommandTemplate);
+    setValue("hooks", { ...current, ...updates });
   };
 
   return (
@@ -317,18 +320,14 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
                   <Label>Name</Label>
                   <Input
                     value={editState.name}
-                    onChange={(e) =>
-                      setEditState((s) => ({ ...s, name: e.target.value }))
-                    }
+                    onChange={(e) => setValue("name", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Category</Label>
                   <Input
                     value={editState.category || ""}
-                    onChange={(e) =>
-                      setEditState((s) => ({ ...s, category: e.target.value }))
-                    }
+                    onChange={(e) => setValue("category", e.target.value)}
                     placeholder="e.g., Configuration, Query"
                   />
                 </div>
@@ -338,9 +337,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
                 <Label>Description</Label>
                 <Textarea
                   value={editState.description || ""}
-                  onChange={(e) =>
-                    setEditState((s) => ({ ...s, description: e.target.value }))
-                  }
+                  onChange={(e) => setValue("description", e.target.value)}
                   rows={2}
                 />
               </div>
@@ -353,13 +350,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
                     <Textarea
                       value={(editState as SimpleCommand).payload}
                       onChange={(e) =>
-                        setEditState(
-                          (s) =>
-                            ({
-                              ...s,
-                              payload: e.target.value,
-                            }) as CommandTemplate,
-                        )
+                        setValue("payload" as "name", e.target.value)
                       }
                       placeholder="Enter command payload... Use {paramName} for parameters"
                       rows={3}
@@ -373,13 +364,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
                       <Select
                         value={(editState as SimpleCommand).mode}
                         onChange={(e) =>
-                          setEditState(
-                            (s) =>
-                              ({
-                                ...s,
-                                mode: e.target.value,
-                              }) as CommandTemplate,
-                          )
+                          setValue("mode" as "name", e.target.value)
                         }
                       >
                         <option value="TEXT">Text</option>
@@ -391,13 +376,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
                       <Select
                         value={(editState as SimpleCommand).encoding || "UTF-8"}
                         onChange={(e) =>
-                          setEditState(
-                            (s) =>
-                              ({
-                                ...s,
-                                encoding: e.target.value,
-                              }) as CommandTemplate,
-                          )
+                          setValue("encoding" as "name", e.target.value)
                         }
                       >
                         <option value="UTF-8">UTF-8</option>
@@ -412,13 +391,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
                           (editState as SimpleCommand).lineEnding || "NONE"
                         }
                         onChange={(e) =>
-                          setEditState(
-                            (s) =>
-                              ({
-                                ...s,
-                                lineEnding: e.target.value,
-                              }) as CommandTemplate,
-                          )
+                          setValue("lineEnding" as "name", e.target.value)
                         }
                       >
                         <option value="NONE">None</option>
@@ -441,13 +414,7 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
                         (editState as StructuredCommand).messageStructureId
                       }
                       onChange={(e) =>
-                        setEditState(
-                          (s) =>
-                            ({
-                              ...s,
-                              messageStructureId: e.target.value,
-                            }) as CommandTemplate,
-                        )
+                        setValue("messageStructureId" as "name", e.target.value)
                       }
                     >
                       {messageStructures.length === 0 ? (
@@ -555,13 +522,13 @@ export const CommandEditModal: React.FC<CommandEditModalProps> = ({
                 <Input
                   value={editState.tags.join(", ")}
                   onChange={(e) =>
-                    setEditState((s) => ({
-                      ...s,
-                      tags: e.target.value
+                    setValue(
+                      "tags",
+                      e.target.value
                         .split(",")
                         .map((t) => t.trim())
                         .filter((t) => t),
-                    }))
+                    )
                   }
                   placeholder="tag1, tag2, tag3"
                 />

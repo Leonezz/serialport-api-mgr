@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { CommandParameter, SavedCommand } from "../types";
 import { Play, RotateCcw } from "lucide-react";
 import {
@@ -17,34 +20,88 @@ interface Props {
   onClose: () => void;
 }
 
-const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
-  const [values, setValues] = useState<Record<string, unknown>>(() => {
-    const initial: Record<string, unknown> = {};
-    command.parameters?.forEach((p) => {
-      if (p.defaultValue !== undefined) {
-        initial[p.name] = p.defaultValue;
-      } else if (p.type === "BOOLEAN") {
-        initial[p.name] = false;
-      } else {
-        initial[p.name] = "";
+function buildDefaultValues(
+  parameters: CommandParameter[] | undefined,
+): Record<string, unknown> {
+  const initial: Record<string, unknown> = {};
+  parameters?.forEach((p) => {
+    if (p.defaultValue !== undefined) {
+      initial[p.name] = p.defaultValue;
+    } else if (p.type === "BOOLEAN") {
+      initial[p.name] = false;
+    } else {
+      initial[p.name] = "";
+    }
+  });
+  return initial;
+}
+
+function buildSchema(
+  parameters: CommandParameter[] | undefined,
+): z.ZodObject<Record<string, z.ZodTypeAny>> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  parameters?.forEach((p) => {
+    switch (p.type) {
+      case "INTEGER": {
+        let s = z.coerce.number().int("Must be an integer");
+        if (p.min !== undefined) s = s.min(p.min);
+        if (p.max !== undefined) s = s.max(p.max);
+        shape[p.name] = p.required === false ? s.optional() : s;
+        break;
       }
-    });
-    return initial;
+      case "FLOAT": {
+        let s = z.coerce.number();
+        if (p.min !== undefined) s = s.min(p.min);
+        if (p.max !== undefined) s = s.max(p.max);
+        shape[p.name] = p.required === false ? s.optional() : s;
+        break;
+      }
+      case "BOOLEAN":
+        shape[p.name] = z.boolean();
+        break;
+      case "ENUM":
+        shape[p.name] = z.union([z.string(), z.number()]);
+        break;
+      default: {
+        // STRING
+        let s = z.string();
+        if (p.maxLength) s = s.max(p.maxLength);
+        shape[p.name] = p.required === false ? s.optional() : s;
+        break;
+      }
+    }
+  });
+  return z.object(shape);
+}
+
+const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
+  const defaultValues = useMemo(
+    () => buildDefaultValues(command.parameters),
+    [command.parameters],
+  );
+
+  const schema = useMemo(
+    () => buildSchema(command.parameters),
+    [command.parameters],
+  );
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm<Record<string, unknown>>({
+    resolver: zodResolver(schema),
+    defaultValues,
   });
 
-  const handleChange = (name: string, val: unknown) => {
-    setValues((prev) => ({ ...prev, [name]: val }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSend(values);
+  const onSubmit = (data: Record<string, unknown>): void => {
+    onSend(data);
     onClose();
   };
 
   const renderInput = (param: CommandParameter) => {
-    const val = values[param.name];
-
     switch (param.type) {
       case "ENUM": {
         const enumOptions: DropdownOption<string | number>[] =
@@ -53,30 +110,41 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
             label: String(opt.label || opt.value),
           })) || [];
         return (
-          <SelectDropdown
-            options={enumOptions}
-            value={val as string | number}
-            onChange={(value) => handleChange(param.name, value)}
+          <Controller
+            name={param.name}
+            control={control}
+            render={({ field }) => (
+              <SelectDropdown
+                options={enumOptions}
+                value={field.value as string | number}
+                onChange={(value) => field.onChange(value)}
+              />
+            )}
           />
         );
       }
       case "BOOLEAN":
         return (
-          <div className="flex items-center h-10">
-            <Checkbox
-              checked={!!val}
-              onChange={(e) => handleChange(param.name, e.target.checked)}
-              label={val ? "True / Enabled" : "False / Disabled"}
-              labelClassName="text-muted-foreground"
-            />
-          </div>
+          <Controller
+            name={param.name}
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center h-10">
+                <Checkbox
+                  checked={!!field.value}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                  label={field.value ? "True / Enabled" : "False / Disabled"}
+                  labelClassName="text-muted-foreground"
+                />
+              </div>
+            )}
+          />
         );
       case "INTEGER":
         return (
           <Input
             type="number"
-            value={val as number}
-            onChange={(e) => handleChange(param.name, parseInt(e.target.value))}
+            {...register(param.name, { valueAsNumber: true })}
             min={param.min}
             max={param.max}
             step={1}
@@ -87,10 +155,7 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
         return (
           <Input
             type="number"
-            value={val as number}
-            onChange={(e) =>
-              handleChange(param.name, parseFloat(e.target.value))
-            }
+            {...register(param.name, { valueAsNumber: true })}
             min={param.min}
             max={param.max}
             step="any"
@@ -100,8 +165,7 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
       default: // STRING
         return (
           <Input
-            value={val as string}
-            onChange={(e) => handleChange(param.name, e.target.value)}
+            {...register(param.name)}
             maxLength={param.maxLength}
             placeholder="Enter text..."
           />
@@ -124,8 +188,8 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
         type="button"
         variant="ghost"
         size="sm"
-        onClick={() => setValues({})}
-        title="Clear all"
+        onClick={() => reset(defaultValues)}
+        title="Reset all"
       >
         <RotateCcw className="w-4 h-4" />
       </Button>
@@ -151,7 +215,11 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
       contentClassName="overflow-y-auto custom-scrollbar"
       footerClassName="justify-between"
     >
-      <form id="param-input-form" onSubmit={handleSubmit} className="space-y-5">
+      <form
+        id="param-input-form"
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-5"
+      >
         {command.parameters && command.parameters.length > 0 ? (
           command.parameters.map((param) => (
             <div key={param.id} className="space-y-1.5">
@@ -167,6 +235,11 @@ const ParameterInputModal: React.FC<Props> = ({ command, onSend, onClose }) => {
                 </span>
               </div>
               {renderInput(param)}
+              {errors[param.name] && (
+                <p className="text-xs text-destructive">
+                  {errors[param.name]?.message as string}
+                </p>
+              )}
               {param.description && (
                 <div className="text-[10px] text-muted-foreground">
                   {param.description}

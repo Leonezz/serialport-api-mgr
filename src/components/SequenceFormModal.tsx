@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { SerialSequence, SequenceStep, SavedCommand } from "../types";
+import { SequenceStepSchema } from "../lib/schemas";
 import {
   X,
   Check,
@@ -34,6 +38,14 @@ import {
 } from "./ui";
 import { cn } from "../lib/utils";
 
+const SequenceFormSchema = z.object({
+  name: z.string().min(1, "Sequence name is required"),
+  description: z.string().optional(),
+  steps: z.array(SequenceStepSchema),
+});
+
+type SequenceFormData = z.infer<typeof SequenceFormSchema>;
+
 interface Props {
   initialData?: Partial<SerialSequence>;
   availableCommands: SavedCommand[];
@@ -50,13 +62,32 @@ const SequenceFormModal: React.FC<Props> = ({
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>("steps");
-  const [name, setName] = useState(initialData?.name || "");
-  const [description, setDescription] = useState(
-    initialData?.description || "",
-  );
-  const [steps, setSteps] = useState<SequenceStep[]>(initialData?.steps || []);
   const [selectedCommandId, setSelectedCommandId] = useState<string>("");
   const [showAddMenu, setShowAddMenu] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    control,
+    formState: { errors },
+  } = useForm<SequenceFormData>({
+    resolver: zodResolver(SequenceFormSchema),
+    defaultValues: {
+      name: initialData?.name || "",
+      description: initialData?.description || "",
+      steps: initialData?.steps || [],
+    },
+  });
+
+  const { append, remove, replace } = useFieldArray({
+    control,
+    name: "steps",
+  });
+
+  // Watch steps for rendering
+  const steps = watch("steps");
 
   const addCommandStep = (commandId: string) => {
     const newStep: SequenceStep = {
@@ -65,38 +96,35 @@ const SequenceFormModal: React.FC<Props> = ({
       delay: 500,
       stopOnError: true,
     };
-    setSteps([...steps, newStep]);
+    append(newStep);
     setSelectedCommandId("");
     setShowAddMenu(false);
   };
 
   const addDelayStep = () => {
-    // For delay-only step, we use a special marker
     const newStep: SequenceStep = {
       id: crypto.randomUUID(),
       commandId: "__DELAY__",
       delay: 1000,
       stopOnError: false,
     };
-    setSteps([...steps, newStep]);
+    append(newStep);
     setShowAddMenu(false);
   };
 
-  const removeStep = (id: string) => {
-    setSteps((prev) => prev.filter((s) => s.id !== id));
+  const removeStep = (index: number) => {
+    remove(index);
   };
 
-  const updateStep = (id: string, updates: Partial<SequenceStep>) => {
-    setSteps((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...updates } : s)),
-    );
+  const updateStep = (index: number, updates: Partial<SequenceStep>) => {
+    const current = steps[index];
+    setValue(`steps.${index}`, { ...current, ...updates });
   };
 
   const handleReorder = (reorderedSteps: SequenceStep[]) => {
-    setSteps(reorderedSteps);
+    replace(reorderedSteps);
   };
 
-  // Get command info helper
   const getCommandInfo = (commandId: string) => {
     if (commandId === "__DELAY__") {
       return { name: "Delay", isDelay: true };
@@ -109,13 +137,11 @@ const SequenceFormModal: React.FC<Props> = ({
     };
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (data: SequenceFormData): void => {
     onSave({
-      name,
-      description,
-      steps,
-      // Metadata fields handled by parent for update/create, we just pass what we might have
+      name: data.name,
+      description: data.description,
+      steps: data.steps,
       creator: initialData?.creator,
       createdAt: initialData?.createdAt || Date.now(),
       updatedAt: Date.now(),
@@ -147,7 +173,7 @@ const SequenceFormModal: React.FC<Props> = ({
         </CardHeader>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit)}
           className="flex-1 flex flex-col overflow-hidden"
         >
           {/* Tab Navigation */}
@@ -206,20 +232,22 @@ const SequenceFormModal: React.FC<Props> = ({
                   <Label htmlFor="seqName">Sequence Name</Label>
                   <Input
                     id="seqName"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    {...register("name")}
                     placeholder="e.g. Device Initialization"
-                    required
                     autoFocus
                   />
+                  {errors.name && (
+                    <p className="text-xs text-destructive">
+                      {errors.name.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="seqDesc">Description (Optional)</Label>
                   <Textarea
                     id="seqDesc"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    {...register("description")}
                     placeholder="What does this sequence do?"
                     className="h-20"
                   />
@@ -362,7 +390,7 @@ const SequenceFormModal: React.FC<Props> = ({
                                     <IconButton
                                       variant="ghost"
                                       size="xs"
-                                      onClick={() => removeStep(step.id)}
+                                      onClick={() => removeStep(idx)}
                                       className="text-muted-foreground hover:text-destructive"
                                       aria-label="Delete step"
                                     >
@@ -406,7 +434,7 @@ const SequenceFormModal: React.FC<Props> = ({
                                         <NumberInput
                                           value={step.delay}
                                           onChange={(val) =>
-                                            updateStep(step.id, {
+                                            updateStep(idx, {
                                               delay: val ?? 0,
                                             })
                                           }
@@ -425,7 +453,7 @@ const SequenceFormModal: React.FC<Props> = ({
                                       <Checkbox
                                         checked={step.stopOnError}
                                         onChange={(e) =>
-                                          updateStep(step.id, {
+                                          updateStep(idx, {
                                             stopOnError: e.target.checked,
                                           })
                                         }
