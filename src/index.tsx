@@ -9,6 +9,13 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import "./index.css";
 import "./lib/i18n"; // Initialize i18next
 
+// Dev-only: react-scan for performance profiling
+if (import.meta.env.DEV) {
+  import("react-scan").then(({ scan }) => {
+    scan({ enabled: true });
+  });
+}
+
 const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
