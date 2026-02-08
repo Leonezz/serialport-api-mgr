@@ -80,8 +80,10 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
   hideDisplayMode = false,
   className,
 }) => {
+  // React 19 useTransition for non-blocking view changes during heavy streaming (#18, #97)
+  const [isPending, startTransition] = React.useTransition();
+
   // Track pending view change for debouncing (#18)
-  const pendingViewRef = React.useRef<ConsoleView | null>(null);
   const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -94,30 +96,14 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
         clearTimeout(debounceTimerRef.current);
       }
 
-      // Store the pending view
-      pendingViewRef.current = newView;
-
-      // Use startTransition if available (React 18+) for non-urgent updates
-      if (typeof React.startTransition === "function") {
-        React.startTransition(() => {
-          debounceTimerRef.current = setTimeout(() => {
-            if (pendingViewRef.current) {
-              onViewChange(pendingViewRef.current);
-              pendingViewRef.current = null;
-            }
-          }, VIEW_CHANGE_DEBOUNCE_MS);
-        });
-      } else {
-        // Fallback for older React versions
+      // Mark as low-priority transition so React can interrupt for user interactions
+      startTransition(() => {
         debounceTimerRef.current = setTimeout(() => {
-          if (pendingViewRef.current) {
-            onViewChange(pendingViewRef.current);
-            pendingViewRef.current = null;
-          }
+          onViewChange(newView);
         }, VIEW_CHANGE_DEBOUNCE_MS);
-      }
+      });
     },
-    [onViewChange],
+    [onViewChange, startTransition],
   );
 
   // Cleanup on unmount
@@ -138,12 +124,13 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
         className,
       )}
     >
-      {/* View Switcher - uses debounced handler to prevent unresponsiveness (#18) */}
+      {/* View Switcher - uses debounced useTransition to prevent unresponsiveness (#18, #97) */}
       <SegmentedControl
         value={view}
         onChange={(v) => handleViewChange(v as ConsoleView)}
         options={viewOptions}
         size="sm"
+        className={isPending ? "opacity-70 pointer-events-none" : undefined}
       />
 
       {/* Separator */}
