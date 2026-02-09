@@ -3,7 +3,7 @@ import {
   buildStructuredMessage,
   buildMessage,
   getMessageStructureSize,
-} from "@/lib/messageBuilder";
+} from "@/lib/builders/messageBuilder";
 import type { MessageStructure, MessageElement } from "@/lib/protocolTypes";
 
 // ============================================================================

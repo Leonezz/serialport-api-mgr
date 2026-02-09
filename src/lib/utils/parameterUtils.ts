@@ -9,8 +9,8 @@ import type {
   CommandParameter,
   ParameterApplication,
   SavedCommand,
-} from "../types";
-import { executeUserScript } from "./scripting";
+} from "../../types";
+import { executeUserScript } from "../scripting";
 
 /**
  * Get the regex pattern for a variable syntax

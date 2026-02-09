@@ -21,7 +21,7 @@ import {
   type DropdownOption,
 } from "../ui";
 import { cn } from "../../lib/utils";
-import { substituteParameters } from "../../lib/commandBuilder";
+import { substituteParameters } from "../../lib/builders/commandBuilder";
 import type { DataMode, TextEncoding } from "../../types";
 import type {
   Protocol,

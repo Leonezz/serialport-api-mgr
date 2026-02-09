@@ -11,7 +11,7 @@ import {
   getEffectivePayload,
   getEffectiveMode,
 } from "../commandBuilder";
-import type { SavedCommand } from "../../types";
+import type { SavedCommand } from "../../../types";
 
 const now = Date.now();
 

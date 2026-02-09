@@ -47,7 +47,10 @@ import {
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { cn } from "../lib/utils";
-import { getEffectiveMode, getEffectivePayload } from "../lib/commandBuilder";
+import {
+  getEffectiveMode,
+  getEffectivePayload,
+} from "../lib/builders/commandBuilder";
 import { SavedCommandSchema } from "../lib/schemas";
 import type { SavedCommand, CommandParameter, DataMode } from "../types";
 import { useTranslation } from "react-i18next";

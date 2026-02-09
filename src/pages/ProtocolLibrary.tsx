@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo, useRef } from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import { getErrorMessage } from "../lib/utils";
-import { ProtocolSchema } from "../lib/protocolSchemas";
+import { ProtocolSchema } from "../lib/schemas/protocolSchemas";
 import { Button, EmptyState, Input } from "../components/ui";
 import { PageHeader } from "../routes";
 import ConfirmationModal from "../components/ConfirmationModal";
@@ -45,6 +46,7 @@ const getProtocolIcon = (iconName?: string) => {
 };
 
 const ProtocolLibrary: React.FC = () => {
+  const [animateRef] = useAutoAnimate();
   const navigate = useNavigate();
   const {
     protocols,
@@ -207,7 +209,10 @@ const ProtocolLibrary: React.FC = () => {
           </div>
 
           {/* Protocol Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div
+            ref={animateRef}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          >
             {filteredProtocols.map((protocol) => (
               <ProtocolCard
                 key={protocol.id}

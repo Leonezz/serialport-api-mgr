@@ -18,7 +18,7 @@ import {
   Textarea,
 } from "../../../components/ui";
 import { cn } from "../../../lib/utils";
-import { CommandTemplateSchema } from "../../../lib/protocolSchemas";
+import { CommandTemplateSchema } from "../../../lib/schemas/protocolSchemas";
 import type {
   SimpleCommand,
   StructuredCommand,

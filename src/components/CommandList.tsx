@@ -2,7 +2,10 @@ import React from "react";
 import { Play, Trash2 } from "lucide-react";
 import { Badge, Button } from "./ui";
 import { SavedCommand } from "@/types";
-import { getEffectiveMode, getEffectivePayload } from "@/lib/commandBuilder";
+import {
+  getEffectiveMode,
+  getEffectivePayload,
+} from "@/lib/builders/commandBuilder";
 
 interface Props {
   commands: SavedCommand[];

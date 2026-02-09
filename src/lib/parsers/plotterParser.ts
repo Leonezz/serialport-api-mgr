@@ -1,4 +1,4 @@
-import { PlotterConfig, PlotterDataPoint } from "../types";
+import { PlotterConfig, PlotterDataPoint } from "../../types";
 
 /**
  * Parses a data frame into a numeric data point for the plotter.
