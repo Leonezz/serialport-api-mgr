@@ -428,7 +428,6 @@ const MainWorkspace: React.FC = () => {
                 );
               } catch (e: unknown) {
                 const errorMsg = getErrorMessage(e);
-                console.error(e);
                 addToast(
                   "error",
                   "Connection Error",

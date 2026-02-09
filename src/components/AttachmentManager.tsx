@@ -61,8 +61,7 @@ export const AttachmentManager: React.FC<Props> = ({ deviceId }) => {
         addAttachment(deviceId, newAttachment);
       }
       addToast("success", "Upload Complete", `Added ${files.length} file(s).`);
-    } catch (err) {
-      console.error(err);
+    } catch {
       addToast("error", "Upload Failed", "An error occurred during upload.");
     } finally {
       setIsUploading(false);

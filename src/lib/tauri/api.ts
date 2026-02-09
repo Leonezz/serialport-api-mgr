@@ -47,7 +47,6 @@ export class TauriSerialAPI {
    * @param portName - Name of the port to close
    */
   static async closePort(portName: string): Promise<void> {
-    console.log(`Closing port: ${portName}`);
     return await invokeCommand("close_port", { portName });
   }
 

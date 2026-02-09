@@ -1,10 +1,5 @@
-import React, {
-  useMemo,
-  useState,
-  useDeferredValue,
-  useRef,
-  useEffect,
-} from "react";
+import React, { useMemo, useState, useDeferredValue } from "react";
+import { useThrottle } from "../../hooks/useThrottle";
 import {
   LineChart,
   Line,
@@ -96,6 +91,44 @@ const INTERPOLATION_MAP: Record<InterpolationType, string> = {
   smooth: "monotone",
 };
 
+interface LegendItemProps {
+  seriesKey: string;
+  colorIndex: number;
+  isHidden: boolean;
+  lastValue: number | undefined;
+  displayName: string;
+  onToggle: (key: string) => void;
+}
+
+const LegendItem = React.memo<LegendItemProps>(
+  ({ seriesKey, colorIndex, isHidden, lastValue, displayName, onToggle }) => (
+    <button
+      onClick={() => onToggle(seriesKey)}
+      className={cn(
+        "flex items-center gap-2 text-label-sm transition-opacity",
+        isHidden && "opacity-40",
+      )}
+    >
+      <div
+        className="w-3 h-3 rounded-full"
+        style={{
+          backgroundColor: CHART_COLORS[colorIndex % CHART_COLORS.length],
+          opacity: isHidden ? 0.4 : 1,
+        }}
+      />
+      <span className={cn("font-medium", isHidden && "line-through")}>
+        {displayName}
+      </span>
+      {!isHidden && typeof lastValue === "number" && (
+        <span className="font-mono text-text-muted text-[10px]">
+          {lastValue.toFixed(2)}
+        </span>
+      )}
+    </button>
+  ),
+);
+LegendItem.displayName = "LegendItem";
+
 const PlotterPanel: React.FC = () => {
   const activeSessionId = useStore((state) => state.activeSessionId);
   const session = useStore((state) => state.sessions[activeSessionId]);
@@ -172,31 +205,10 @@ const PlotterPanel: React.FC = () => {
   }, [rawDisplayData, timeWindow]);
 
   // Throttle chart updates during heavy streaming (#12)
-  // Use refs inside effect only to avoid accessing during render
-  const lastRenderTimeRef = useRef<number>(0);
-  const [throttledDisplayData, setThrottledDisplayData] = useState<
-    PlotterDataPoint[]
-  >([]);
-
-  useEffect(() => {
-    // Capture displayData in closure for async access
-    const dataToSet = displayData;
-
-    // Always schedule update via setTimeout to avoid synchronous setState in effect
-    const now = Date.now();
-    const timeSinceLastRender = now - lastRenderTimeRef.current;
-    const delay = Math.max(0, RENDER_THROTTLE_MS - timeSinceLastRender);
-
-    const timeoutId = setTimeout(() => {
-      setThrottledDisplayData(dataToSet);
-      lastRenderTimeRef.current = Date.now();
-    }, delay);
-
-    return () => clearTimeout(timeoutId);
-  }, [displayData]);
+  // useThrottle fires at the interval while data streams (unlike debounce which waits for silence)
+  const throttledDisplayData = useThrottle(displayData, RENDER_THROTTLE_MS);
 
   // Defer throttledDisplayData to keep UI responsive during high-frequency updates
-  // Combines throttling (reduces update frequency) with deferring (keeps UI responsive)
   const deferredDisplayData = useDeferredValue(throttledDisplayData);
   const isDataStale =
     throttledDisplayData !== deferredDisplayData ||
@@ -283,37 +295,21 @@ const PlotterPanel: React.FC = () => {
       <div className="h-9 flex items-center justify-between px-4 bg-bg-surface border-b border-border-default shrink-0">
         <div className="flex items-center gap-4">
           {/* Series Legend Items */}
-          {series.map((s, i) => {
-            const isHidden = hiddenSeries.has(s);
-            const lastVal =
-              deferredDisplayData[deferredDisplayData.length - 1]?.[s];
-            return (
-              <button
-                key={s}
-                onClick={() => toggleSeriesVisibility(s)}
-                className={cn(
-                  "flex items-center gap-2 text-label-sm transition-opacity",
-                  isHidden && "opacity-40",
-                )}
-              >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{
-                    backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
-                    opacity: isHidden ? 0.4 : 1,
-                  }}
-                />
-                <span className={cn("font-medium", isHidden && "line-through")}>
-                  {getSeriesName(s)}
-                </span>
-                {!isHidden && typeof lastVal === "number" && (
-                  <span className="font-mono text-text-muted text-[10px]">
-                    {lastVal.toFixed(2)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {series.map((s, i) => (
+            <LegendItem
+              key={s}
+              seriesKey={s}
+              colorIndex={i}
+              isHidden={hiddenSeries.has(s)}
+              lastValue={
+                deferredDisplayData[deferredDisplayData.length - 1]?.[s] as
+                  | number
+                  | undefined
+              }
+              displayName={getSeriesName(s)}
+              onToggle={toggleSeriesVisibility}
+            />
+          ))}
           {series.length === 0 && (
             <span className="text-text-muted text-label-sm italic">
               No series detected

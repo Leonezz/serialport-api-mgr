@@ -37,10 +37,9 @@ class WebSerialProvider implements ISerialProvider {
     try {
       const ports = await navigator.serial.getPorts();
       return ports as unknown as ISerialPort[];
-    } catch (e) {
+    } catch {
       // Handle cases where Feature Policy/Permissions Policy blocks 'serial'
       // This prevents the app from crashing if running in a restricted iframe
-      console.warn("Web Serial API getPorts blocked or failed:", e);
       return [];
     }
   }
@@ -114,10 +113,6 @@ class TauriPort implements ISerialPort {
           TauriEventNames.PORT_READ,
           (event) => {
             // Only process data for this port
-            console.log(
-              `TauriPort[${this.portName}] received ${TauriEventNames.PORT_READ} event:`,
-              event,
-            );
             if (event.payload.portName === this.portName) {
               const data = new Uint8Array(event.payload.data);
               controller.enqueue(data);
@@ -199,8 +194,7 @@ class TauriProvider implements ISerialProvider {
         (info) => new TauriPort(info.port_name, info),
       );
       return this.availablePorts;
-    } catch (e) {
-      console.error("Failed to get ports from Tauri:", e);
+    } catch {
       return [];
     }
   }
@@ -209,9 +203,7 @@ class TauriProvider implements ISerialProvider {
     // In Tauri, we don't have a requestPort dialog like WebSerial
     // The UI will need to call getPorts() and let user choose
     // For now, return null (caller should use getPorts instead)
-    console.warn(
-      "TauriProvider: requestPort() not supported. Use getPorts() and select from list.",
-    );
+    // requestPort() not supported in Tauri — use getPorts() and select from list
     return null;
   }
 
@@ -258,19 +250,13 @@ class TauriProvider implements ISerialProvider {
 // Auto-detect and create appropriate provider
 function createSerialProvider(): ISerialProvider {
   // Priority: Tauri (if available) > WebSerial (browser)
-  console.log("[SerialService] Detecting serial provider...");
   logTauriEnvInfo();
 
   if (IS_TAURI) {
-    console.log("[SerialService] Using Tauri Serial Provider");
     return new TauriProvider();
   } else if (typeof navigator !== "undefined" && "serial" in navigator) {
-    console.log("[SerialService] Using WebSerial Provider");
     return new WebSerialProvider();
   } else {
-    console.warn(
-      "[SerialService] No serial provider available. Falling back to WebSerial (will fail)",
-    );
     return new WebSerialProvider();
   }
 }

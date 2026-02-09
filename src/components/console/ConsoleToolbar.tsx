@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useDebounceCallback } from "usehooks-ts";
 import { Trash2, Palette } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button, SegmentedControl, Tooltip } from "../ui";
@@ -80,54 +81,11 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
   hideDisplayMode = false,
   className,
 }) => {
-  // Track pending view change for debouncing (#18)
-  const pendingViewRef = React.useRef<ConsoleView | null>(null);
-  const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-    null,
+  // Debounced view change handler to prevent UI unresponsiveness during heavy streaming (#18)
+  const handleViewChange = useDebounceCallback(
+    onViewChange,
+    VIEW_CHANGE_DEBOUNCE_MS,
   );
-
-  // Debounced view change handler to prevent UI unresponsiveness during heavy streaming
-  const handleViewChange = React.useCallback(
-    (newView: ConsoleView) => {
-      // Clear any pending debounce
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
-      // Store the pending view
-      pendingViewRef.current = newView;
-
-      // Use startTransition if available (React 18+) for non-urgent updates
-      if (typeof React.startTransition === "function") {
-        React.startTransition(() => {
-          debounceTimerRef.current = setTimeout(() => {
-            if (pendingViewRef.current) {
-              onViewChange(pendingViewRef.current);
-              pendingViewRef.current = null;
-            }
-          }, VIEW_CHANGE_DEBOUNCE_MS);
-        });
-      } else {
-        // Fallback for older React versions
-        debounceTimerRef.current = setTimeout(() => {
-          if (pendingViewRef.current) {
-            onViewChange(pendingViewRef.current);
-            pendingViewRef.current = null;
-          }
-        }, VIEW_CHANGE_DEBOUNCE_MS);
-      }
-    },
-    [onViewChange],
-  );
-
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
 
   return (
     <div

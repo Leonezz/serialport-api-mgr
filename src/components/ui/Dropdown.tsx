@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createPortal } from "react-dom";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import { cva } from "class-variance-authority";
 import { ChevronDown, Check } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -25,6 +25,9 @@ import { cn } from "../../lib/utils";
  * - Height: 36px
  * - Padding: 8px 12px
  * - States: default | hover (bg.hover) | selected (bg.selected, checkmark)
+ *
+ * Built on @radix-ui/react-select for keyboard navigation,
+ * click-outside, escape, portal rendering, and accessibility.
  */
 
 // ============================================================================
@@ -105,22 +108,6 @@ const triggerVariants = cva(
   },
 );
 
-const menuStyles = cn(
-  "absolute z-[100]",
-  "bg-bg-elevated border border-border-default",
-  "shadow-md rounded-radius-md",
-  "max-h-[300px] overflow-y-auto",
-  "py-1",
-  "animate-in fade-in-0 zoom-in-95 duration-150",
-);
-
-const itemStyles = cn(
-  "flex items-center gap-2 w-full",
-  "h-9 px-3 text-sm text-left",
-  "cursor-pointer select-none",
-  "transition-colors duration-100",
-);
-
 // ============================================================================
 // Component
 // ============================================================================
@@ -145,219 +132,33 @@ function DropdownInner<T = string>(
   }: DropdownProps<T>,
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
-  const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const menuRef = React.useRef<HTMLDivElement>(null);
-  const [menuPosition, setMenuPosition] = React.useState({
-    top: 0,
-    left: 0,
-    width: 0,
-  });
+  const stringValue = value !== undefined ? String(value) : undefined;
 
-  // Merge refs
-  React.useImperativeHandle(ref, () => triggerRef.current!);
-
-  const selectedOption = options.find((opt) => opt.value === value);
-  const enabledOptions = options.filter((opt) => !opt.disabled);
-
-  // Calculate menu position
-  const updateMenuPosition = React.useCallback(() => {
-    if (!triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const menuWidth = menuMinWidth
-      ? Math.max(rect.width, menuMinWidth)
-      : rect.width;
-
-    let left = rect.left;
-    if (align === "center") {
-      left = rect.left + (rect.width - menuWidth) / 2;
-    } else if (align === "end") {
-      left = rect.right - menuWidth;
-    }
-
-    setMenuPosition({
-      top: rect.bottom + 4,
-      left,
-      width: menuWidth,
-    });
-  }, [align, menuMinWidth]);
-
-  // Open/close handlers
-  const open = React.useCallback(() => {
-    if (disabled) return;
-    updateMenuPosition();
-    setIsOpen(true);
-    setHighlightedIndex(
-      selectedOption ? options.findIndex((opt) => opt.value === value) : 0,
-    );
-  }, [disabled, updateMenuPosition, selectedOption, options, value]);
-
-  const close = React.useCallback(() => {
-    setIsOpen(false);
-    setHighlightedIndex(-1);
-    triggerRef.current?.focus();
-  }, []);
-
-  const toggle = React.useCallback(() => {
-    if (isOpen) close();
-    else open();
-  }, [isOpen, close, open]);
-
-  // Selection handler
-  const selectOption = React.useCallback(
-    (option: DropdownOption<T>) => {
-      if (option.disabled) return;
+  const handleValueChange = (newValue: string) => {
+    const option = options.find((opt) => String(opt.value) === newValue);
+    if (option) {
       onChange?.(option.value);
-      close();
-    },
-    [onChange, close],
-  );
-
-  // Click outside handler
-  React.useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (
-        triggerRef.current?.contains(target) ||
-        menuRef.current?.contains(target)
-      ) {
-        return;
-      }
-      close();
-    };
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isOpen, close]);
-
-  // Keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (disabled) return;
-
-    switch (e.key) {
-      case "Enter":
-      case " ":
-        e.preventDefault();
-        if (isOpen && highlightedIndex >= 0) {
-          selectOption(options[highlightedIndex]);
-        } else {
-          toggle();
-        }
-        break;
-      case "ArrowDown":
-        e.preventDefault();
-        if (!isOpen) {
-          open();
-        } else {
-          const nextIndex = enabledOptions.findIndex(
-            (opt, idx) =>
-              options.indexOf(opt) > highlightedIndex ||
-              (highlightedIndex === -1 && idx === 0),
-          );
-          if (nextIndex >= 0) {
-            setHighlightedIndex(options.indexOf(enabledOptions[nextIndex]));
-          }
-        }
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        if (isOpen) {
-          const prevOptions = enabledOptions.filter(
-            (opt) => options.indexOf(opt) < highlightedIndex,
-          );
-          if (prevOptions.length > 0) {
-            setHighlightedIndex(
-              options.indexOf(prevOptions[prevOptions.length - 1]),
-            );
-          }
-        }
-        break;
-      case "Home":
-        e.preventDefault();
-        if (isOpen && enabledOptions.length > 0) {
-          setHighlightedIndex(options.indexOf(enabledOptions[0]));
-        }
-        break;
-      case "End":
-        e.preventDefault();
-        if (isOpen && enabledOptions.length > 0) {
-          setHighlightedIndex(
-            options.indexOf(enabledOptions[enabledOptions.length - 1]),
-          );
-        }
-        break;
-      case "Tab":
-        if (isOpen) close();
-        break;
     }
   };
 
-  // Scroll highlighted item into view
-  React.useEffect(() => {
-    if (!isOpen || highlightedIndex < 0 || !menuRef.current) return;
-    const item = menuRef.current.children[highlightedIndex] as HTMLElement;
-    if (item) {
-      item.scrollIntoView({ block: "nearest" });
-    }
-  }, [isOpen, highlightedIndex]);
-
-  // Update position on scroll/resize
-  React.useEffect(() => {
-    if (!isOpen) return;
-
-    const handleUpdate = () => updateMenuPosition();
-    window.addEventListener("scroll", handleUpdate, true);
-    window.addEventListener("resize", handleUpdate);
-
-    return () => {
-      window.removeEventListener("scroll", handleUpdate, true);
-      window.removeEventListener("resize", handleUpdate);
-    };
-  }, [isOpen, updateMenuPosition]);
-
-  const state = error ? "error" : isOpen ? "open" : "default";
+  const selectedOption = options.find((opt) => opt.value === value);
 
   return (
-    <>
-      {/* Hidden input for form submission */}
-      {name && (
-        <input
-          type="hidden"
-          name={name}
-          value={value !== undefined ? String(value) : ""}
-        />
-      )}
-
-      {/* Trigger Button */}
-      <button
-        ref={triggerRef}
-        type="button"
+    <SelectPrimitive.Root
+      value={stringValue}
+      onValueChange={handleValueChange}
+      disabled={disabled}
+      name={name}
+    >
+      <SelectPrimitive.Trigger
+        ref={ref}
         id={id}
-        role="combobox"
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
         aria-label={ariaLabel}
-        aria-controls={isOpen ? `${id}-menu` : undefined}
-        disabled={disabled}
         className={cn(
-          triggerVariants({ size, state }),
+          triggerVariants({ size, state: error ? "error" : "default" }),
           fullWidth && "w-full",
           className,
         )}
-        onClick={toggle}
-        onKeyDown={handleKeyDown}
       >
         <span
           className={cn(
@@ -368,75 +169,70 @@ function DropdownInner<T = string>(
           {selectedOption ? (
             <span className="flex items-center gap-2">
               {selectedOption.icon}
-              {selectedOption.label}
+              <SelectPrimitive.Value placeholder={placeholder} />
             </span>
           ) : (
-            placeholder
+            <SelectPrimitive.Value placeholder={placeholder} />
           )}
         </span>
-        <ChevronDown
+        <SelectPrimitive.Icon asChild>
+          <ChevronDown className="h-4 w-4 text-text-muted shrink-0" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Content
+          position="popper"
+          sideOffset={4}
+          align={align}
           className={cn(
-            "h-4 w-4 text-text-muted shrink-0 transition-transform duration-200",
-            isOpen && "rotate-180",
+            "z-[100]",
+            "bg-bg-elevated border border-border-default",
+            "shadow-md rounded-radius-md",
+            "max-h-[300px] overflow-y-auto",
+            "py-1",
+            "animate-in fade-in-0 zoom-in-95 duration-150",
+            menuClassName,
           )}
-        />
-      </button>
-
-      {/* Menu Portal */}
-      {isOpen &&
-        createPortal(
-          <div
-            ref={menuRef}
-            id={`${id}-menu`}
-            role="listbox"
-            aria-labelledby={id}
-            className={cn(menuStyles, menuClassName)}
-            style={{
-              top: menuPosition.top,
-              left: menuPosition.left,
-              width: menuPosition.width,
-            }}
-          >
-            {options.map((option, index) => {
-              const isSelected = option.value === value;
-              const isHighlighted = index === highlightedIndex;
-              const isDisabled = option.disabled;
-
-              return (
-                <div
-                  key={String(option.value)}
-                  role="option"
-                  aria-selected={isSelected}
-                  aria-disabled={isDisabled}
-                  className={cn(
-                    itemStyles,
-                    isHighlighted && "bg-bg-hover",
-                    isSelected &&
-                      "bg-bg-selected text-accent-primary font-medium",
-                    isDisabled && "opacity-50 cursor-not-allowed",
-                  )}
-                  onClick={() => !isDisabled && selectOption(option)}
-                  onMouseEnter={() => !isDisabled && setHighlightedIndex(index)}
-                >
-                  {option.icon && (
-                    <span className="shrink-0 w-4 h-4">{option.icon}</span>
-                  )}
-                  <span className="flex-1 truncate">{option.label}</span>
-                  {option.description && (
-                    <span className="text-xs text-text-muted truncate">
-                      {option.description}
-                    </span>
-                  )}
-                  {isSelected && (
-                    <Check className="h-4 w-4 shrink-0 text-accent-primary" />
-                  )}
-                </div>
-              );
-            })}
-          </div>,
-          document.body,
-        )}
-    </>
+          style={{ minWidth: menuMinWidth }}
+        >
+          <SelectPrimitive.Viewport>
+            {options.map((option) => (
+              <SelectPrimitive.Item
+                key={String(option.value)}
+                value={String(option.value)}
+                disabled={option.disabled}
+                className={cn(
+                  "flex items-center gap-2 w-full",
+                  "h-9 px-3 text-sm text-left",
+                  "cursor-pointer select-none",
+                  "transition-colors duration-100",
+                  "data-[highlighted]:bg-bg-hover",
+                  "data-[state=checked]:bg-bg-selected data-[state=checked]:text-accent-primary data-[state=checked]:font-medium",
+                  "data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed",
+                  "outline-none",
+                )}
+              >
+                {option.icon && (
+                  <span className="shrink-0 w-4 h-4">{option.icon}</span>
+                )}
+                <SelectPrimitive.ItemText className="flex-1 truncate">
+                  {option.label}
+                </SelectPrimitive.ItemText>
+                {option.description && (
+                  <span className="text-xs text-text-muted truncate">
+                    {option.description}
+                  </span>
+                )}
+                <SelectPrimitive.ItemIndicator>
+                  <Check className="h-4 w-4 shrink-0 text-accent-primary" />
+                </SelectPrimitive.ItemIndicator>
+              </SelectPrimitive.Item>
+            ))}
+          </SelectPrimitive.Viewport>
+        </SelectPrimitive.Content>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
   );
 }
 

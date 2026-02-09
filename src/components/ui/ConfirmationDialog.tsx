@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createPortal } from "react-dom";
+import * as Dialog from "@radix-ui/react-dialog";
 import { AlertTriangle, Info, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "./Button";
@@ -10,6 +10,8 @@ import { Button } from "./Button";
  * Design System Specifications (FIGMA-DESIGN.md 6.8):
  * - Width: 400px
  * - Structure: Icon (48px) -> Title (heading.lg, center) -> Message (body.md, text.secondary) -> Buttons
+ *
+ * Built on @radix-ui/react-dialog for focus trapping, scroll lock, accessible dismiss.
  */
 
 export interface ConfirmationDialogProps {
@@ -58,71 +60,56 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   cancelText = "Cancel",
   loading = false,
 }) => {
-  // Handle Escape key
-  React.useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen && !loading) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen, onClose, loading]);
-
-  if (!isOpen) return null;
-
   const Icon = iconMap[type];
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-60 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={() => !loading && onClose()}
+  return (
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(open) => !open && !loading && onClose()}
     >
-      <div
-        className={cn(
-          "w-full max-w-[400px] bg-bg-surface rounded-radius-lg shadow-xl",
-          "animate-in fade-in zoom-in-95 duration-200",
-          "p-6 text-center",
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Icon */}
-        <div className="flex justify-center mb-4">
-          <Icon className={cn("w-12 h-12", iconColorMap[type])} />
-        </div>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-60 bg-black/50 backdrop-blur-sm" />
+        <Dialog.Content
+          className={cn(
+            "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+            "w-full max-w-[400px] bg-bg-surface rounded-radius-lg shadow-xl z-60",
+            "animate-in fade-in zoom-in-95 duration-200",
+            "p-6 text-center",
+          )}
+          onEscapeKeyDown={loading ? (e) => e.preventDefault() : undefined}
+          onPointerDownOutside={loading ? (e) => e.preventDefault() : undefined}
+        >
+          {/* Icon */}
+          <div className="flex justify-center mb-4">
+            <Icon className={cn("w-12 h-12", iconColorMap[type])} />
+          </div>
 
-        {/* Title */}
-        <h2 className="text-lg font-semibold text-text-primary mb-2">
-          {title}
-        </h2>
+          {/* Title */}
+          <Dialog.Title className="text-lg font-semibold text-text-primary mb-2">
+            {title}
+          </Dialog.Title>
 
-        {/* Message */}
-        <p className="text-sm text-text-secondary mb-6">{message}</p>
+          {/* Message */}
+          <Dialog.Description className="text-sm text-text-secondary mb-6">
+            {message}
+          </Dialog.Description>
 
-        {/* Buttons */}
-        <div className="flex justify-center gap-3">
-          <Button variant="secondary" onClick={onClose} disabled={loading}>
-            {cancelText}
-          </Button>
-          <Button
-            variant={type === "danger" ? "destructive" : "primary"}
-            onClick={onConfirm}
-            loading={loading}
-          >
-            {confirmText}
-          </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+          {/* Buttons */}
+          <div className="flex justify-center gap-3">
+            <Button variant="secondary" onClick={onClose} disabled={loading}>
+              {cancelText}
+            </Button>
+            <Button
+              variant={type === "danger" ? "destructive" : "primary"}
+              onClick={onConfirm}
+              loading={loading}
+            >
+              {confirmText}
+            </Button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 };
 

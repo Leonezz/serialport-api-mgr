@@ -303,7 +303,6 @@ const ControlPanel: React.FC<Props> = ({
           const errorResult = result as {
             error: { issues: { message: string }[] };
           };
-          console.error("Validation Errors:", errorResult.error);
           throw new Error(
             `Invalid file format: ${errorResult.error.issues[0].message}`,
           );
@@ -353,7 +352,6 @@ const ControlPanel: React.FC<Props> = ({
         addToast("success", t("toast.success"), "Configuration loaded safely.");
       } catch (err: unknown) {
         const error = err as Error;
-        console.error(error);
         addToast(
           "error",
           t("toast.error"),
