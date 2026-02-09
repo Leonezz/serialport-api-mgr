@@ -73,7 +73,19 @@ const createLocalStorageFallback = () => {
         const key = `${STORAGE_KEY}-${name}`;
         const parsedValue = JSON.parse(value);
         const versionedValue = { ...parsedValue, __version: STORE_VERSION };
-        localStorage.setItem(key, JSON.stringify(versionedValue));
+
+        // Validate before saving — don't persist corrupted state (#13)
+        const validationResult =
+          PersistedStoreStateSchema.safeParse(versionedValue);
+        if (validationResult.success === false) {
+          console.error(
+            "[LocalStorage] Validation failed before save — skipping:",
+            validationResult.error.errors,
+          );
+          return;
+        }
+
+        localStorage.setItem(key, JSON.stringify(validationResult.data));
       } catch (error) {
         console.error("[LocalStorage] Error saving:", error);
       }
@@ -164,11 +176,9 @@ const createSchemaAwareTauriStorage = () => {
 
         if (validationResult.success === false) {
           console.error(
-            "Validation failed before save:",
+            "Validation failed before save — skipping to prevent corruption (#13):",
             validationResult.error.errors,
           );
-          // Still save but log the issue
-          await store.set(name, JSON.stringify(versionedValue));
           return;
         }
 
@@ -313,13 +323,33 @@ function recoverPartialState(
     console.warn("Failed to recover protocols:", e);
   }
 
-  // Try to recover session data
+  // Try to recover session data — validate each session individually (#13)
   try {
     if (dataObj.sessions && typeof dataObj.sessions === "object") {
-      // We can't easily validate the entire session record here, so we cast it
-      // This is a recovery mechanism, so partial validity is better than nothing
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recovered.sessions = dataObj.sessions as any;
+      const sessions = dataObj.sessions as Record<string, unknown>;
+      const validSessions: Record<string, unknown> = {};
+      for (const [id, session] of Object.entries(sessions)) {
+        if (session && typeof session === "object") {
+          const s = session as Record<string, unknown>;
+          // Minimal validation: must have id and name
+          if (typeof s.id === "string" && typeof s.name === "string") {
+            // Clear runtime data that may have caused corruption
+            validSessions[id] = {
+              ...s,
+              logs: [],
+              aiMessages: [],
+              variables: {},
+              isConnected: false,
+            };
+          } else {
+            console.warn(`Skipping invalid session "${id}" during recovery`);
+          }
+        }
+      }
+      if (Object.keys(validSessions).length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recovered.sessions = validSessions as any;
+      }
     }
     if (typeof dataObj.activeSessionId === "string") {
       recovered.activeSessionId = dataObj.activeSessionId;
@@ -484,13 +514,21 @@ export const useStore = create<AppState>()(
         // New protocol system data
         protocols: state.protocols,
 
-        // Session configs only (not runtime state like isConnected, logs)
+        // Session configs only — strip runtime data that causes persistence bloat and corruption (#13)
         sessions: Object.fromEntries(
           Object.entries(state.sessions).map(([id, session]) => [
             id,
             {
               ...session,
               isConnected: false, // Never persist connection state
+              logs: [], // Clear logs — they are runtime-only data
+              aiMessages: [], // Clear AI chat history — runtime-only
+              variables: {}, // Clear telemetry variables — runtime-only
+              plotter: {
+                ...session.plotter,
+                data: [], // Clear plotter data points — runtime-only
+                series: [], // Clear discovered series — runtime-only
+              },
             },
           ]),
         ),
