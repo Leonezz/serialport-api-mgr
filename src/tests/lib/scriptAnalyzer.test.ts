@@ -116,6 +116,71 @@ describe("scriptAnalyzer", () => {
       );
     });
 
+    it("should handle empty string without warnings", () => {
+      const result = analyzeScript("");
+      expect(result.hasWarnings).toBe(false);
+    });
+
+    it("should handle non-string input gracefully", () => {
+      const result = analyzeScript(null as unknown as string);
+      expect(result.hasCritical).toBe(true);
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          severity: "critical",
+          message: expect.stringContaining("not a valid string"),
+        }),
+      );
+    });
+
+    it("should flag while(1) as critical", () => {
+      const result = analyzeScript("while(1) { x++; }");
+      expect(result.hasCritical).toBe(true);
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          severity: "critical",
+          message: expect.stringContaining("Infinite loop"),
+        }),
+      );
+    });
+
+    it("should flag while(!0) as critical", () => {
+      const result = analyzeScript("while(!0) { x++; }");
+      expect(result.hasCritical).toBe(true);
+    });
+
+    it("should flag setTimeout with string argument as warning", () => {
+      const result = analyzeScript('setTimeout("alert(1)", 0)');
+      expect(result.hasWarnings).toBe(true);
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          severity: "warning",
+          message: expect.stringContaining("setTimeout"),
+        }),
+      );
+    });
+
+    it("should flag setInterval with string argument as warning", () => {
+      const result = analyzeScript("setInterval('tick()', 100)");
+      expect(result.hasWarnings).toBe(true);
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          severity: "warning",
+          message: expect.stringContaining("setInterval"),
+        }),
+      );
+    });
+
+    it("should flag dynamic import() as warning", () => {
+      const result = analyzeScript("import('malicious-module')");
+      expect(result.hasWarnings).toBe(true);
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          severity: "warning",
+          message: expect.stringContaining("import()"),
+        }),
+      );
+    });
+
     it("should allow normal Math and bitwise operations", () => {
       const result = analyzeScript("return Math.floor(params.value) | 0x0F;");
       expect(result.hasWarnings).toBe(false);
@@ -198,15 +263,25 @@ describe("scriptAnalyzer", () => {
       expect(result[0].commandName).toBe("Command 1");
     });
 
-    it("should skip disabled scripting", () => {
+    it("should still analyze scripts when scripting.enabled is false", () => {
       const result = analyzeCommandScripts([
         {
-          name: "SKIP",
+          name: "DORMANT",
           scripting: {
             enabled: false,
-            preRequestScript: "return payload;",
+            preRequestScript: "eval('malicious')",
           },
         },
+      ]);
+      expect(result).toHaveLength(1);
+      expect(result[0].commandName).toBe("DORMANT");
+      expect(result[0].analysis.hasCritical).toBe(true);
+    });
+
+    it("should skip commands with no script strings", () => {
+      const result = analyzeCommandScripts([
+        { name: "SKIP", scripting: { enabled: false } },
+        { name: "ALSO_SKIP" },
       ]);
       expect(result).toHaveLength(0);
     });

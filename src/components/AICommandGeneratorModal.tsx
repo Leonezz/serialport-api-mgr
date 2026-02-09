@@ -41,7 +41,7 @@ import {
   Label,
   Textarea,
 } from "./ui";
-import { cn } from "../lib/utils";
+import { cn, getErrorMessage } from "../lib/utils";
 import {
   analyzeCommandScripts,
   CommandScriptInfo,
@@ -205,11 +205,33 @@ const AICommandGeneratorModal: React.FC<Props> = ({
   // Script review gate (#79) — require explicit acknowledgment before import
   const [scriptsReviewed, setScriptsReviewed] = useState(false);
 
-  const scriptInfos: CommandScriptInfo[] = useMemo(
-    () =>
-      generatedResult ? analyzeCommandScripts(generatedResult.commands) : [],
-    [generatedResult],
-  );
+  const scriptInfos: CommandScriptInfo[] = useMemo(() => {
+    if (!generatedResult) return [];
+    try {
+      return analyzeCommandScripts(generatedResult.commands);
+    } catch (err) {
+      console.error("Script analysis failed:", err);
+      return [
+        {
+          commandName: "Analysis Error",
+          commandIndex: -1,
+          scriptType: "preRequestScript" as const,
+          script: "",
+          analysis: {
+            warnings: [
+              {
+                severity: "critical" as const,
+                message: `Script analysis failed: ${err instanceof Error ? err.message : "Unknown error"}. Review commands manually before importing.`,
+                pattern: "analysis-error",
+              },
+            ],
+            hasWarnings: true,
+            hasCritical: true,
+          },
+        },
+      ];
+    }
+  }, [generatedResult]);
 
   const hasScripts = scriptInfos.length > 0;
   const hasCriticalWarnings = scriptInfos.some((s) => s.analysis.hasCritical);
@@ -288,20 +310,23 @@ const AICommandGeneratorModal: React.FC<Props> = ({
         );
       }
     } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message || "Failed to generate configuration.");
+      setError(getErrorMessage(err));
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleImport = () => {
-    if (generatedResult) {
-      onImport({
-        ...generatedResult,
-        deviceName: deviceName.trim() || generatedResult.deviceName,
-      });
+    if (!generatedResult) {
+      setError(
+        "No generated data available to import. Please try generating again.",
+      );
+      return;
     }
+    onImport({
+      ...generatedResult,
+      deviceName: deviceName.trim() || generatedResult.deviceName,
+    });
     onClose();
   };
 

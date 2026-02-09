@@ -32,6 +32,11 @@ const SUSPICIOUS_PATTERNS: {
     message: "Infinite loop detected (while(true))",
   },
   {
+    pattern: /while\s*\(\s*(1|!0|!false)\s*\)/,
+    severity: "critical",
+    message: "Infinite loop detected (while(truthy))",
+  },
+  {
     pattern: /for\s*\(\s*;\s*;\s*\)/,
     severity: "critical",
     message: "Infinite loop detected (for(;;))",
@@ -83,6 +88,25 @@ const SUSPICIOUS_PATTERNS: {
     message: "String.fromCharCode detected (may obscure string content)",
   },
 
+  // Timer-based code execution (eval equivalents)
+  {
+    pattern: /\bsetTimeout\s*\(\s*["'`]/,
+    severity: "warning",
+    message: "setTimeout with string argument (eval-like)",
+  },
+  {
+    pattern: /\bsetInterval\s*\(\s*["'`]/,
+    severity: "warning",
+    message: "setInterval with string argument (eval-like)",
+  },
+
+  // Dynamic module loading
+  {
+    pattern: /\bimport\s*\(/,
+    severity: "warning",
+    message: "Dynamic import() detected",
+  },
+
   // Excessive resource usage patterns
   {
     pattern: /\.repeat\s*\(\s*\d{6,}\s*\)/,
@@ -95,6 +119,20 @@ const SUSPICIOUS_PATTERNS: {
  * Analyze a single script string for suspicious patterns.
  */
 export function analyzeScript(script: string): ScriptAnalysisResult {
+  if (typeof script !== "string") {
+    return {
+      warnings: [
+        {
+          severity: "critical",
+          message: `Script content is not a valid string (type: ${typeof script})`,
+          pattern: `type: ${typeof script}`,
+        },
+      ],
+      hasWarnings: true,
+      hasCritical: true,
+    };
+  }
+
   const warnings: ScriptWarning[] = [];
 
   if (script.length > 5000) {
@@ -150,7 +188,9 @@ export function analyzeCommandScripts(
 
   for (let i = 0; i < commands.length; i++) {
     const cmd = commands[i];
-    if (!cmd.scripting?.enabled) continue;
+    const hasAnyScript =
+      cmd.scripting?.preRequestScript || cmd.scripting?.postResponseScript;
+    if (!hasAnyScript) continue;
 
     const name = cmd.name || `Command ${i + 1}`;
 
