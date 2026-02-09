@@ -1,4 +1,5 @@
 import React from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -26,6 +27,7 @@ const DeviceSection: React.FC<DeviceSectionProps> = ({
   isCollapsed,
   onToggleCollapse,
 }) => {
+  const [animateRef] = useAutoAnimate();
   const navigate = useNavigate();
 
   return (
@@ -74,7 +76,7 @@ const DeviceSection: React.FC<DeviceSectionProps> = ({
         </div>
       </div>
       {!isCollapsed && (
-        <div className="px-3 py-2 flex flex-col gap-1">
+        <div ref={animateRef} className="px-3 py-2 flex flex-col gap-1">
           <button
             onClick={() => useStore.getState().setSelectedDeviceId(null)}
             className={cn(
