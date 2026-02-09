@@ -97,7 +97,6 @@ export const Modal: React.FC<ModalProps> = ({
           onPointerDownOutside={
             closeOnClickOutside ? undefined : (e) => e.preventDefault()
           }
-          onEscapeKeyDown={() => onClose()}
         >
           {/* Header - 56px */}
           <div
@@ -112,12 +111,7 @@ export const Modal: React.FC<ModalProps> = ({
             </Dialog.Title>
             {showCloseButton && (
               <Dialog.Close asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={onClose}
-                  aria-label="Close modal"
-                >
+                <Button variant="ghost" size="icon-sm" aria-label="Close modal">
                   <X className="w-4 h-4" />
                 </Button>
               </Dialog.Close>

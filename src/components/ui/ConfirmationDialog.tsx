@@ -78,6 +78,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           )}
           onEscapeKeyDown={loading ? (e) => e.preventDefault() : undefined}
           onPointerDownOutside={loading ? (e) => e.preventDefault() : undefined}
+          onInteractOutside={loading ? (e) => e.preventDefault() : undefined}
         >
           {/* Icon */}
           <div className="flex justify-center mb-4">

@@ -98,7 +98,6 @@ const triggerVariants = cva(
           "border-border-default hover:border-border-hover focus:border-border-focus focus:shadow-focus focus:outline-none",
         error:
           "border-border-error focus:border-border-error focus:shadow-error focus:outline-none",
-        open: "border-border-focus shadow-focus outline-none",
       },
     },
     defaultVariants: {
@@ -112,7 +111,8 @@ const triggerVariants = cva(
 // Component
 // ============================================================================
 
-// Sentinel for empty-string values (Radix Select forbids value="")
+// Radix Select treats empty string as "no selection", so we map empty-string
+// option values to/from a sentinel. These two functions handle the conversion.
 const EMPTY_SENTINEL = "__dropdown_empty__";
 
 function toRadixValue(val: unknown): string {
@@ -172,6 +172,7 @@ function DropdownInner<T = string>(
         aria-label={ariaLabel}
         className={cn(
           triggerVariants({ size, state: error ? "error" : "default" }),
+          "data-[state=open]:border-border-focus data-[state=open]:shadow-focus data-[state=open]:outline-none",
           fullWidth && "w-full",
           className,
         )}
@@ -182,17 +183,13 @@ function DropdownInner<T = string>(
             !selectedOption && "text-text-muted",
           )}
         >
-          {selectedOption ? (
-            <span className="flex items-center gap-2">
-              {selectedOption.icon}
-              <SelectPrimitive.Value placeholder={placeholder} />
-            </span>
-          ) : (
+          <span className="flex items-center gap-2">
+            {selectedOption?.icon}
             <SelectPrimitive.Value placeholder={placeholder} />
-          )}
+          </span>
         </span>
         <SelectPrimitive.Icon asChild>
-          <ChevronDown className="h-4 w-4 text-text-muted shrink-0" />
+          <ChevronDown className="h-4 w-4 text-text-muted shrink-0 transition-transform duration-200 in-data-[state=open]:rotate-180" />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
 
@@ -210,7 +207,9 @@ function DropdownInner<T = string>(
             "animate-in fade-in-0 zoom-in-95 duration-150",
             menuClassName,
           )}
-          style={{ minWidth: menuMinWidth }}
+          style={{
+            minWidth: menuMinWidth ?? "var(--radix-select-trigger-width)",
+          }}
         >
           <SelectPrimitive.Viewport>
             {options.map((option) => (

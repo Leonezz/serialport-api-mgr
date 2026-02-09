@@ -37,9 +37,10 @@ class WebSerialProvider implements ISerialProvider {
     try {
       const ports = await navigator.serial.getPorts();
       return ports as unknown as ISerialPort[];
-    } catch {
+    } catch (e) {
       // Handle cases where Feature Policy/Permissions Policy blocks 'serial'
       // This prevents the app from crashing if running in a restricted iframe
+      console.warn("[WebSerial] getPorts failed:", e);
       return [];
     }
   }
@@ -181,7 +182,7 @@ class TauriProvider implements ISerialProvider {
   private eventListeners: Map<string, ((e: Event) => void)[]> = new Map();
 
   isSupported() {
-    // Check if running in Tauri environment (uses official isTauri() API)
+    // Check if running in Tauri environment
     return IS_TAURI;
   }
 
@@ -194,15 +195,13 @@ class TauriProvider implements ISerialProvider {
         (info) => new TauriPort(info.port_name, info),
       );
       return this.availablePorts;
-    } catch {
+    } catch (e) {
+      console.error("[TauriProvider] Failed to get ports:", e);
       return [];
     }
   }
 
   async requestPort(): Promise<ISerialPort | null> {
-    // In Tauri, we don't have a requestPort dialog like WebSerial
-    // The UI will need to call getPorts() and let user choose
-    // For now, return null (caller should use getPorts instead)
     // requestPort() not supported in Tauri — use getPorts() and select from list
     return null;
   }
@@ -252,11 +251,13 @@ function createSerialProvider(): ISerialProvider {
   // Priority: Tauri (if available) > WebSerial (browser)
   if (IS_TAURI) {
     return new TauriProvider();
-  } else if (typeof navigator !== "undefined" && "serial" in navigator) {
-    return new WebSerialProvider();
-  } else {
-    return new WebSerialProvider();
   }
+  if (!(typeof navigator !== "undefined" && "serial" in navigator)) {
+    console.warn(
+      "[SerialService] No serial provider available. Falling back to WebSerial (will not work).",
+    );
+  }
+  return new WebSerialProvider();
 }
 
 // Singleton export - auto-detects environment

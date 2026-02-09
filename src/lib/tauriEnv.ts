@@ -22,13 +22,5 @@ import { isTauri } from "@tauri-apps/api/core";
  */
 export const IS_TAURI = isTauri();
 
-/**
- * Function version of the check - useful for conditional logic that needs
- * a function reference. Returns the same value as IS_TAURI.
- */
-export function isTauriEnvironment(): boolean {
-  return isTauri();
-}
-
 // Import the vite-env declarations for compile-time constants
 import "../../vite-env.d.ts";

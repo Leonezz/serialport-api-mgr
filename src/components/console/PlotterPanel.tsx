@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useDeferredValue } from "react";
+import React, { useCallback, useMemo, useState, useDeferredValue } from "react";
 import { useThrottle } from "../../hooks/useThrottle";
 import {
   LineChart,
@@ -276,8 +276,8 @@ const PlotterPanel: React.FC = () => {
 
   const getSeriesName = (key: string) => aliases[key] || key;
 
-  // Toggle series visibility
-  const toggleSeriesVisibility = (seriesKey: string) => {
+  // Toggle series visibility (stable ref for LegendItem React.memo)
+  const toggleSeriesVisibility = useCallback((seriesKey: string) => {
     setHiddenSeries((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(seriesKey)) {
@@ -287,7 +287,9 @@ const PlotterPanel: React.FC = () => {
       }
       return newSet;
     });
-  };
+  }, []);
+
+  const lastDataPoint = deferredDisplayData[deferredDisplayData.length - 1];
 
   return (
     <div className="flex flex-col h-full bg-muted/10 overflow-hidden relative">
@@ -301,11 +303,7 @@ const PlotterPanel: React.FC = () => {
               seriesKey={s}
               colorIndex={i}
               isHidden={hiddenSeries.has(s)}
-              lastValue={
-                deferredDisplayData[deferredDisplayData.length - 1]?.[s] as
-                  | number
-                  | undefined
-              }
+              lastValue={lastDataPoint?.[s] as number | undefined}
               displayName={getSeriesName(s)}
               onToggle={toggleSeriesVisibility}
             />
@@ -390,8 +388,7 @@ const PlotterPanel: React.FC = () => {
               {series.map((s, i) => {
                 const isVisible = !hiddenSeries.has(s);
                 const color = CHART_COLORS[i % CHART_COLORS.length];
-                const lastVal =
-                  deferredDisplayData[deferredDisplayData.length - 1]?.[s];
+                const lastVal = lastDataPoint?.[s];
 
                 return (
                   <div

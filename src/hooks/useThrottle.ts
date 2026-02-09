@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
  * Unlike debounce, this fires at the throttle interval while values keep changing,
  * ensuring the UI stays updated during continuous streaming.
  *
- * Provides both leading-edge (immediate when interval elapsed) and
- * trailing-edge (captures final value) behavior.
+ * Fires as soon as possible when the interval has elapsed (via setTimeout(0))
+ * and captures the final pending value (trailing-edge).
  */
 export function useThrottle<T>(value: T, intervalMs: number): T {
   const [throttledValue, setThrottledValue] = useState<T>(value);
