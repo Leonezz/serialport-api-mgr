@@ -82,10 +82,12 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
   className,
 }) => {
   // Debounced view change handler to prevent UI unresponsiveness during heavy streaming (#18)
-  const handleViewChange = useDebounceCallback(
-    onViewChange,
-    VIEW_CHANGE_DEBOUNCE_MS,
-  );
+  // Wrapped in startTransition to mark as low-priority during heavy rendering
+  const handleViewChange = useDebounceCallback((view: ConsoleView) => {
+    React.startTransition(() => {
+      onViewChange(view);
+    });
+  }, VIEW_CHANGE_DEBOUNCE_MS);
 
   return (
     <div

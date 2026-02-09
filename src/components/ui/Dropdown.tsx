@@ -112,6 +112,22 @@ const triggerVariants = cva(
 // Component
 // ============================================================================
 
+// Sentinel for empty-string values (Radix Select forbids value="")
+const EMPTY_SENTINEL = "__dropdown_empty__";
+
+function toRadixValue(val: unknown): string {
+  const s = String(val);
+  return s === "" ? EMPTY_SENTINEL : s;
+}
+
+function fromRadixValue<T>(
+  radixVal: string,
+  options: DropdownOption<T>[],
+): T | undefined {
+  const matchVal = radixVal === EMPTY_SENTINEL ? "" : radixVal;
+  return options.find((opt) => String(opt.value) === matchVal)?.value;
+}
+
 function DropdownInner<T = string>(
   {
     options,
@@ -132,12 +148,12 @@ function DropdownInner<T = string>(
   }: DropdownProps<T>,
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
-  const stringValue = value !== undefined ? String(value) : undefined;
+  const stringValue = value !== undefined ? toRadixValue(value) : undefined;
 
   const handleValueChange = (newValue: string) => {
-    const option = options.find((opt) => String(opt.value) === newValue);
-    if (option) {
-      onChange?.(option.value);
+    const resolved = fromRadixValue(newValue, options);
+    if (resolved !== undefined) {
+      onChange?.(resolved);
     }
   };
 
@@ -199,8 +215,8 @@ function DropdownInner<T = string>(
           <SelectPrimitive.Viewport>
             {options.map((option) => (
               <SelectPrimitive.Item
-                key={String(option.value)}
-                value={String(option.value)}
+                key={toRadixValue(option.value)}
+                value={toRadixValue(option.value)}
                 disabled={option.disabled}
                 className={cn(
                   "flex items-center gap-2 w-full",

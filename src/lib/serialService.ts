@@ -7,7 +7,7 @@ import {
 import { GenericPort } from "./connection";
 import { TauriSerialAPI, TauriEventNames, listenToTauriEvent } from "./tauri";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { IS_TAURI, logTauriEnvInfo } from "./tauriEnv";
+import { IS_TAURI } from "./tauriEnv";
 import type { WebSerialOptions } from "./webSerialConfig";
 
 export interface ISerialPort extends GenericPort {
@@ -250,8 +250,6 @@ class TauriProvider implements ISerialProvider {
 // Auto-detect and create appropriate provider
 function createSerialProvider(): ISerialProvider {
   // Priority: Tauri (if available) > WebSerial (browser)
-  logTauriEnvInfo();
-
   if (IS_TAURI) {
     return new TauriProvider();
   } else if (typeof navigator !== "undefined" && "serial" in navigator) {

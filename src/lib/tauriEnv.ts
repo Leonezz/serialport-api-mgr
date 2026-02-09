@@ -30,12 +30,5 @@ export function isTauriEnvironment(): boolean {
   return isTauri();
 }
 
-/**
- * Log environment info for debugging
- */
-export function logTauriEnvInfo(): void {
-  // Environment detection is handled internally; no console output needed
-}
-
 // Import the vite-env declarations for compile-time constants
 import "../../vite-env.d.ts";
