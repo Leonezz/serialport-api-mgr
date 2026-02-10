@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { createPortal } from "react-dom";
+import React from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { Button } from "./Button";
 import { cn } from "../../lib/utils";
@@ -12,6 +12,9 @@ import { cn } from "../../lib/utils";
  * - Structure: Header (56px) -> Content (scrollable) -> Footer (64px)
  * - Overlay: black @ 50% opacity
  * - Animation: fade in + scale from 95%, 200ms ease-out
+ *
+ * Built on @radix-ui/react-dialog for:
+ * - Focus trapping, scroll lock, accessible dismiss
  */
 
 export interface ModalProps {
@@ -71,91 +74,71 @@ export const Modal: React.FC<ModalProps> = ({
   footerClassName = "",
   closeOnClickOutside = true,
 }) => {
-  // Handle Escape key to close modal
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  const modalContent = (
-    <div
-      className={cn(
-        "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overscroll-contain",
-        zIndex === 100 ? "z-100" : "z-60",
-      )}
-      onClick={closeOnClickOutside ? onClose : undefined}
-      style={{ overscrollBehavior: "contain" }}
-    >
-      <div
-        className={cn(
-          "w-full bg-bg-surface rounded-radius-lg shadow-xl",
-          "animate-in fade-in zoom-in-95 duration-200",
-          "flex flex-col max-h-[90vh]",
-          sizeClasses[size],
-          className,
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header - 56px */}
-        <div
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay
           className={cn(
-            "flex items-center justify-between px-4 h-14 shrink-0",
-            "border-b border-border-default bg-bg-muted/30",
-            headerClassName,
+            "fixed inset-0 bg-black/50 backdrop-blur-sm overscroll-contain",
+            zIndex === 100 ? "z-100" : "z-60",
           )}
+          style={{ overscrollBehavior: "contain" }}
+        />
+        <Dialog.Content
+          className={cn(
+            "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+            "w-[calc(100%-2rem)] bg-bg-surface rounded-radius-lg shadow-xl",
+            "animate-in fade-in zoom-in-95 duration-200",
+            "flex flex-col max-h-[90vh]",
+            zIndex === 100 ? "z-100" : "z-60",
+            sizeClasses[size],
+            className,
+          )}
+          onPointerDownOutside={
+            closeOnClickOutside ? undefined : (e) => e.preventDefault()
+          }
         >
-          <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
-          {showCloseButton && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onClose}
-              aria-label="Close modal"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-
-        {/* Content - Scrollable */}
-        <div className={cn("flex-1 overflow-y-auto p-4", contentClassName)}>
-          {children}
-        </div>
-
-        {/* Footer - 64px */}
-        {footer && (
+          {/* Header - 56px */}
           <div
             className={cn(
-              "flex items-center justify-end gap-2 px-4 h-16 shrink-0",
-              "border-t border-border-default bg-bg-muted/30",
-              footerClassName,
+              "flex items-center justify-between px-4 h-14 shrink-0",
+              "border-b border-border-default bg-bg-muted/30",
+              headerClassName,
             )}
           >
-            {footer}
+            <Dialog.Title className="text-lg font-semibold text-text-primary">
+              {title}
+            </Dialog.Title>
+            {showCloseButton && (
+              <Dialog.Close asChild>
+                <Button variant="ghost" size="icon-sm" aria-label="Close modal">
+                  <X className="w-4 h-4" />
+                </Button>
+              </Dialog.Close>
+            )}
           </div>
-        )}
-      </div>
-    </div>
-  );
 
-  // Use portal to render at document body level, escaping parent stacking contexts
-  return createPortal(modalContent, document.body);
+          {/* Content - Scrollable */}
+          <div className={cn("flex-1 overflow-y-auto p-4", contentClassName)}>
+            {children}
+          </div>
+
+          {/* Footer - 64px */}
+          {footer && (
+            <div
+              className={cn(
+                "flex items-center justify-end gap-2 px-4 h-16 shrink-0",
+                "border-t border-border-default bg-bg-muted/30",
+                footerClassName,
+              )}
+            >
+              {footer}
+            </div>
+          )}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
 };
 
 export default Modal;

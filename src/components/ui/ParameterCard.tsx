@@ -235,4 +235,7 @@ const ParameterCard: React.FC<ParameterCardProps> = ({
 
 ParameterCard.displayName = "ParameterCard";
 
-export { ParameterCard };
+const MemoizedParameterCard = React.memo(ParameterCard);
+MemoizedParameterCard.displayName = "ParameterCard";
+
+export { MemoizedParameterCard as ParameterCard };

@@ -1,13 +1,23 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { SerialConfig, NetworkConfig, FramingConfig } from "../types";
+import {
+  SerialConfig,
+  NetworkConfig,
+  SerialPreset,
+  SavedCommand,
+  DashboardWidget,
+  FramingConfig,
+  SerialSequence,
+  ProjectContext,
+  Device,
+} from "../types";
+import { FileInputRef } from "./ui";
 import { Usb, Globe } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn, generateId } from "../lib/utils";
 import SimpleInputModal from "./SimpleInputModal";
 import { useStore } from "../lib/store";
 import { serialService, ISerialPort } from "../lib/serialService";
+import { ExportProfileSchema } from "../lib/schemas";
 import { useTranslation } from "react-i18next";
-import { usePresetOperations } from "../hooks/usePresetOperations";
-import { useProfileImportExport } from "../hooks/useProfileImportExport";
 
 import ModeSelector from "./ControlPanel/ModeSelector";
 import SerialConfigPanel from "./ControlPanel/SerialConfigPanel";
@@ -35,6 +45,20 @@ const ControlPanel: React.FC<Props> = ({
     setConfig,
     setNetworkConfig,
     setConnectionType,
+    themeMode,
+    setThemeMode,
+    themeColor,
+    setThemeColor,
+    presets,
+    loadedPresetId,
+    setLoadedPresetId,
+    setPresets,
+    addToast,
+    commands,
+    sequences,
+    contexts,
+    devices,
+    applyPresetLayout,
     protocols,
     setProtocolFramingEnabled,
     setActiveProtocolId,
@@ -46,13 +70,10 @@ const ControlPanel: React.FC<Props> = ({
     networkConfig,
     connectionType,
     isConnected,
+    widgets,
     protocolFramingEnabled,
     activeProtocolId,
   } = activeSession;
-
-  // Extracted hooks (#81)
-  const preset = usePresetOperations();
-  const profile = useProfileImportExport();
 
   // Get the active protocol for framing display
   const activeProtocol = useMemo(() => {
@@ -62,6 +83,7 @@ const ControlPanel: React.FC<Props> = ({
 
   const [availablePorts, setAvailablePorts] = useState<ISerialPort[]>([]);
   const [selectedPortIndex, setSelectedPortIndex] = useState<string>("");
+  const fileInputRef = useRef<FileInputRef>(null);
   const configScrollRef = useRef<HTMLDivElement>(null);
   const [isConfigScrollable, setIsConfigScrollable] = useState(false);
 
@@ -84,6 +106,22 @@ const ControlPanel: React.FC<Props> = ({
   const [saveModalDefault, setSaveModalDefault] = useState("");
   const [showFramingModal, setShowFramingModal] = useState(false);
 
+  const activePresetName = loadedPresetId
+    ? presets.find((p) => p.id === loadedPresetId)?.name
+    : null;
+
+  // Calculate isDirty
+  const isPresetDirty = useMemo(() => {
+    if (!loadedPresetId) return false;
+    const preset = presets.find((p) => p.id === loadedPresetId);
+    if (!preset) return false;
+    if (preset.type !== connectionType) return true;
+    if (preset.type === "SERIAL")
+      return JSON.stringify(preset.config) !== JSON.stringify(config);
+    else
+      return JSON.stringify(preset.network) !== JSON.stringify(networkConfig);
+  }, [loadedPresetId, presets, config, networkConfig, connectionType]);
+
   const refreshPorts = async () => {
     if (serialService.isSupported()) {
       const ports = await serialService.getPorts();
@@ -92,17 +130,23 @@ const ControlPanel: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    if (!serialService.isSupported()) return;
-
-    serialService.getPorts().then(setAvailablePorts);
-
-    serialService.addEventListener("connect", refreshPorts);
-    serialService.addEventListener("disconnect", refreshPorts);
-    return () => {
-      serialService.removeEventListener("connect", refreshPorts);
-      serialService.removeEventListener("disconnect", refreshPorts);
-    };
+    refreshPorts();
+    if (serialService.isSupported()) {
+      serialService.addEventListener("connect", refreshPorts);
+      serialService.addEventListener("disconnect", refreshPorts);
+      return () => {
+        serialService.removeEventListener("connect", refreshPorts);
+        serialService.removeEventListener("disconnect", refreshPorts);
+      };
+    }
   }, []);
+
+  // When loadedPresetId changes, apply dashboard layout if exists
+  useEffect(() => {
+    if (loadedPresetId) {
+      applyPresetLayout(activeSessionId, loadedPresetId);
+    }
+  }, [loadedPresetId, activeSessionId, applyPresetLayout]);
 
   const handleChange = (
     key: keyof SerialConfig,
@@ -120,8 +164,8 @@ const ControlPanel: React.FC<Props> = ({
         timeout: 50,
         prefixLengthSize: 1,
         byteOrder: "LE",
-        script: "",
-        ...(prev.framing || {}),
+        script: "", // FramingConfigEditor will auto-fill default when switching to SCRIPT
+        ...(prev.framing || {}), // Ensure we don't crash if framing is undefined in state
         ...updates,
       },
     }));
@@ -149,14 +193,188 @@ const ControlPanel: React.FC<Props> = ({
     }
   };
 
+  const extractDashboardConfig = (): DashboardWidget[] => {
+    return [...widgets];
+  };
+
+  const onUpdateLoadedPreset = () => {
+    if (!loadedPresetId) return;
+    const preset = presets.find((p) => p.id === loadedPresetId);
+    if (!preset) return;
+
+    const updatedPreset: SerialPreset = {
+      ...preset,
+      type: connectionType,
+      config: connectionType === "SERIAL" ? config : preset.config,
+      network: connectionType === "NETWORK" ? networkConfig : preset.network,
+      widgets: extractDashboardConfig(),
+    };
+
+    setPresets((prev) =>
+      prev.map((p) => (p.id === loadedPresetId ? updatedPreset : p)),
+    );
+    addToast(
+      "success",
+      t("toast.success"),
+      `Saved config & dashboard to "${preset.name}".`,
+    );
+  };
+
+  const onRevertLoadedPreset = () => {
+    if (!loadedPresetId) return;
+    const p = presets.find((x) => x.id === loadedPresetId);
+    if (p) {
+      if (p.type === "NETWORK") {
+        setConnectionType("NETWORK");
+        if (p.network) setNetworkConfig(p.network);
+      } else {
+        setConnectionType("SERIAL");
+        setConfig(p.config);
+      }
+      applyPresetLayout(activeSessionId, loadedPresetId);
+      addToast("info", "Reverted", "Settings restored from profile.");
+    }
+  };
+
+  const handleSaveNewPreset = (name: string) => {
+    const newPreset: SerialPreset = {
+      id: generateId(),
+      name,
+      type: connectionType,
+      config: { ...config },
+      network: connectionType === "NETWORK" ? { ...networkConfig } : undefined,
+      widgets: extractDashboardConfig(),
+    };
+    setPresets((prev) => [...prev, newPreset]);
+    setLoadedPresetId(newPreset.id);
+    addToast(
+      "success",
+      t("toast.saved"),
+      `Preset "${name}" created with current dashboard.`,
+    );
+  };
+
+  // Import/Export
+  const handleExportProfile = () => {
+    // Export active session logs, but global settings
+    const backup = {
+      version: "1.2.0",
+      timestamp: Date.now(),
+      appearance: { themeMode, themeColor },
+      config,
+      networkConfig,
+      presets,
+      commands,
+      sequences,
+      contexts,
+      devices,
+      logs: activeSession.logs.map((l) => ({
+        ...l,
+        data: typeof l.data === "string" ? l.data : Array.from(l.data),
+      })),
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `serialman-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    addToast("success", t("toast.success"), "Configuration saved to file.");
+  };
+
+  const handleImportProfile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const rawData = JSON.parse(content);
+
+        // Validate with Zod
+        const result = ExportProfileSchema.safeParse(rawData);
+
+        if (!result.success) {
+          const errorResult = result as {
+            error: { issues: { message: string }[] };
+          };
+          console.error("Validation Errors:", errorResult.error);
+          throw new Error(
+            `Invalid file format: ${errorResult.error.issues[0].message}`,
+          );
+        }
+
+        const data = result.data;
+
+        // Hydration
+        if (data.appearance) {
+          if (data.appearance.themeMode)
+            setThemeMode(data.appearance.themeMode);
+          if (data.appearance.themeColor)
+            setThemeColor(data.appearance.themeColor);
+        }
+        // Force cast config because schema validation guarantees structure but TS types might differ slightly in strictness
+        if (data.config) setConfig(data.config as SerialConfig);
+        if (data.networkConfig)
+          setNetworkConfig(data.networkConfig as NetworkConfig);
+
+        if (data.presets) {
+          const validPresets: SerialPreset[] = data.presets.map((p) => ({
+            ...p,
+            config: p.config,
+          }));
+          setPresets(validPresets);
+        }
+
+        // Hydrate commands ensuring parameters have IDs
+        const validCommands: SavedCommand[] = (data.commands || []).map(
+          (c) => ({
+            ...c,
+            parameters: c.parameters?.map((p) => ({
+              ...p,
+              id: p.id || generateId(),
+            })),
+          }),
+        );
+
+        useStore.setState({
+          commands: validCommands,
+          sequences: (data.sequences || []) as SerialSequence[],
+          contexts: (data.contexts || []) as ProjectContext[],
+
+          devices: (data.devices || []) as Device[], // Use existing schema if available
+        });
+
+        addToast("success", t("toast.success"), "Configuration loaded safely.");
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error(error);
+        addToast(
+          "error",
+          t("toast.error"),
+          error.message || "Invalid JSON file.",
+        );
+      }
+    };
+    reader.readAsText(file);
+    fileInputRef.current?.reset();
+  };
+
   const handleProtocolFramingToggle = () => {
     if (protocolFramingEnabled) {
       setProtocolFramingEnabled(false);
       setActiveProtocolId(undefined);
     } else if (protocols.length === 1) {
+      // Auto-select if only one protocol
       setActiveProtocolId(protocols[0].id);
       setProtocolFramingEnabled(true);
     } else {
+      // Show protocol selector (for now, just enable with first)
       setActiveProtocolId(protocols[0].id);
       setProtocolFramingEnabled(true);
     }
@@ -245,16 +463,19 @@ const ControlPanel: React.FC<Props> = ({
             )}
 
             <PresetToolbar
-              loadedPresetId={preset.loadedPresetId}
-              activePresetName={preset.activePresetName}
-              isPresetDirty={preset.isPresetDirty}
-              onUpdate={preset.updateLoadedPreset}
-              onRevert={preset.revertLoadedPreset}
+              loadedPresetId={loadedPresetId}
+              activePresetName={activePresetName}
+              isPresetDirty={isPresetDirty}
+              onUpdate={onUpdateLoadedPreset}
+              onRevert={onRevertLoadedPreset}
               onCopy={() => {
-                setSaveModalDefault(`${preset.activePresetName} (Copy)`);
+                setSaveModalDefault(`${activePresetName} (Copy)`);
                 setIsSaveModalOpen(true);
               }}
-              onDetach={preset.detachPreset}
+              onDetach={() => {
+                setLoadedPresetId(null);
+                addToast("info", "Detached", "Configuration is now custom.");
+              }}
               onSaveAs={() => {
                 setSaveModalDefault("");
                 setIsSaveModalOpen(true);
@@ -266,9 +487,9 @@ const ControlPanel: React.FC<Props> = ({
 
         <div className="flex items-end gap-3">
           <ProjectActions
-            fileInputRef={profile.fileInputRef}
-            onImport={profile.importProfile}
-            onExport={profile.exportProfile}
+            fileInputRef={fileInputRef}
+            onImport={handleImportProfile}
+            onExport={handleExportProfile}
             onOpenAIGenerator={onOpenAIGenerator}
           />
 
@@ -289,7 +510,7 @@ const ControlPanel: React.FC<Props> = ({
           title={saveModalDefault ? "Copy Preset" : "Save New Preset"}
           defaultValue={saveModalDefault}
           placeholder="Enter preset name..."
-          onSave={(name) => preset.saveNewPreset(name)}
+          onSave={(name) => handleSaveNewPreset(name)}
           onClose={() => setIsSaveModalOpen(false)}
         />
       )}

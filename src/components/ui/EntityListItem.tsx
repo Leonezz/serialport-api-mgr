@@ -177,4 +177,7 @@ const EntityListItem: React.FC<EntityListItemProps> = ({
 
 EntityListItem.displayName = "EntityListItem";
 
-export { EntityListItem };
+const MemoizedEntityListItem = React.memo(EntityListItem);
+MemoizedEntityListItem.displayName = "EntityListItem";
+
+export { MemoizedEntityListItem as EntityListItem };

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useDebounceCallback } from "usehooks-ts";
 import { Trash2, Palette } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button, SegmentedControl, Tooltip } from "../ui";
@@ -80,40 +81,13 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
   hideDisplayMode = false,
   className,
 }) => {
-  // React 19 useTransition for non-blocking view changes during heavy streaming (#18, #97)
-  const [isPending, startTransition] = React.useTransition();
-
-  // Track pending view change for debouncing (#18)
-  const debounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
-  // Debounced view change handler to prevent UI unresponsiveness during heavy streaming
-  const handleViewChange = React.useCallback(
-    (newView: ConsoleView) => {
-      // Clear any pending debounce
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
-      // Mark as low-priority transition so React can interrupt for user interactions
-      startTransition(() => {
-        debounceTimerRef.current = setTimeout(() => {
-          onViewChange(newView);
-        }, VIEW_CHANGE_DEBOUNCE_MS);
-      });
-    },
-    [onViewChange, startTransition],
-  );
-
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
+  // Debounced view change handler to prevent UI unresponsiveness during heavy streaming (#18)
+  // Wrapped in startTransition to mark as low-priority during heavy rendering
+  const handleViewChange = useDebounceCallback((view: ConsoleView) => {
+    React.startTransition(() => {
+      onViewChange(view);
+    });
+  }, VIEW_CHANGE_DEBOUNCE_MS);
 
   return (
     <div
@@ -130,7 +104,6 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
         onChange={(v) => handleViewChange(v as ConsoleView)}
         options={viewOptions}
         size="sm"
-        className={isPending ? "opacity-70 pointer-events-none" : undefined}
       />
 
       {/* Separator */}

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn, formatContent } from "../../lib/utils";
 import Ansi from "ansi-to-react";
+import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 import { LogEntry } from "@/types";
 import { DataMode, GlobalFormat, ProjectContext } from "@/types";
 
@@ -43,7 +44,7 @@ const ChatBubble: React.FC<Props> = ({
       return log.format;
     },
   );
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyFeedback(2000);
 
   const hasParams =
     log.commandParams && Object.keys(log.commandParams).length > 0;
@@ -89,9 +90,7 @@ const ChatBubble: React.FC<Props> = ({
       const dataObj = isTx ? log.commandParams : log.extractedVars;
       textToCopy = JSON.stringify(dataObj || {}, null, 2);
     }
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    copy(textToCopy);
   };
 
   const renderParamsContent = () => {

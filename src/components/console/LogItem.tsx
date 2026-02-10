@@ -3,6 +3,7 @@ import { cn, formatContent } from "../../lib/utils";
 import Ansi from "ansi-to-react";
 import { LogEntry, DataMode } from "../../types";
 import { ChevronDown, ChevronRight, Copy, Check } from "lucide-react";
+import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 
 /**
  * LogItem Component
@@ -89,7 +90,7 @@ const LogItem: React.FC<LogItemProps> = ({
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [localDisplayMode, setLocalDisplayMode] =
     React.useState<DataMode | null>(null);
-  const [copied, setCopied] = React.useState(false);
+  const { copied, copy } = useCopyFeedback(2000);
 
   const isTx = log.direction === "TX";
   const dirConfig = directionConfig[log.direction] || directionConfig.RX;
@@ -144,13 +145,7 @@ const LogItem: React.FC<LogItemProps> = ({
   // Handle copy to clipboard
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
+    await copy(content);
   };
 
   // Handle expand toggle

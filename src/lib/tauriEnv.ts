@@ -22,42 +22,5 @@ import { isTauri } from "@tauri-apps/api/core";
  */
 export const IS_TAURI = isTauri();
 
-/**
- * Function version of the check - useful for conditional logic that needs
- * a function reference. Returns the same value as IS_TAURI.
- */
-export function isTauriEnvironment(): boolean {
-  return isTauri();
-}
-
-/**
- * Log environment info for debugging
- */
-export function logTauriEnvInfo(): void {
-  console.log("[TauriEnv] Environment Detection:", {
-    IS_TAURI,
-    // These compile-time values may be undefined when running `pnpm dev`
-    TAURI_TARGET_TRIPLE:
-      typeof __TAURI_ENV_TARGET_TRIPLE__ !== "undefined"
-        ? __TAURI_ENV_TARGET_TRIPLE__
-        : undefined,
-    TAURI_PLATFORM_VERSION:
-      typeof __TAURI_ENV_PLATFORM_VERSION__ !== "undefined"
-        ? __TAURI_ENV_PLATFORM_VERSION__
-        : undefined,
-    TAURI_DEBUG:
-      typeof __TAURI_ENV_DEBUG__ !== "undefined"
-        ? __TAURI_ENV_DEBUG__
-        : undefined,
-    // Runtime checks
-    windowHasTauri:
-      typeof window !== "undefined" ? "__TAURI__" in window : "N/A (SSR)",
-    windowHasTauriInternals:
-      typeof window !== "undefined"
-        ? "__TAURI_INTERNALS__" in window
-        : "N/A (SSR)",
-  });
-}
-
 // Import the vite-env declarations for compile-time constants
 import "../../vite-env.d.ts";

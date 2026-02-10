@@ -7,7 +7,7 @@ import {
 import { GenericPort } from "./connection";
 import { TauriSerialAPI, TauriEventNames, listenToTauriEvent } from "./tauri";
 import { UnlistenFn } from "@tauri-apps/api/event";
-import { IS_TAURI, logTauriEnvInfo } from "./tauriEnv";
+import { IS_TAURI } from "./tauriEnv";
 import type { WebSerialOptions } from "./webSerialConfig";
 
 export interface ISerialPort extends GenericPort {
@@ -40,7 +40,7 @@ class WebSerialProvider implements ISerialProvider {
     } catch (e) {
       // Handle cases where Feature Policy/Permissions Policy blocks 'serial'
       // This prevents the app from crashing if running in a restricted iframe
-      console.warn("Web Serial API getPorts blocked or failed:", e);
+      console.warn("[WebSerial] getPorts failed:", e);
       return [];
     }
   }
@@ -114,10 +114,6 @@ class TauriPort implements ISerialPort {
           TauriEventNames.PORT_READ,
           (event) => {
             // Only process data for this port
-            console.log(
-              `TauriPort[${this.portName}] received ${TauriEventNames.PORT_READ} event:`,
-              event,
-            );
             if (event.payload.portName === this.portName) {
               const data = new Uint8Array(event.payload.data);
               controller.enqueue(data);
@@ -186,7 +182,7 @@ class TauriProvider implements ISerialProvider {
   private eventListeners: Map<string, ((e: Event) => void)[]> = new Map();
 
   isSupported() {
-    // Check if running in Tauri environment (uses official isTauri() API)
+    // Check if running in Tauri environment
     return IS_TAURI;
   }
 
@@ -200,18 +196,13 @@ class TauriProvider implements ISerialProvider {
       );
       return this.availablePorts;
     } catch (e) {
-      console.error("Failed to get ports from Tauri:", e);
+      console.error("[TauriProvider] Failed to get ports:", e);
       return [];
     }
   }
 
   async requestPort(): Promise<ISerialPort | null> {
-    // In Tauri, we don't have a requestPort dialog like WebSerial
-    // The UI will need to call getPorts() and let user choose
-    // For now, return null (caller should use getPorts instead)
-    console.warn(
-      "TauriProvider: requestPort() not supported. Use getPorts() and select from list.",
-    );
+    // requestPort() not supported in Tauri — use getPorts() and select from list
     return null;
   }
 
@@ -258,21 +249,15 @@ class TauriProvider implements ISerialProvider {
 // Auto-detect and create appropriate provider
 function createSerialProvider(): ISerialProvider {
   // Priority: Tauri (if available) > WebSerial (browser)
-  console.log("[SerialService] Detecting serial provider...");
-  logTauriEnvInfo();
-
   if (IS_TAURI) {
-    console.log("[SerialService] Using Tauri Serial Provider");
     return new TauriProvider();
-  } else if (typeof navigator !== "undefined" && "serial" in navigator) {
-    console.log("[SerialService] Using WebSerial Provider");
-    return new WebSerialProvider();
-  } else {
-    console.warn(
-      "[SerialService] No serial provider available. Falling back to WebSerial (will fail)",
-    );
-    return new WebSerialProvider();
   }
+  if (!(typeof navigator !== "undefined" && "serial" in navigator)) {
+    console.warn(
+      "[SerialService] No serial provider available. Falling back to WebSerial (will not work).",
+    );
+  }
+  return new WebSerialProvider();
 }
 
 // Singleton export - auto-detects environment

@@ -8,7 +8,7 @@
  * Per PRD UI-3: Two-Section Layout
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Lock,
   Pencil,
@@ -22,6 +22,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { useCopyFeedback } from "../../hooks/useCopyFeedback";
 import {
   Badge,
   Button,
@@ -96,7 +97,7 @@ const ProtocolCommandCustomizer: React.FC<Props> = ({ command, onUpdate }) => {
   const [protocolLayerExpanded, setProtocolLayerExpanded] = useState(true);
   const [commandLayerExpanded, setCommandLayerExpanded] = useState(true);
   const [binaryPreviewExpanded, setBinaryPreviewExpanded] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy: copyToClipboard } = useCopyFeedback(2000);
   const [showDiff, setShowDiff] = useState(false);
 
   // Get protocol info
@@ -182,13 +183,11 @@ const ProtocolCommandCustomizer: React.FC<Props> = ({ command, onUpdate }) => {
   }, [protocol, command.protocolLayer]);
 
   // Copy hex to clipboard
-  const handleCopyHex = useCallback(() => {
+  const handleCopyHex = () => {
     if (binaryPreview?.hex) {
-      navigator.clipboard.writeText(binaryPreview.hex);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyToClipboard(binaryPreview.hex);
     }
-  }, [binaryPreview]);
+  };
 
   // Get the command layer (create empty if not exists)
   const commandLayer = command.commandLayer || {};
