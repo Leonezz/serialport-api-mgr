@@ -278,7 +278,7 @@ const ConsoleViewer: React.FC = () => {
           ref={virtuosoRef}
           className={cn(
             "flex-1 custom-scrollbar",
-            view === "list" ? "[&>div>div]:max-w-5xl [&>div>div]:mx-auto" : "",
+            "[&>div>div]:max-w-5xl [&>div>div]:mx-auto",
           )}
           data={displayLogs}
           firstItemIndex={firstItemIndex}
