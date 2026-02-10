@@ -8,7 +8,7 @@
 import React, { useState, useMemo } from "react";
 import { Activity, Plus, X, Wifi, Usb } from "lucide-react";
 import { getBytes } from "../lib/utils";
-import { appendLineEnding } from "../lib/dataUtils";
+import { appendLineEnding } from "../lib/utils/dataUtils";
 import { SavedCommand, SequenceStep, Session } from "../types";
 import { AIProjectResult } from "../services/geminiService";
 import ConsoleViewer from "../components/ConsoleViewer";

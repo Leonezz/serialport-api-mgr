@@ -13,7 +13,7 @@ import type { MessageStructure } from "../../../lib/protocolTypes";
 import {
   ElementEncodingSchema,
   ByteOrderSchema,
-} from "../../../lib/protocolSchemas";
+} from "../../../lib/schemas/protocolSchemas";
 
 const StructureEditFormSchema = z.object({
   name: z.string().min(1, "Name is required"),

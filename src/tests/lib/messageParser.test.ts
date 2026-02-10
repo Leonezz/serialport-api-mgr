@@ -5,7 +5,7 @@ import {
   parseAndExtract,
   validateStructure,
   getMinimumMessageSize,
-} from "@/lib/messageParser";
+} from "@/lib/parsers/messageParser";
 import type {
   MessageStructure,
   MessageElement,

@@ -5,7 +5,7 @@ import { Protocol } from "../../lib/protocolTypes";
 import { Button, DropdownOption, Select, SelectDropdown } from "../ui";
 import { ISerialPort } from "../../lib/serialService";
 import { cn } from "../../lib/utils";
-import { getSemanticPortName, getPortTooltip } from "../../lib/portUtils";
+import { getSemanticPortName, getPortTooltip } from "../../lib/utils/portUtils";
 import type { TFunction } from "i18next";
 
 interface SerialConfigPanelProps {

@@ -15,7 +15,7 @@ import {
   DashboardWidgetSchema,
   FramingConfigSchema,
   DeviceSchema,
-} from "./schemas";
+} from "./core";
 import { ProtocolSchema } from "./protocolSchemas";
 
 // ============================================================================

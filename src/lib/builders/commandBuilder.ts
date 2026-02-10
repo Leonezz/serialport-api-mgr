@@ -5,7 +5,7 @@
  * Handles both CUSTOM and PROTOCOL source types.
  */
 
-import type { SavedCommand, DataMode, TextEncoding } from "../types";
+import type { SavedCommand, DataMode, TextEncoding } from "../../types";
 
 /**
  * Executable command - final command ready to be sent

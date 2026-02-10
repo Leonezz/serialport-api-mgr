@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { composeFrames, SerialFramer, TimedChunk } from "@/lib/framing";
+import { composeFrames, SerialFramer, TimedChunk } from "@/lib/parsers/framing";
 import { FramingConfig } from "@/types";
 
 describe("Framing", () => {

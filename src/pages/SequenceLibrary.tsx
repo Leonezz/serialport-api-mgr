@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo, useRef } from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -29,6 +30,7 @@ import { SequenceCard } from "../components/SequenceViews";
 import type { SerialSequence } from "../types";
 
 const SequenceLibrary: React.FC = () => {
+  const [animateRef] = useAutoAnimate();
   const {
     sequences,
     commands,
@@ -191,7 +193,10 @@ const SequenceLibrary: React.FC = () => {
           </div>
 
           {/* Sequences Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div
+            ref={animateRef}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          >
             {filteredSequences.map((sequence) => (
               <SequenceCard
                 key={sequence.id}

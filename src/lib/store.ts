@@ -11,7 +11,7 @@ import {
   PersistedStoreStateSchema,
   STORE_VERSION,
   DEFAULT_PERSISTED_STATE,
-} from "./storeSchemas";
+} from "./schemas/storeSchemas";
 import { DeviceSchema } from "./schemas";
 import {
   SerialPreset,

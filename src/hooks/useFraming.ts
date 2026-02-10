@@ -1,8 +1,8 @@
 import { useRef } from "react";
-import { SerialFramer } from "../lib/framing";
+import { SerialFramer } from "../lib/parsers/framing";
 import { useStore } from "../lib/store";
 import { BUFFER_SIZES } from "../lib/constants";
-import { parsePlotterData } from "../lib/plotterParser";
+import { parsePlotterData } from "../lib/parsers/plotterParser";
 
 /**
  * Custom hook for managing serial data framing

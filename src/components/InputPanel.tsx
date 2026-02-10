@@ -15,7 +15,7 @@ import {
   TextEncoding,
 } from "../types";
 import { cn } from "../lib/utils";
-import { appendLineEnding } from "../lib/dataUtils";
+import { appendLineEnding } from "../lib/utils/dataUtils";
 import { useStore } from "../lib/store";
 
 interface Props {
