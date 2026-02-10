@@ -1,13 +1,23 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { SerialConfig, NetworkConfig, FramingConfig } from "../types";
+import {
+  SerialConfig,
+  NetworkConfig,
+  SerialPreset,
+  SavedCommand,
+  DashboardWidget,
+  FramingConfig,
+  SerialSequence,
+  ProjectContext,
+  Device,
+} from "../types";
+import { FileInputRef } from "./ui";
 import { Usb, Globe } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn, generateId } from "../lib/utils";
 import SimpleInputModal from "./SimpleInputModal";
 import { useStore } from "../lib/store";
 import { serialService, ISerialPort } from "../lib/serialService";
+import { ExportProfileSchema } from "../lib/schemas";
 import { useTranslation } from "react-i18next";
-import { usePresetOperations } from "../hooks/usePresetOperations";
-import { useProfileImportExport } from "../hooks/useProfileImportExport";
 
 import ModeSelector from "./ControlPanel/ModeSelector";
 import SerialConfigPanel from "./ControlPanel/SerialConfigPanel";
@@ -35,6 +45,20 @@ const ControlPanel: React.FC<Props> = ({
     setConfig,
     setNetworkConfig,
     setConnectionType,
+    themeMode,
+    setThemeMode,
+    themeColor,
+    setThemeColor,
+    presets,
+    loadedPresetId,
+    setLoadedPresetId,
+    setPresets,
+    addToast,
+    commands,
+    sequences,
+    contexts,
+    devices,
+    applyPresetLayout,
     protocols,
     setProtocolFramingEnabled,
     setActiveProtocolId,
@@ -46,13 +70,10 @@ const ControlPanel: React.FC<Props> = ({
     networkConfig,
     connectionType,
     isConnected,
+    widgets,
     protocolFramingEnabled,
     activeProtocolId,
   } = activeSession;
-
-  // Extracted hooks (#81)
-  const preset = usePresetOperations();
-  const profile = useProfileImportExport();
 
   // Get the active protocol for framing display
   const activeProtocol = useMemo(() => {
@@ -62,6 +83,7 @@ const ControlPanel: React.FC<Props> = ({
 
   const [availablePorts, setAvailablePorts] = useState<ISerialPort[]>([]);
   const [selectedPortIndex, setSelectedPortIndex] = useState<string>("");
+  const fileInputRef = useRef<FileInputRef>(null);
   const configScrollRef = useRef<HTMLDivElement>(null);
   const [isConfigScrollable, setIsConfigScrollable] = useState(false);
 
@@ -84,6 +106,22 @@ const ControlPanel: React.FC<Props> = ({
   const [saveModalDefault, setSaveModalDefault] = useState("");
   const [showFramingModal, setShowFramingModal] = useState(false);
 
+  const activePresetName = loadedPresetId
+    ? presets.find((p) => p.id === loadedPresetId)?.name
+    : null;
+
+  // Calculate isDirty
+  const isPresetDirty = useMemo(() => {
+    if (!loadedPresetId) return false;
+    const preset = presets.find((p) => p.id === loadedPresetId);
+    if (!preset) return false;
+    if (preset.type !== connectionType) return true;
+    if (preset.type === "SERIAL")
+      return JSON.stringify(preset.config) !== JSON.stringify(config);
+    else
+      return JSON.stringify(preset.network) !== JSON.stringify(networkConfig);
+  }, [loadedPresetId, presets, config, networkConfig, connectionType]);
+
   const refreshPorts = async () => {
     if (serialService.isSupported()) {
       const ports = await serialService.getPorts();
@@ -92,17 +130,23 @@ const ControlPanel: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    if (!serialService.isSupported()) return;
-
-    serialService.getPorts().then(setAvailablePorts);
-
-    serialService.addEventListener("connect", refreshPorts);
-    serialService.addEventListener("disconnect", refreshPorts);
-    return () => {
-      serialService.removeEventListener("connect", refreshPorts);
-      serialService.removeEventListener("disconnect", refreshPorts);
-    };
+    refreshPorts();
+    if (serialService.isSupported()) {
+      serialService.addEventListener("connect", refreshPorts);
+      serialService.addEventListener("disconnect", refreshPorts);
+      return () => {
+        serialService.removeEventListener("connect", refreshPorts);
+        serialService.removeEventListener("disconnect", refreshPorts);
+      };
+    }
   }, []);
+
+  // When loadedPresetId changes, apply dashboard layout if exists
+  useEffect(() => {
+    if (loadedPresetId) {
+      applyPresetLayout(activeSessionId, loadedPresetId);
+    }
+  }, [loadedPresetId, activeSessionId, applyPresetLayout]);
 
   const handleChange = (
     key: keyof SerialConfig,
@@ -120,8 +164,8 @@ const ControlPanel: React.FC<Props> = ({
         timeout: 50,
         prefixLengthSize: 1,
         byteOrder: "LE",
-        script: "",
-        ...(prev.framing || {}),
+        script: "", // FramingConfigEditor will auto-fill default when switching to SCRIPT
+        ...(prev.framing || {}), // Ensure we don't crash if framing is undefined in state
         ...updates,
       },
     }));
@@ -259,6 +303,7 @@ const ControlPanel: React.FC<Props> = ({
           const errorResult = result as {
             error: { issues: { message: string }[] };
           };
+          console.error("Validation Errors:", errorResult.error);
           throw new Error(
             `Invalid file format: ${errorResult.error.issues[0].message}`,
           );
@@ -308,6 +353,7 @@ const ControlPanel: React.FC<Props> = ({
         addToast("success", t("toast.success"), "Configuration loaded safely.");
       } catch (err: unknown) {
         const error = err as Error;
+        console.error(error);
         addToast(
           "error",
           t("toast.error"),
@@ -324,9 +370,11 @@ const ControlPanel: React.FC<Props> = ({
       setProtocolFramingEnabled(false);
       setActiveProtocolId(undefined);
     } else if (protocols.length === 1) {
+      // Auto-select if only one protocol
       setActiveProtocolId(protocols[0].id);
       setProtocolFramingEnabled(true);
     } else {
+      // Show protocol selector (for now, just enable with first)
       setActiveProtocolId(protocols[0].id);
       setProtocolFramingEnabled(true);
     }
@@ -415,16 +463,19 @@ const ControlPanel: React.FC<Props> = ({
             )}
 
             <PresetToolbar
-              loadedPresetId={preset.loadedPresetId}
-              activePresetName={preset.activePresetName}
-              isPresetDirty={preset.isPresetDirty}
-              onUpdate={preset.updateLoadedPreset}
-              onRevert={preset.revertLoadedPreset}
+              loadedPresetId={loadedPresetId}
+              activePresetName={activePresetName}
+              isPresetDirty={isPresetDirty}
+              onUpdate={onUpdateLoadedPreset}
+              onRevert={onRevertLoadedPreset}
               onCopy={() => {
-                setSaveModalDefault(`${preset.activePresetName} (Copy)`);
+                setSaveModalDefault(`${activePresetName} (Copy)`);
                 setIsSaveModalOpen(true);
               }}
-              onDetach={preset.detachPreset}
+              onDetach={() => {
+                setLoadedPresetId(null);
+                addToast("info", "Detached", "Configuration is now custom.");
+              }}
               onSaveAs={() => {
                 setSaveModalDefault("");
                 setIsSaveModalOpen(true);
@@ -436,9 +487,9 @@ const ControlPanel: React.FC<Props> = ({
 
         <div className="flex items-end gap-3">
           <ProjectActions
-            fileInputRef={profile.fileInputRef}
-            onImport={profile.importProfile}
-            onExport={profile.exportProfile}
+            fileInputRef={fileInputRef}
+            onImport={handleImportProfile}
+            onExport={handleExportProfile}
             onOpenAIGenerator={onOpenAIGenerator}
           />
 
@@ -459,7 +510,7 @@ const ControlPanel: React.FC<Props> = ({
           title={saveModalDefault ? "Copy Preset" : "Save New Preset"}
           defaultValue={saveModalDefault}
           placeholder="Enter preset name..."
-          onSave={(name) => preset.saveNewPreset(name)}
+          onSave={(name) => handleSaveNewPreset(name)}
           onClose={() => setIsSaveModalOpen(false)}
         />
       )}

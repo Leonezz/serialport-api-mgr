@@ -104,7 +104,6 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
         onChange={(v) => handleViewChange(v as ConsoleView)}
         options={viewOptions}
         size="sm"
-        className={isPending ? "opacity-70 pointer-events-none" : undefined}
       />
 
       {/* Separator */}
