@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useDeferredValue } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useThrottle } from "../../hooks/useThrottle";
 import {
   LineChart,
@@ -208,21 +208,18 @@ const PlotterPanel: React.FC = () => {
   // useThrottle fires at the interval while data streams (unlike debounce which waits for silence)
   const throttledDisplayData = useThrottle(displayData, RENDER_THROTTLE_MS);
 
-  // Defer throttledDisplayData to keep UI responsive during high-frequency updates
-  const deferredDisplayData = useDeferredValue(throttledDisplayData);
-  const isDataStale =
-    throttledDisplayData !== deferredDisplayData ||
-    displayData !== throttledDisplayData;
+  // Show staleness indicator when throttle hasn't caught up yet
+  const isDataStale = displayData !== throttledDisplayData;
 
   // Derived View Range - use deferred data for calculations
   const viewRange = useMemo(() => {
-    if (isAutoScroll && deferredDisplayData.length > 0) {
-      const end = deferredDisplayData.length - 1;
-      const start = Math.max(0, deferredDisplayData.length - WINDOW_SIZE);
+    if (isAutoScroll && throttledDisplayData.length > 0) {
+      const end = throttledDisplayData.length - 1;
+      const start = Math.max(0, throttledDisplayData.length - WINDOW_SIZE);
       return { start, end };
     }
     return manualViewRange;
-  }, [isAutoScroll, deferredDisplayData.length, manualViewRange]);
+  }, [isAutoScroll, throttledDisplayData.length, manualViewRange]);
 
   // --- Handlers ---
 
@@ -289,7 +286,7 @@ const PlotterPanel: React.FC = () => {
     });
   }, []);
 
-  const lastDataPoint = deferredDisplayData[deferredDisplayData.length - 1];
+  const lastDataPoint = throttledDisplayData[throttledDisplayData.length - 1];
 
   return (
     <div className="flex flex-col h-full bg-muted/10 overflow-hidden relative">
@@ -447,12 +444,13 @@ const PlotterPanel: React.FC = () => {
               onWheel={(e) => {
                 const currentStart = viewRange?.start ?? 0;
                 const currentEnd =
-                  viewRange?.end ?? Math.max(0, deferredDisplayData.length - 1);
+                  viewRange?.end ??
+                  Math.max(0, throttledDisplayData.length - 1);
 
                 handleChartWheel(
                   e,
                   { start: currentStart, end: currentEnd },
-                  deferredDisplayData.length,
+                  throttledDisplayData.length,
                   (newRange) => setManualViewRange(newRange),
                   () => setIsAutoScroll(false),
                 );
@@ -466,7 +464,7 @@ const PlotterPanel: React.FC = () => {
               )}
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={deferredDisplayData}
+                  data={throttledDisplayData}
                   margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                 >
                   <CartesianGrid
@@ -570,8 +568,8 @@ const PlotterPanel: React.FC = () => {
 
             {/* Data Stats - Positioned here to not affect Interpolation layout */}
             <div className="text-[10px] font-mono text-text-muted tabular-nums">
-              {deferredDisplayData.length} pts
-              {data.length !== deferredDisplayData.length && (
+              {throttledDisplayData.length} pts
+              {data.length !== throttledDisplayData.length && (
                 <span className="ml-1 text-text-muted/60">
                   / {data.length} total
                 </span>
