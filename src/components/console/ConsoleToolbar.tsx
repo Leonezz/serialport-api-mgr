@@ -98,12 +98,13 @@ const ConsoleToolbar: React.FC<ConsoleToolbarProps> = ({
         className,
       )}
     >
-      {/* View Switcher - uses debounced handler to prevent unresponsiveness (#18) */}
+      {/* View Switcher - uses debounced useTransition to prevent unresponsiveness (#18, #97) */}
       <SegmentedControl
         value={view}
         onChange={(v) => handleViewChange(v as ConsoleView)}
         options={viewOptions}
         size="sm"
+        className={isPending ? "opacity-70 pointer-events-none" : undefined}
       />
 
       {/* Separator */}

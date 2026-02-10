@@ -13,13 +13,13 @@ import { useStore } from "../lib/store";
 import {
   buildStructuredMessage,
   type BuildOptions,
-} from "../lib/messageBuilder";
+} from "../lib/builders/messageBuilder";
 import {
   parseStructuredMessage,
   parseAndExtract,
   type ParseResult,
   type ParseOptions,
-} from "../lib/messageParser";
+} from "../lib/parsers/messageParser";
 import type {
   Protocol,
   MessageStructure,

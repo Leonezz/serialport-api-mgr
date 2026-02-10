@@ -46,8 +46,8 @@ import {
   getProtocolLayerDiff,
   type ProtocolLayerChange,
 } from "../../lib/protocolIntegration";
-import { buildStructuredMessage } from "../../lib/messageBuilder";
-import { bytesToHex } from "../../lib/dataUtils";
+import { buildStructuredMessage } from "../../lib/builders/messageBuilder";
+import { bytesToHex } from "../../lib/utils/dataUtils";
 import type {
   SavedCommand,
   CommandLayer,

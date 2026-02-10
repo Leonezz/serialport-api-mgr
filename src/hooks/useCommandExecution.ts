@@ -12,20 +12,23 @@ import {
   calculateChecksum,
   encodeText,
   appendLineEnding,
-} from "../lib/dataUtils";
+} from "../lib/utils/dataUtils";
 import {
   applyParameters,
   collectPositionParameters,
   applyPositionParameters,
-} from "../lib/parameterUtils";
+} from "../lib/utils/parameterUtils";
 import { generateId, getErrorMessage } from "../lib/utils";
 import { TIMING } from "../lib/constants";
 import { getEffectiveCommand } from "../lib/protocolIntegration";
 import {
   buildStructuredMessage,
   type BuildOptions,
-} from "../lib/messageBuilder";
-import { getEffectiveMode, getEffectivePayload } from "../lib/commandBuilder";
+} from "../lib/builders/messageBuilder";
+import {
+  getEffectiveMode,
+  getEffectivePayload,
+} from "../lib/builders/commandBuilder";
 import type {
   Protocol,
   StructuredCommand,

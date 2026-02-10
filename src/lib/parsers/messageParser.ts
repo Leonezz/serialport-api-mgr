@@ -20,9 +20,9 @@ import type {
   ByteOrder,
   DataType,
   ResponsePattern,
-} from "./protocolTypes";
-import { executeSandboxedScript } from "./sandboxedScripting";
-import { calculateChecksum } from "./dataUtils";
+} from "../protocolTypes";
+import { executeSandboxedScript } from "../sandboxedScripting";
+import { calculateChecksum } from "../utils/dataUtils";
 
 // ============================================================================
 // TYPES

@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo, useRef } from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Upload, Folder, LayoutGrid, List } from "lucide-react";
 import { useStore } from "../lib/store";
@@ -28,6 +29,7 @@ import { CommandCard } from "../components/CommandViews";
 import type { SavedCommand } from "../types";
 
 const CommandLibrary: React.FC = () => {
+  const [animateRef] = useAutoAnimate();
   const navigate = useNavigate();
   const {
     commands,
@@ -298,7 +300,10 @@ const CommandLibrary: React.FC = () => {
 
           {/* Grid View */}
           {viewMode === "grid" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div
+              ref={animateRef}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+            >
               {filteredCommands.map((command) => (
                 <CommandCard
                   key={command.id}

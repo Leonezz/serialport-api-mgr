@@ -90,7 +90,7 @@ import {
   // AI
   ConfidenceLevelSchema,
   GeneratedProtocolSchema,
-} from "./protocolSchemas";
+} from "./schemas/protocolSchemas";
 
 // ============================================================================
 // BASE TYPES

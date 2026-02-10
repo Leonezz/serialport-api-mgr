@@ -5,7 +5,7 @@ import {
   hexToBytes,
   bytesToHex,
   parseHexData,
-} from "@/lib/dataUtils";
+} from "@/lib/utils/dataUtils";
 
 describe("dataUtils", () => {
   describe("encodeText", () => {

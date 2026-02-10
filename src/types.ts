@@ -106,7 +106,7 @@ import {
   PersistedProjectStateSchema,
   PersistedSessionStateSchema,
   PersistedStoreStateSchema,
-} from "./lib/storeSchemas";
+} from "./lib/schemas/storeSchemas";
 
 import {
   UsbPortInfoSchema,

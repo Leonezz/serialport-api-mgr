@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { Input, InputProps } from "./Input";
-import { hexToBytes, bytesToHex } from "../../lib/dataUtils";
+import { hexToBytes, bytesToHex } from "../../lib/utils/dataUtils";
 
 /**
  * HexInput Component

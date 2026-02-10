@@ -1,5 +1,5 @@
-import { FramingConfig, FramingStrategy } from "../types";
-import { executeSandboxedScript } from "./sandboxedScripting";
+import { FramingConfig, FramingStrategy } from "../../types";
+import { executeSandboxedScript } from "../sandboxedScripting";
 
 export interface TimedChunk {
   data: Uint8Array;

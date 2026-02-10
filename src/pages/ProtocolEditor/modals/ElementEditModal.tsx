@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, X } from "lucide-react";
 import { Button, Checkbox, Input, Label, Select } from "../../../components/ui";
 import { generateId } from "../../../lib/utils";
-import { MessageElementSchema } from "../../../lib/protocolSchemas";
+import { MessageElementSchema } from "../../../lib/schemas/protocolSchemas";
 import type { MessageElement, ElementConfig } from "../../../lib/protocolTypes";
 
 interface ElementEditModalProps {

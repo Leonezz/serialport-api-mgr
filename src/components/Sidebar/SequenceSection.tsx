@@ -1,4 +1,5 @@
 import React from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link, useNavigate } from "react-router-dom";
 import { SerialSequence } from "../../types";
 import {
@@ -33,6 +34,7 @@ const SequenceSection: React.FC<SequenceSectionProps> = ({
   onCreateSequence,
   t,
 }) => {
+  const [animateRef] = useAutoAnimate();
   const navigate = useNavigate();
 
   return (
@@ -89,7 +91,7 @@ const SequenceSection: React.FC<SequenceSectionProps> = ({
               onAction={onCreateSequence}
             />
           ) : (
-            <div className="flex flex-col gap-1.5">
+            <div ref={animateRef} className="flex flex-col gap-1.5">
               {filteredSequences.map((seq) => (
                 <div
                   key={seq.id}

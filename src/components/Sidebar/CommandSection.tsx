@@ -1,4 +1,5 @@
 import React from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link, useNavigate } from "react-router-dom";
 import { SavedCommand } from "../../types";
 import {
@@ -70,6 +71,7 @@ const CommandSection: React.FC<CommandSectionProps> = ({
   onRequestConfirmation,
   t,
 }) => {
+  const [animateRef] = useAutoAnimate();
   const navigate = useNavigate();
 
   return (
@@ -191,7 +193,10 @@ const CommandSection: React.FC<CommandSectionProps> = ({
                           "pl-2 ml-2 border-l border-border-default/40",
                       )}
                     >
-                      <div className="flex flex-col gap-1.5 pt-1">
+                      <div
+                        ref={animateRef}
+                        className="flex flex-col gap-1.5 pt-1"
+                      >
                         {group.items.map((cmd) => {
                           const isSelected = selectedCommandId === cmd.id;
                           return (

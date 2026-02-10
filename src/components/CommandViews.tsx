@@ -17,7 +17,10 @@ import {
   Layers,
 } from "lucide-react";
 import { Badge, Button } from "./ui";
-import { getEffectiveMode, getEffectivePayload } from "../lib/commandBuilder";
+import {
+  getEffectiveMode,
+  getEffectivePayload,
+} from "../lib/builders/commandBuilder";
 import type { SavedCommand } from "../types";
 import type { Protocol } from "../lib/protocolTypes";
 

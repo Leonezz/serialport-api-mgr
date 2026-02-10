@@ -1,5 +1,5 @@
 import { match } from "ts-pattern";
-import { ChecksumAlgorithm, LineEnding, TextEncoding } from "../types";
+import { ChecksumAlgorithm, LineEnding, TextEncoding } from "../../types";
 
 /**
  * Supported checksum algorithm names (superset of base + protocol algorithms)

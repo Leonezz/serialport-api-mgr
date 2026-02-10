@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from "react";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Cpu, Edit, Trash2 } from "lucide-react";
 import { useStore } from "../lib/store";
@@ -15,6 +16,7 @@ import ConfirmationModal from "../components/ConfirmationModal";
 import DeviceFormModal from "../components/DeviceFormModal";
 
 const DeviceLibrary: React.FC = () => {
+  const [animateRef] = useAutoAnimate();
   const navigate = useNavigate();
   const {
     devices,
@@ -58,7 +60,10 @@ const DeviceLibrary: React.FC = () => {
           {devices.length === 0 ? (
             <EmptyState variant="devices" onAction={handleAddDevice} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div
+              ref={animateRef}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
               {devices.map((device) => (
                 <div
                   key={device.id}
