@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   AIProjectResult,
@@ -22,6 +22,10 @@ import {
   AlertTriangle,
   Sliders,
   Coins,
+  ShieldAlert,
+  ChevronDown,
+  ChevronRight,
+  Code2,
 } from "lucide-react";
 import {
   Badge,
@@ -37,7 +41,11 @@ import {
   Label,
   Textarea,
 } from "./ui";
-import { cn } from "../lib/utils";
+import { cn, getErrorMessage } from "../lib/utils";
+import {
+  analyzeCommandScripts,
+  CommandScriptInfo,
+} from "../lib/scriptAnalyzer";
 import { SavedCommand } from "../types";
 import CommandFormModal from "./CommandFormModal";
 import { useStore } from "../lib/store";
@@ -54,6 +62,119 @@ interface Attachment {
   mimeType: string;
   data: string; // base64
 }
+
+/**
+ * Script Review Panel — shows AI-generated scripts for explicit review (#79)
+ */
+const ScriptReviewPanel: React.FC<{
+  scriptInfos: CommandScriptInfo[];
+  reviewed: boolean;
+  onReviewedChange: (v: boolean) => void;
+  hasCriticalWarnings: boolean;
+}> = ({ scriptInfos, reviewed, onReviewedChange, hasCriticalWarnings }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const warningCount = scriptInfos.reduce(
+    (sum, s) => sum + s.analysis.warnings.length,
+    0,
+  );
+
+  return (
+    <div
+      className={cn(
+        "w-full rounded-md border px-3 py-2 text-xs",
+        hasCriticalWarnings
+          ? "border-red-500/40 bg-red-500/10"
+          : "border-yellow-500/30 bg-yellow-500/10",
+      )}
+    >
+      {/* Header */}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-2"
+      >
+        {expanded ? (
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-yellow-500" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-yellow-500" />
+        )}
+        <ShieldAlert
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            hasCriticalWarnings ? "text-red-500" : "text-yellow-500",
+          )}
+        />
+        <span className="text-left text-foreground/80">
+          <strong>{scriptInfos.length} script(s)</strong> found in{" "}
+          {new Set(scriptInfos.map((s) => s.commandIndex)).size} command(s)
+          {warningCount > 0 && (
+            <span
+              className={
+                hasCriticalWarnings ? "text-red-400" : "text-yellow-400"
+              }
+            >
+              {" "}
+              — {warningCount} warning(s)
+            </span>
+          )}
+        </span>
+      </button>
+
+      {/* Expanded script list */}
+      {expanded && (
+        <div className="mt-2 space-y-2 border-t border-border/30 pt-2">
+          {scriptInfos.map((info, idx) => (
+            <div key={idx} className="space-y-1">
+              <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+                <Code2 className="h-3 w-3" />
+                <span className="font-bold text-foreground/70">
+                  {info.commandName}
+                </span>
+                <span className="opacity-60">
+                  {info.scriptType === "preRequestScript"
+                    ? "Pre-Request"
+                    : "Post-Response"}
+                </span>
+              </div>
+              <pre className="max-h-32 overflow-auto rounded bg-background/60 p-2 font-mono text-[10px] leading-relaxed text-foreground/80">
+                {info.script}
+              </pre>
+              {info.analysis.warnings.map((w, wIdx) => (
+                <div
+                  key={wIdx}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px]",
+                    w.severity === "critical" && "bg-red-500/15 text-red-400",
+                    w.severity === "warning" &&
+                      "bg-yellow-500/15 text-yellow-400",
+                    w.severity === "info" && "bg-blue-500/10 text-blue-400",
+                  )}
+                >
+                  <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                  {w.message}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Acknowledgment checkbox */}
+      <label className="mt-2 flex cursor-pointer items-center gap-2 border-t border-border/30 pt-2">
+        <input
+          type="checkbox"
+          checked={reviewed}
+          onChange={(e) => onReviewedChange(e.target.checked)}
+          className="h-3.5 w-3.5 rounded border-border accent-emerald-600"
+        />
+        <span className="select-none text-foreground/70">
+          I have reviewed the AI-generated scripts above
+        </span>
+      </label>
+    </div>
+  );
+};
 
 const AICommandGeneratorModal: React.FC<Props> = ({
   existingCommands,
@@ -80,6 +201,45 @@ const AICommandGeneratorModal: React.FC<Props> = ({
   );
   const [editingCommandData, setEditingCommandData] =
     useState<Partial<SavedCommand> | null>(null);
+
+  // Script review gate (#79) — require explicit acknowledgment before import
+  const [scriptsReviewed, setScriptsReviewed] = useState(false);
+
+  const scriptInfos: CommandScriptInfo[] = useMemo(() => {
+    if (!generatedResult) return [];
+    try {
+      return analyzeCommandScripts(generatedResult.commands);
+    } catch (err) {
+      console.error("Script analysis failed:", err);
+      return [
+        {
+          commandName: "Analysis Error",
+          commandIndex: -1,
+          scriptType: "preRequestScript" as const,
+          script: "",
+          analysis: {
+            warnings: [
+              {
+                severity: "critical" as const,
+                message: `Script analysis failed: ${err instanceof Error ? err.message : "Unknown error"}. Review commands manually before importing.`,
+                pattern: "analysis-error",
+              },
+            ],
+            hasWarnings: true,
+            hasCritical: true,
+          },
+        },
+      ];
+    }
+  }, [generatedResult]);
+
+  const hasScripts = scriptInfos.length > 0;
+  const hasCriticalWarnings = scriptInfos.some((s) => s.analysis.hasCritical);
+
+  // Reset review acknowledgment when commands change (edit/delete)
+  useEffect(() => {
+    setScriptsReviewed(false);
+  }, [generatedResult]);
 
   const fileInputRef = useRef<FileInputRef>(null);
 
@@ -150,20 +310,23 @@ const AICommandGeneratorModal: React.FC<Props> = ({
         );
       }
     } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message || "Failed to generate configuration.");
+      setError(getErrorMessage(err));
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleImport = () => {
-    if (generatedResult) {
-      onImport({
-        ...generatedResult,
-        deviceName: deviceName.trim() || generatedResult.deviceName,
-      });
+    if (!generatedResult) {
+      setError(
+        "No generated data available to import. Please try generating again.",
+      );
+      return;
     }
+    onImport({
+      ...generatedResult,
+      deviceName: deviceName.trim() || generatedResult.deviceName,
+    });
     onClose();
   };
 
@@ -621,36 +784,26 @@ const AICommandGeneratorModal: React.FC<Props> = ({
               )}
             </Button>
           ) : (
-            <>
-              {generatedResult?.commands.some(
-                (cmd) =>
-                  cmd.scripting?.enabled &&
-                  (cmd.scripting?.preRequestScript ||
-                    cmd.scripting?.postResponseScript),
-              ) && (
-                <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-500" />
-                  <span className="text-yellow-200/80">
-                    <strong>
-                      {
-                        generatedResult.commands.filter(
-                          (c) => c.scripting?.enabled,
-                        ).length
-                      }{" "}
-                      command(s)
-                    </strong>{" "}
-                    contain AI-generated scripts. Scripts run sandboxed but
-                    should be reviewed after import.
-                  </span>
-                </div>
+            <div className="flex w-full flex-col gap-3">
+              {/* Script Review Section (#79) */}
+              {hasScripts && (
+                <ScriptReviewPanel
+                  scriptInfos={scriptInfos}
+                  reviewed={scriptsReviewed}
+                  onReviewedChange={setScriptsReviewed}
+                  hasCriticalWarnings={hasCriticalWarnings}
+                />
               )}
-              <Button
-                onClick={handleImport}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <Check className="w-4 h-4 mr-2" /> Import Project
-              </Button>
-            </>
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleImport}
+                  disabled={hasScripts && !scriptsReviewed}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                >
+                  <Check className="w-4 h-4 mr-2" /> Import Project
+                </Button>
+              </div>
+            </div>
           )}
         </CardFooter>
 
