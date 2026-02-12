@@ -222,6 +222,17 @@ function renderAnnotation(
   const midPx = api.coord([midIdx, yLevel]);
 
   if (!startPx || !endPx || !midPx) return;
+  // Guard against NaN propagating into canvas rendering (PR #33 regression)
+  if (
+    !Number.isFinite(startPx[0]) ||
+    !Number.isFinite(startPx[1]) ||
+    !Number.isFinite(endPx[0]) ||
+    !Number.isFinite(endPx[1]) ||
+    !Number.isFinite(midPx[0]) ||
+    !Number.isFinite(midPx[1])
+  ) {
+    return;
+  }
 
   // Check visible range — hide when too zoomed out
   const coordSys = params.coordSys as { width?: number };
