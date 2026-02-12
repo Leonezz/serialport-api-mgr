@@ -5,11 +5,10 @@
  * It contains the main serial port communication interface.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { Activity, Plus, X, Wifi, Usb } from "lucide-react";
-import { getBytes } from "../lib/utils";
 import { appendLineEnding } from "../lib/utils/dataUtils";
-import { SavedCommand, SequenceStep, Session } from "../types";
+import { SavedCommand, SequenceStep } from "../types";
 import { AIProjectResult } from "../services/geminiService";
 import ConsoleViewer from "../components/ConsoleViewer";
 import Sidebar from "../components/Sidebar";
@@ -23,7 +22,7 @@ import SimpleInputModal from "../components/SimpleInputModal";
 import ConfirmationModal from "../components/ConfirmationModal";
 import SystemLogViewer from "../components/SystemLogViewer";
 import AppSettingsModal from "../components/AppSettingsModal";
-import { StatusBar, TopBar } from "../components/ui";
+import { StatusBar } from "../components/ui";
 import { generateId, getErrorMessage } from "../lib/utils";
 import { useSerialConnection } from "../hooks/useSerialConnection";
 import { useValidation } from "../hooks/useValidation";
@@ -31,16 +30,63 @@ import { useFraming } from "../hooks/useFraming";
 import { useCommandExecution } from "../hooks/useCommandExecution";
 import { useDeviceProtocolSync } from "../hooks/useDeviceProtocolSync";
 import { useStore } from "../lib/store";
+import { useModals, useStoreActions } from "../lib/selectors";
+import { useShallow } from "zustand/react/shallow";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import { cn } from "../lib/utils";
 
 const MainWorkspace: React.FC = () => {
-  // Store
+  // Granular selectors — subscribe only to what MainWorkspace needs (Phase 1a perf fix)
+  const activeSessionId = useStore((state) => state.activeSessionId);
+  const commands = useStore((state) => state.commands);
+
+  // Session data — only the fields MainWorkspace actually uses (NOT logs)
+  const activeSession = useStore(
+    useShallow((state) => {
+      const s = state.sessions[state.activeSessionId];
+      return {
+        config: s?.config,
+        networkConfig: s?.networkConfig,
+        sendMode: s?.sendMode,
+        encoding: s?.encoding,
+        checksum: s?.checksum,
+        isConnected: s?.isConnected,
+        connectionType: s?.connectionType,
+        name: s?.name,
+      };
+    }),
+  );
+
+  // Session tabs data — custom equality fn avoids infinite loop from new array/object refs
+  const sessionTabData = useStoreWithEqualityFn(
+    useStore,
+    (state) =>
+      Object.entries(state.sessions).map(([id, s]) => ({
+        id,
+        name: s.name,
+        connectionType: s.connectionType,
+      })),
+    (a, b) =>
+      a.length === b.length &&
+      a.every(
+        (item, i) =>
+          item.id === b[i].id &&
+          item.name === b[i].name &&
+          item.connectionType === b[i].connectionType,
+      ),
+  );
+
+  // Modal states
   const {
-    // State
-    commands,
-    sessions,
-    activeSessionId,
-    // Actions
+    editingPreset,
+    pendingParamCommand,
+    showGeneratorModal,
+    showSystemLogs,
+    showAppSettings,
+  } = useModals();
+
+  // Actions (stable references — never cause re-renders)
+  const {
     setConfig,
     setPresets,
     setCommands,
@@ -56,23 +102,16 @@ const MainWorkspace: React.FC = () => {
     setIsConnected,
     addSession,
     removeSession,
-    setActiveSessionId,
+    setActiveSessionId: setActiveSession,
     renameSession,
-
-    // New Actions
     addSystemLog,
     setFramingOverride,
     setPortName,
+  } = useStoreActions();
 
-    // Modal States
-    editingPreset,
-    pendingParamCommand,
-    showGeneratorModal,
-    showSystemLogs,
-    showAppSettings,
-  } = useStore();
+  // bytesReceived/bytesTransmitted now read directly inside StatusBar (not here)
+  // to avoid MainWorkspace re-rendering on every incoming frame.
 
-  const activeSession = sessions[activeSessionId];
   // Type assertion: config always has required fields due to defaults applied at session creation
   const config = activeSession.config as Required<typeof activeSession.config>;
   const {
@@ -156,22 +195,8 @@ const MainWorkspace: React.FC = () => {
     framing.overrideTimerRef,
   );
 
-  // Calculate bytes received/transmitted from session logs
-  // Note: Must be called before any early returns to maintain hook order
-  const { bytesReceived, bytesTransmitted } = useMemo(() => {
-    const logs = activeSession.logs || [];
-    let rx = 0;
-    let tx = 0;
-    for (const log of logs) {
-      const bytes = getBytes(log.data);
-      if (log.direction === "RX") {
-        rx += bytes.length;
-      } else {
-        tx += bytes.length;
-      }
-    }
-    return { bytesReceived: rx, bytesTransmitted: tx };
-  }, [activeSession.logs]);
+  // bytesReceived/bytesTransmitted now come from incremental store counters (Phase 1d)
+  // — O(1) per frame instead of O(n) useMemo over all logs
 
   const handleAIImport = (result: AIProjectResult) => {
     let newContextId: string | undefined;
@@ -279,57 +304,6 @@ const MainWorkspace: React.FC = () => {
     );
   }
 
-  // Compute connection state for StatusBar
-  const connectionState = sessionIsConnected ? "connected" : "disconnected";
-
-  // Compute serial config string for StatusBar
-  const serialConfigString = `${config.baudRate} ${config.dataBits}${config.parity.charAt(0).toUpperCase()}${config.stopBits}`;
-
-  // Session tabs as center content for TopBar
-  const sessionTabsContent = (
-    <div className="flex items-center gap-1 h-full overflow-x-auto overflow-y-hidden [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
-      {Object.values(sessions).map((session: Session) => (
-        <div
-          key={session.id}
-          className={cn(
-            "group flex items-center gap-2 px-3 py-1.5 rounded-t-md text-xs font-medium border-t border-x cursor-pointer select-none transition-all max-w-37.5 shrink-0",
-            activeSessionId === session.id
-              ? "bg-background border-border text-foreground -mb-px z-10 shadow-sm"
-              : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
-          )}
-          onClick={() => setActiveSessionId(session.id)}
-          onDoubleClick={() => setRenamingSessionId(session.id)}
-        >
-          {session.connectionType === "SERIAL" ? (
-            <Usb className="w-3 h-3 opacity-70" />
-          ) : (
-            <Wifi className="w-3 h-3 opacity-70" />
-          )}
-          <span className="truncate">{session.name}</span>
-          {Object.keys(sessions).length > 1 && (
-            <div
-              role="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSessionToDelete(session.id);
-              }}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded-sm hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="w-3 h-3" />
-            </div>
-          )}
-        </div>
-      ))}
-      <button
-        onClick={addSession}
-        className="ml-1 h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
-        title="New Session"
-      >
-        <Plus className="w-4 h-4" />
-      </button>
-    </div>
-  );
-
   return (
     <div className="flex flex-col h-screen w-full min-w-225 min-h-150 bg-background text-foreground font-sans overflow-hidden">
       {/* Main Content Area */}
@@ -347,7 +321,7 @@ const MainWorkspace: React.FC = () => {
           {/* Session Tabs - Top Edge */}
           <div className="flex items-center gap-2 px-4 py-2 bg-bg-surface border-b border-border-default shrink-0">
             <div className="flex items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40">
-              {Object.values(sessions).map((session: Session) => (
+              {sessionTabData.map((session) => (
                 <div
                   key={session.id}
                   className={cn(
@@ -356,7 +330,7 @@ const MainWorkspace: React.FC = () => {
                       ? "bg-accent-primary/10 border-accent-primary text-accent-primary shadow-sm font-semibold"
                       : "bg-bg-muted border-border-default text-text-secondary hover:bg-bg-hover hover:text-foreground",
                   )}
-                  onClick={() => setActiveSessionId(session.id)}
+                  onClick={() => setActiveSession(session.id)}
                   onDoubleClick={() => setRenamingSessionId(session.id)}
                 >
                   {session.connectionType === "SERIAL" ? (
@@ -365,7 +339,7 @@ const MainWorkspace: React.FC = () => {
                     <Wifi className="w-3 h-3 opacity-70" />
                   )}
                   <span className="truncate">{session.name}</span>
-                  {Object.keys(sessions).length > 1 && (
+                  {sessionTabData.length > 1 && (
                     <div
                       role="button"
                       onClick={(e) => {
@@ -501,16 +475,8 @@ const MainWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Status Bar - 24px */}
-      <StatusBar
-        connectionState={connectionState}
-        portName={activeSession.portName}
-        serialConfig={
-          connectionType === "SERIAL" ? serialConfigString : undefined
-        }
-        bytesReceived={bytesReceived}
-        bytesTransmitted={bytesTransmitted}
-      />
+      {/* Status Bar - 24px — reads from store directly, no prop drilling */}
+      <StatusBar />
 
       {pendingParamCommand && (
         <ParameterInputModal
@@ -578,7 +544,9 @@ const MainWorkspace: React.FC = () => {
       {renamingSessionId && (
         <SimpleInputModal
           title="Rename Session"
-          defaultValue={sessions[renamingSessionId]?.name}
+          defaultValue={
+            sessionTabData.find((s) => s.id === renamingSessionId)?.name
+          }
           placeholder="Session Name"
           onSave={(name) => renameSession(renamingSessionId, name)}
           onClose={() => setRenamingSessionId(null)}
@@ -588,7 +556,7 @@ const MainWorkspace: React.FC = () => {
       {sessionToDelete && (
         <ConfirmationModal
           title="Close Session?"
-          message={`Are you sure you want to close "${sessions[sessionToDelete]?.name}"? Any unsaved data in this session log will be lost.`}
+          message={`Are you sure you want to close "${sessionTabData.find((s) => s.id === sessionToDelete)?.name}"? Any unsaved data in this session log will be lost.`}
           confirmLabel="Close"
           isDestructive
           onConfirm={() => {

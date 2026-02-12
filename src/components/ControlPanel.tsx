@@ -15,6 +15,15 @@ import { Usb, Globe } from "lucide-react";
 import { cn, generateId } from "../lib/utils";
 import SimpleInputModal from "./SimpleInputModal";
 import { useStore } from "../lib/store";
+import {
+  useStoreActions,
+  usePresets,
+  useActiveSessionBasicInfo,
+  useConnectionState,
+  useTheme,
+  useThemeActions,
+} from "../lib/selectors";
+import { useShallow } from "zustand/react/shallow";
 import { serialService, ISerialPort } from "../lib/serialService";
 import { ExportProfileSchema } from "../lib/schemas";
 import { useTranslation } from "react-i18next";
@@ -39,41 +48,48 @@ const ControlPanel: React.FC<Props> = ({
   onOpenAIGenerator,
 }) => {
   const { t } = useTranslation();
+
+  // Granular selectors — subscribe only to what ControlPanel needs (Phase 1b perf fix)
+  const activeSessionId = useStore((state) => state.activeSessionId);
+  const { presets, loadedPresetId } = usePresets();
+  const { themeMode, themeColor } = useTheme();
+  const { setThemeMode, setThemeColor } = useThemeActions();
+  const commands = useStore((state) => state.commands);
+  const sequences = useStore((state) => state.sequences);
+  const contexts = useStore((state) => state.contexts);
+  const devices = useStore((state) => state.devices);
+  const protocols = useStore((state) => state.protocols);
   const {
-    sessions,
-    activeSessionId,
     setConfig,
     setNetworkConfig,
     setConnectionType,
-    themeMode,
-    setThemeMode,
-    themeColor,
-    setThemeColor,
-    presets,
-    loadedPresetId,
     setLoadedPresetId,
     setPresets,
     addToast,
-    commands,
-    sequences,
-    contexts,
-    devices,
     applyPresetLayout,
-    protocols,
-    setProtocolFramingEnabled,
-    setActiveProtocolId,
-  } = useStore();
+  } = useStoreActions();
 
-  const activeSession = sessions[activeSessionId];
-  const {
-    config,
-    networkConfig,
-    connectionType,
-    isConnected,
-    widgets,
-    protocolFramingEnabled,
-    activeProtocolId,
-  } = activeSession;
+  // Protocol actions
+  const setProtocolFramingEnabled = useStore(
+    (state) => state.setProtocolFramingEnabled,
+  );
+  const setActiveProtocolId = useStore((state) => state.setActiveProtocolId);
+
+  // Session-specific data
+  const { config, networkConfig, connectionType, widgets } =
+    useActiveSessionBasicInfo();
+  const { isConnected } = useConnectionState();
+
+  // Protocol integration fields
+  const { protocolFramingEnabled, activeProtocolId } = useStore(
+    useShallow((state) => {
+      const s = state.sessions[state.activeSessionId];
+      return {
+        protocolFramingEnabled: s?.protocolFramingEnabled || false,
+        activeProtocolId: s?.activeProtocolId,
+      };
+    }),
+  );
 
   // Get the active protocol for framing display
   const activeProtocol = useMemo(() => {
@@ -268,10 +284,12 @@ const ControlPanel: React.FC<Props> = ({
       sequences,
       contexts,
       devices,
-      logs: activeSession.logs.map((l) => ({
-        ...l,
-        data: typeof l.data === "string" ? l.data : Array.from(l.data),
-      })),
+      logs: (useStore.getState().sessions[activeSessionId]?.logs || []).map(
+        (l) => ({
+          ...l,
+          data: typeof l.data === "string" ? l.data : Array.from(l.data),
+        }),
+      ),
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
       type: "application/json",

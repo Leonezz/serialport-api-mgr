@@ -1,16 +1,9 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { useThrottle } from "../../hooks/useThrottle";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-  CartesianGrid,
-  Brush,
-} from "recharts";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useStore } from "../../lib/store";
+import { useEChart } from "../../hooks/useEChart";
+import { CHART_COLORS } from "../../lib/charts/constants";
+import { DEFAULT_TARGET_FPS } from "../../lib/charts/constants";
+import type { EChartsOption } from "../../lib/charts/echartsSetup";
 import {
   Button,
   Card,
@@ -34,28 +27,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { handleChartWheel } from "../../hooks/useChartZoomPan";
 import { PlotterParserType, PlotterDataPoint } from "@/types";
-
-// Series colors per FIGMA-DESIGN.md 9.6
-const CHART_COLORS = [
-  "#3b82f6", // blue.500
-  "#22c55e", // green.500
-  "#f59e0b", // amber.500
-  "#8b5cf6", // purple.500
-  "#ef4444", // red.500
-  "#06b6d4", // cyan
-  "#ec4899", // pink
-  "#84cc16", // lime
-];
-
-const WINDOW_SIZE = 200; // Visible points in auto-scroll mode
-
-// Maximum points to render at once to prevent browser crash (#12)
-const MAX_RENDER_POINTS = 500;
-
-// Minimum interval between chart re-renders during heavy streaming (ms)
-const RENDER_THROTTLE_MS = 50;
 
 // Time window options (Section 9.6)
 type TimeWindowValue = "30s" | "1m" | "5m" | "15m" | "ALL";
@@ -67,13 +39,12 @@ const TIME_WINDOW_OPTIONS: SegmentOption[] = [
   { value: "ALL", label: "All" },
 ];
 
-// Time window in milliseconds
 const TIME_WINDOW_MS: Record<TimeWindowValue, number | null> = {
   "30s": 30 * 1000,
   "1m": 60 * 1000,
   "5m": 5 * 60 * 1000,
   "15m": 15 * 60 * 1000,
-  ALL: null, // null = show all data
+  ALL: null,
 };
 
 // Interpolation options (Section 9.6)
@@ -83,13 +54,6 @@ const INTERPOLATION_OPTIONS: SegmentOption[] = [
   { value: "step", label: "Step" },
   { value: "smooth", label: "Smooth" },
 ];
-
-// Map to Recharts curve types
-const INTERPOLATION_MAP: Record<InterpolationType, string> = {
-  linear: "linear",
-  step: "stepAfter",
-  smooth: "monotone",
-};
 
 interface LegendItemProps {
   seriesKey: string;
@@ -129,6 +93,60 @@ const LegendItem = React.memo<LegendItemProps>(
 );
 LegendItem.displayName = "LegendItem";
 
+/** Build initial ECharts option (grid, axes, dataZoom — no series data yet).
+ *  Theme colors are applied via useEChart's applyTheme on init and on dark/light toggle. */
+function buildBaseOption(): EChartsOption {
+  return {
+    backgroundColor: "transparent",
+    animation: false,
+    grid: { top: 10, right: 10, bottom: 60, left: 50 },
+    xAxis: {
+      type: "time",
+      splitLine: { show: false },
+      axisLabel: { fontSize: 10, formatter: "{HH}:{mm}:{ss}" },
+    },
+    yAxis: {
+      type: "value",
+      splitLine: { lineStyle: { type: "dashed", opacity: 0.3 } },
+      axisLabel: { fontSize: 10 },
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "cross" },
+      backgroundColor: "rgba(24,24,27,0.95)",
+      borderColor: "#3f3f46",
+      textStyle: { color: "#e4e4e7", fontSize: 11 },
+    },
+    dataZoom: [
+      {
+        type: "inside",
+        xAxisIndex: 0,
+        filterMode: "weakFilter",
+        zoomOnMouseWheel: "ctrl",
+        moveOnMouseWheel: true,
+        moveOnMouseMove: false,
+      },
+      {
+        type: "slider",
+        xAxisIndex: 0,
+        height: 30,
+        bottom: 5,
+        filterMode: "weakFilter",
+        borderColor: "#3f3f46",
+        backgroundColor: "rgba(39,39,42,0.3)",
+        fillerColor: "rgba(59,130,246,0.15)",
+        handleStyle: { color: "#3b82f6" },
+        textStyle: { color: "#a1a1aa", fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: "#3f3f46" },
+          areaStyle: { color: "rgba(59,130,246,0.05)" },
+        },
+      },
+    ],
+    series: [],
+  };
+}
+
 const PlotterPanel: React.FC = () => {
   const activeSessionId = useStore((state) => state.activeSessionId);
   const session = useStore((state) => state.sessions[activeSessionId]);
@@ -138,23 +156,151 @@ const PlotterPanel: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-
-  // Section 9.6: Time Window & Interpolation state
   const [timeWindow, setTimeWindow] = useState<TimeWindowValue>("1m");
   const [interpolation, setInterpolation] =
     useState<InterpolationType>("linear");
-
-  // Auto-Scroll & Zoom State
   const [isAutoScroll, setIsAutoScroll] = useState(true);
-  const [manualViewRange, setManualViewRange] = useState<{
-    start: number;
-    end: number;
-  } | null>(null);
+
+  // Refs for throttled render pattern
+  const dataRef = useRef<PlotterDataPoint[]>([]);
+  const frozenDataRef = useRef<PlotterDataPoint[]>([]);
+  const seriesRef = useRef<string[]>([]);
+  const [displayPointCount, setDisplayPointCount] = useState(0);
+
+  // ECharts lifecycle
+  const { containerRef, chartRef, setOption } = useEChart(buildBaseOption());
+
+  // Track user zoom interaction to disable auto-scroll
+  const userInteractedRef = useRef(false);
+  const programmaticZoomRef = useRef(false);
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const handler = () => {
+      // Skip events fired by our own dispatchAction (auto-scroll)
+      if (programmaticZoomRef.current) return;
+      userInteractedRef.current = true;
+      setIsAutoScroll(false);
+    };
+    chart.on("dataZoom", handler);
+    return () => {
+      chart.off("dataZoom", handler);
+    };
+  }, [chartRef]);
+
+  // Subscribe to store plotter data updates (no React re-renders)
+  useEffect(() => {
+    // Seed refs from current state so data is available on first rAF tick after remount
+    const currentState = useStore.getState();
+    const currentSession = currentState.sessions[activeSessionId];
+    if (currentSession?.plotter) {
+      dataRef.current = currentSession.plotter.data;
+      seriesRef.current = currentSession.plotter.series;
+    }
+
+    const unsub = useStore.subscribe((state) => {
+      const s = state.sessions[activeSessionId];
+      if (!s?.plotter) return;
+      dataRef.current = s.plotter.data;
+      seriesRef.current = s.plotter.series;
+    });
+    return unsub;
+  }, [activeSessionId]);
+
+  // rAF loop: push data to chart at target FPS
+  useEffect(() => {
+    let rafId: number;
+    let lastFrame = 0;
+    const frameInterval = 1000 / DEFAULT_TARGET_FPS;
+
+    const tick = (now: number) => {
+      rafId = requestAnimationFrame(tick);
+      if (now - lastFrame < frameInterval) return;
+      lastFrame = now;
+
+      const chart = chartRef.current;
+      if (!chart) return;
+
+      const rawData = isPaused ? frozenDataRef.current : dataRef.current;
+      const currentSeries = seriesRef.current;
+
+      // Apply time window filter
+      const windowMs = TIME_WINDOW_MS[timeWindow];
+      let filtered = rawData;
+      if (windowMs !== null && rawData.length > 0) {
+        const latestTime = rawData[rawData.length - 1]?.time;
+        if (latestTime !== undefined) {
+          const cutoff = latestTime - windowMs;
+          filtered = rawData.filter((p) => (p.time ?? 0) >= cutoff);
+        }
+      }
+
+      // Build series configs
+      const seriesOption = currentSeries.map((key, i) => {
+        const color = CHART_COLORS[i % CHART_COLORS.length];
+        const isHidden = hiddenSeries.has(key);
+        const seriesData = filtered.map((p) => [p.time, p[key] ?? null]);
+
+        return {
+          name: key,
+          type: "line" as const,
+          showSymbol: false,
+          sampling: "lttb" as const,
+          animation: false,
+          large: true,
+          largeThreshold: 1000,
+          lineStyle: {
+            width: 2,
+            color,
+            opacity: isHidden ? 0 : 1,
+          },
+          itemStyle: { color, opacity: isHidden ? 0 : 1 },
+          // Interpolation modes
+          step: interpolation === "step" ? ("end" as const) : (false as const),
+          smooth: interpolation === "smooth" ? true : false,
+          data: seriesData,
+        };
+      });
+
+      setOption(
+        { series: seriesOption },
+        { notMerge: false, lazyUpdate: true },
+      );
+
+      // Auto-scroll: move dataZoom to show latest data
+      if (isAutoScroll && !userInteractedRef.current && filtered.length > 0) {
+        const latestTime = filtered[filtered.length - 1]?.time ?? Date.now();
+        const windowDuration = windowMs ?? 60000;
+        programmaticZoomRef.current = true;
+        chart.dispatchAction({
+          type: "dataZoom",
+          startValue: latestTime - windowDuration,
+          endValue: latestTime,
+        });
+        programmaticZoomRef.current = false;
+      }
+      userInteractedRef.current = false;
+
+      // Update point count for UI display
+      setDisplayPointCount(filtered.length);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [
+    chartRef,
+    setOption,
+    isPaused,
+    timeWindow,
+    interpolation,
+    hiddenSeries,
+    isAutoScroll,
+  ]);
 
   const plotter = session?.plotter;
   const config = plotter?.config || {
     enabled: false,
-    parser: "CSV",
+    parser: "CSV" as PlotterParserType,
     bufferSize: 1000,
     autoDiscover: true,
   };
@@ -162,94 +308,17 @@ const PlotterPanel: React.FC = () => {
   const series = plotter?.series || [];
   const aliases = plotter?.aliases || {};
 
-  // Data to display (handle pause)
-  const [frozenData, setFrozenData] = useState<PlotterDataPoint[]>([]);
-  const rawDisplayData = isPaused ? frozenData : data;
-
-  // Section 9.6: Apply time window filter with additional pruning (#12)
-  // Use the latest data point's timestamp as reference (more stable than Date.now())
-  const displayData = useMemo(() => {
-    const windowMs = TIME_WINDOW_MS[timeWindow];
-    let filtered = rawDisplayData;
-
-    // Apply time window filter
-    if (windowMs !== null && rawDisplayData.length > 0) {
-      const latestTime = rawDisplayData[rawDisplayData.length - 1]?.time;
-      if (latestTime !== undefined) {
-        const cutoff = latestTime - windowMs;
-        filtered = rawDisplayData.filter(
-          (point) => (point.time ?? 0) >= cutoff,
-        );
-      }
-    }
-
-    // Additional pruning: if too many points, downsample to prevent browser crash (#12)
-    // Keep every Nth point to stay under MAX_RENDER_POINTS
-    if (filtered.length > MAX_RENDER_POINTS) {
-      const step = Math.ceil(filtered.length / MAX_RENDER_POINTS);
-      const downsampled: PlotterDataPoint[] = [];
-      for (let i = 0; i < filtered.length; i += step) {
-        downsampled.push(filtered[i]);
-      }
-      // Always include the last point for accurate "current" display
-      if (
-        downsampled.length > 0 &&
-        downsampled[downsampled.length - 1] !== filtered[filtered.length - 1]
-      ) {
-        downsampled.push(filtered[filtered.length - 1]);
-      }
-      return downsampled;
-    }
-
-    return filtered;
-  }, [rawDisplayData, timeWindow]);
-
-  // Throttle chart updates during heavy streaming (#12)
-  // useThrottle fires at the interval while data streams (unlike debounce which waits for silence)
-  const throttledDisplayData = useThrottle(displayData, RENDER_THROTTLE_MS);
-
-  // Show staleness indicator when throttle hasn't caught up yet
-  const isDataStale = displayData !== throttledDisplayData;
-
-  // Derived View Range - use deferred data for calculations
-  const viewRange = useMemo(() => {
-    if (isAutoScroll && throttledDisplayData.length > 0) {
-      const end = throttledDisplayData.length - 1;
-      const start = Math.max(0, throttledDisplayData.length - WINDOW_SIZE);
-      return { start, end };
-    }
-    return manualViewRange;
-  }, [isAutoScroll, throttledDisplayData.length, manualViewRange]);
-
-  // --- Handlers ---
-
   const handleTogglePause = () => {
     if (!isPaused) {
-      setFrozenData([...data]);
+      frozenDataRef.current = [...data];
     }
     setIsPaused(!isPaused);
   };
 
-  const handleBrushChange = (range: {
-    startIndex?: number;
-    endIndex?: number;
-  }) => {
-    if (range.startIndex !== undefined && range.endIndex !== undefined) {
-      setManualViewRange({ start: range.startIndex, end: range.endIndex });
-
-      // Check if user dragged to the end -> Re-enable auto-scroll?
-      // For now, simpler: User interaction disables auto-scroll.
-      // We can add a "stick to end" logic if needed, but explicit is better.
-      if (isAutoScroll) setIsAutoScroll(false);
-    }
-  };
-
   const handleExport = () => {
     if (data.length === 0) return;
-
     const headers = ["Timestamp", ...series];
     const csvRows = [headers.join(",")];
-
     data.forEach((row) => {
       const line = [
         new Date(row.time).toISOString(),
@@ -257,7 +326,6 @@ const PlotterPanel: React.FC = () => {
       ];
       csvRows.push(line.join(","));
     });
-
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -273,7 +341,6 @@ const PlotterPanel: React.FC = () => {
 
   const getSeriesName = (key: string) => aliases[key] || key;
 
-  // Toggle series visibility (stable ref for LegendItem React.memo)
   const toggleSeriesVisibility = useCallback((seriesKey: string) => {
     setHiddenSeries((prev) => {
       const newSet = new Set(prev);
@@ -286,14 +353,13 @@ const PlotterPanel: React.FC = () => {
     });
   }, []);
 
-  const lastDataPoint = throttledDisplayData[throttledDisplayData.length - 1];
+  const lastDataPoint = data[data.length - 1];
 
   return (
     <div className="flex flex-col h-full bg-muted/10 overflow-hidden relative">
       {/* ===== SECTION 9.6: Legend Row (36px) ===== */}
       <div className="h-9 flex items-center justify-between px-4 bg-bg-surface border-b border-border-default shrink-0">
         <div className="flex items-center gap-4">
-          {/* Series Legend Items */}
           {series.map((s, i) => (
             <LegendItem
               key={s}
@@ -312,13 +378,15 @@ const PlotterPanel: React.FC = () => {
           )}
         </div>
 
-        {/* Legend Action Buttons */}
         <div className="flex items-center gap-2">
           {!isAutoScroll && (
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setIsAutoScroll(true)}
+              onClick={() => {
+                setIsAutoScroll(true);
+                userInteractedRef.current = false;
+              }}
               className="h-7 gap-1.5 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/20"
             >
               <ArrowRight className="w-3.5 h-3.5" /> Follow
@@ -417,123 +485,37 @@ const PlotterPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Chart Area */}
+        {/* Chart Area — container always mounted so useEChart initializes on first render */}
         <div className="flex-1 min-h-0 relative p-4">
-          {!config.enabled ? (
-            <div className="h-full flex flex-col items-center justify-center text-text-muted opacity-50 bg-bg-surface/30 rounded-xl border-2 border-dashed border-border-default">
-              <ChartIcon className="w-12 h-12 mb-4" />
-              <p className="font-semibold">Plotter is Disabled</p>
-              <p className="text-sm mb-4">
-                Enable to start visualizing incoming data
-              </p>
-              <Button onClick={togglePlotter}>Enable Plotter</Button>
-            </div>
-          ) : displayData.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-text-muted opacity-50 bg-bg-surface/30 rounded-xl border border-border-default">
-              <div className="animate-pulse flex flex-col items-center">
-                <ChartIcon className="w-8 h-8 mb-2" />
-                <p className="text-xs">Waiting for data stream...</p>
-                <p className="text-[10px] mt-1 font-mono uppercase">
-                  Format: {config.autoDiscover ? "Auto-Detect" : config.parser}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div
-              className="h-full bg-bg-surface border border-border-default rounded-xl shadow-sm p-4 relative"
-              onWheel={(e) => {
-                const currentStart = viewRange?.start ?? 0;
-                const currentEnd =
-                  viewRange?.end ??
-                  Math.max(0, throttledDisplayData.length - 1);
+          <div className="h-full bg-bg-surface border border-border-default rounded-xl shadow-sm relative overflow-hidden">
+            <div ref={containerRef} className="w-full h-full" />
 
-                handleChartWheel(
-                  e,
-                  { start: currentStart, end: currentEnd },
-                  throttledDisplayData.length,
-                  (newRange) => setManualViewRange(newRange),
-                  () => setIsAutoScroll(false),
-                );
-              }}
-            >
-              {/* Data Loading Indicator */}
-              {isDataStale && (
-                <div className="absolute top-2 right-2 z-10 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1 text-[10px] font-medium text-amber-600 animate-pulse">
-                  Updating...
+            {/* Overlay: Plotter disabled */}
+            {!config.enabled && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-text-muted opacity-50 bg-bg-surface/95 rounded-xl border-2 border-dashed border-border-default z-10">
+                <ChartIcon className="w-12 h-12 mb-4" />
+                <p className="font-semibold">Plotter is Disabled</p>
+                <p className="text-sm mb-4">
+                  Enable to start visualizing incoming data
+                </p>
+                <Button onClick={togglePlotter}>Enable Plotter</Button>
+              </div>
+            )}
+
+            {/* Overlay: Waiting for data */}
+            {config.enabled && data.length === 0 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-text-muted opacity-50 bg-bg-surface/95 rounded-xl z-10">
+                <div className="animate-pulse flex flex-col items-center">
+                  <ChartIcon className="w-8 h-8 mb-2" />
+                  <p className="text-xs">Waiting for data stream...</p>
+                  <p className="text-[10px] mt-1 font-mono uppercase">
+                    Format:{" "}
+                    {config.autoDiscover ? "Auto-Detect" : config.parser}
+                  </p>
                 </div>
-              )}
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={throttledDisplayData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.1}
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="time"
-                    type="number"
-                    domain={["dataMin", "dataMax"]}
-                    tickFormatter={(t) => new Date(t).toLocaleTimeString()}
-                    tick={{ fontSize: 10 }}
-                    height={30}
-                  />
-                  <YAxis
-                    width={40}
-                    tick={{ fontSize: 10 }}
-                    domain={["auto", "auto"]}
-                  />
-                  <Tooltip
-                    labelFormatter={(t) => new Date(t).toLocaleTimeString()}
-                    formatter={(value: number, name: string) => [
-                      value,
-                      getSeriesName(name),
-                    ]}
-                    contentStyle={{
-                      borderRadius: "0.5rem",
-                      border: "1px solid hsl(var(--border))",
-                      fontSize: "12px",
-                      backgroundColor: "hsl(var(--popover))",
-                      color: "hsl(var(--popover-foreground))",
-                    }}
-                  />
-                  {series.map((key, i) => (
-                    <Line
-                      key={key}
-                      type={
-                        INTERPOLATION_MAP[interpolation] as
-                          | "linear"
-                          | "stepAfter"
-                          | "monotone"
-                      }
-                      dataKey={key}
-                      name={key}
-                      stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                      isAnimationActive={false}
-                      hide={hiddenSeries.has(key)}
-                    />
-                  ))}
-                  <Brush
-                    dataKey="time"
-                    height={30}
-                    stroke="var(--color-border-default)"
-                    fill="var(--color-bg-muted)"
-                    tickFormatter={() => ""}
-                    startIndex={viewRange?.start}
-                    endIndex={viewRange?.end}
-                    onChange={handleBrushChange}
-                    travellerWidth={10}
-                    className="recharts-brush-themed"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -541,7 +523,6 @@ const PlotterPanel: React.FC = () => {
       {config.enabled && (
         <div className="h-10 flex items-center justify-between px-4 bg-bg-surface border-t border-border-default shrink-0 relative">
           <div className="flex items-center gap-4">
-            {/* Enable/Disable Toggle */}
             <div className="flex items-center gap-2">
               <Button
                 variant={config.enabled ? "default" : "outline"}
@@ -553,7 +534,6 @@ const PlotterPanel: React.FC = () => {
               </Button>
             </div>
 
-            {/* Time Window */}
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase font-bold text-text-muted">
                 Time Window
@@ -566,10 +546,9 @@ const PlotterPanel: React.FC = () => {
               />
             </div>
 
-            {/* Data Stats - Positioned here to not affect Interpolation layout */}
             <div className="text-[10px] font-mono text-text-muted tabular-nums">
-              {throttledDisplayData.length} pts
-              {data.length !== throttledDisplayData.length && (
+              {displayPointCount} pts
+              {data.length !== displayPointCount && (
                 <span className="ml-1 text-text-muted/60">
                   / {data.length} total
                 </span>
@@ -577,7 +556,6 @@ const PlotterPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Interpolation - Isolated on the right */}
           <div className="flex items-center gap-2">
             <span className="text-[10px] uppercase font-bold text-text-muted">
               Interpolation
@@ -605,7 +583,6 @@ const PlotterPanel: React.FC = () => {
               </button>
             </div>
             <div className="p-4 space-y-6 overflow-y-auto custom-scrollbar">
-              {/* Parser Config */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b pb-2 mb-2">
                   <div className="h-6 w-6 bg-blue-500/10 rounded flex items-center justify-center text-blue-600">
@@ -684,6 +661,8 @@ const PlotterPanel: React.FC = () => {
                         { value: 500, label: "500 points" },
                         { value: 1000, label: "1000 points" },
                         { value: 5000, label: "5000 points" },
+                        { value: 50000, label: "50,000 points" },
+                        { value: 0, label: "Unlimited" },
                       ] as DropdownOption<number>[]
                     }
                     value={config.bufferSize}
@@ -695,7 +674,6 @@ const PlotterPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* Series Config */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b pb-2 mb-2">
                   <div className="h-6 w-6 bg-emerald-500/10 rounded flex items-center justify-center text-emerald-600">

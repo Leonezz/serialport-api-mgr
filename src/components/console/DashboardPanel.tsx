@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import {
   LayoutDashboard,
   Trash2,
@@ -17,6 +17,7 @@ import {
   Edit3,
 } from "lucide-react";
 import { useStore } from "../../lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "../../lib/utils";
 import {
   Button,
@@ -35,20 +36,24 @@ import ValueCardWidget from "./widgets/ValueCardWidget";
 import { DashboardWidget, WidgetConfig, WidgetType } from "@/types";
 import { TelemetryVariable } from "@/types";
 
+const EMPTY_WIDGETS: DashboardWidget[] = [];
+const EMPTY_VARIABLES: Record<string, TelemetryVariable> = {};
+
 const DashboardPanel: React.FC = () => {
-  const {
-    sessions,
-    activeSessionId,
-    clearVariables,
-    reorderWidgets,
-    addWidget,
-    removeWidget,
-  } = useStore();
-  const session = sessions[activeSessionId];
-  const widgets = useMemo(() => session?.widgets || [], [session?.widgets]);
-  const variables = useMemo(
-    () => session?.variables || {},
-    [session?.variables],
+  const widgets = useStore(
+    (state) => state.sessions[state.activeSessionId]?.widgets || EMPTY_WIDGETS,
+  );
+  const variables = useStore(
+    (state) =>
+      state.sessions[state.activeSessionId]?.variables || EMPTY_VARIABLES,
+  );
+  const { clearVariables, reorderWidgets, addWidget, removeWidget } = useStore(
+    useShallow((state) => ({
+      clearVariables: state.clearVariables,
+      reorderWidgets: state.reorderWidgets,
+      addWidget: state.addWidget,
+      removeWidget: state.removeWidget,
+    })),
   );
 
   const [editingWidget, setEditingWidget] = useState<DashboardWidget | null>(
@@ -95,11 +100,7 @@ const DashboardPanel: React.FC = () => {
   // Drag & Drop State
   const [draggedItem, setDraggedItem] = useState<string | null>(null); // Widget ID
 
-  // Shared Brush State for Synchronization (Time-based)
-  const [brushTimeRange, setBrushTimeRange] = useState<{
-    startTime?: number;
-    endTime?: number;
-  }>({});
+  // ECharts handle tooltip/zoom sync natively via echarts.connect()
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedItem(id);
@@ -206,8 +207,6 @@ const DashboardPanel: React.FC = () => {
                 onDragOver={(e) => handleDragOver(e, widget.id)}
                 onDrop={(e) => handleDrop(e, widget.id)}
                 isDragging={draggedItem === widget.id}
-                brushTimeRange={brushTimeRange}
-                setBrushTimeRange={setBrushTimeRange}
                 onEdit={() => setEditingWidget(widget)}
                 onDelete={() => confirmRemoveWidget(widget)}
                 onMaximize={() => setMaximizedWidgetId(widget.id)}
@@ -250,8 +249,6 @@ const DashboardPanel: React.FC = () => {
                   onDragOver={() => {}}
                   onDrop={() => {}}
                   isDragging={false}
-                  brushTimeRange={brushTimeRange}
-                  setBrushTimeRange={setBrushTimeRange}
                   onEdit={() => setEditingWidget(w)}
                   onDelete={() => confirmRemoveWidget(w)}
                   onMaximize={() => setMaximizedWidgetId(null)}
@@ -315,8 +312,6 @@ const WidgetCard: React.FC<{
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   isDragging: boolean;
-  brushTimeRange: { startTime?: number; endTime?: number };
-  setBrushTimeRange: (range: { startTime?: number; endTime?: number }) => void;
   onEdit: () => void;
   onDelete: () => void;
   onMaximize: () => void;
@@ -330,8 +325,6 @@ const WidgetCard: React.FC<{
   onDragOver,
   onDrop,
   isDragging,
-  brushTimeRange,
-  setBrushTimeRange,
   onEdit,
   onDelete,
   onMaximize,
@@ -400,14 +393,8 @@ const WidgetCard: React.FC<{
   const handleExport = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!variable) return;
-    const start = brushTimeRange.startTime ?? -Infinity;
-    const end = brushTimeRange.endTime ?? Infinity;
 
-    // Filter actual history
-    const dataToExport = variable.history.filter(
-      (h) => h.time >= start && h.time <= end,
-    );
-
+    const dataToExport = variable.history;
     if (dataToExport.length === 0) return;
 
     // Determine CSV Headers
@@ -461,59 +448,6 @@ const WidgetCard: React.FC<{
     return data;
   }, [safeVar.history, globalMinTime, globalMaxTime]);
 
-  // --- Calculate Indices based on Time Range ---
-  const brushIndices = useMemo(() => {
-    if (!processedData.length) return {};
-    if (
-      brushTimeRange.startTime === undefined &&
-      brushTimeRange.endTime === undefined
-    )
-      return {};
-
-    let startIndex = 0;
-    let endIndex = processedData.length - 1;
-
-    if (brushTimeRange.startTime !== undefined) {
-      const idx = processedData.findIndex(
-        (h) => h.time >= brushTimeRange.startTime!,
-      );
-      if (idx !== -1) startIndex = idx;
-    }
-
-    if (brushTimeRange.endTime !== undefined) {
-      const idx = processedData.findIndex(
-        (h) => h.time > brushTimeRange.endTime!,
-      );
-      if (idx !== -1) endIndex = Math.max(0, idx - 1);
-      else endIndex = processedData.length - 1;
-    }
-
-    if (startIndex > endIndex) startIndex = endIndex;
-    return { startIndex, endIndex };
-  }, [processedData, brushTimeRange]);
-
-  interface BrushEvent {
-    startIndex?: number;
-    endIndex?: number;
-  }
-
-  const handleBrushChange = useCallback(
-    (e: BrushEvent) => {
-      if (!processedData.length) return;
-      if (e.startIndex !== undefined && e.endIndex !== undefined) {
-        const startItem = processedData[e.startIndex];
-        const endItem = processedData[e.endIndex];
-        if (startItem && endItem) {
-          setBrushTimeRange({
-            startTime: startItem.time,
-            endTime: endItem.time,
-          });
-        }
-      }
-    },
-    [processedData, setBrushTimeRange],
-  );
-
   // --- Render Content Variants ---
   const renderContent = () => {
     if (!variable) {
@@ -556,8 +490,6 @@ const WidgetCard: React.FC<{
           data={processedData}
           dataKeys={keys}
           syncId={SYNC_ID}
-          brushIndices={brushIndices}
-          onBrushChange={handleBrushChange}
           isMaximized={isMaximized}
         />
       );
