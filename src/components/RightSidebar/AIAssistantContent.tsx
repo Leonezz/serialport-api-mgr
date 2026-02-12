@@ -8,20 +8,17 @@ import { Chat, Part } from "@google/genai";
 import { useStore } from "../../lib/store";
 import { ChatMessage } from "@/types";
 
-const AIAssistantContent: React.FC = () => {
-  const {
-    commands,
-    sequences,
-    presets,
-    activeSessionId,
-    sessions,
-    setAiMessages,
-  } = useStore();
+const EMPTY_TOKEN_USAGE = { total: 0, prompt: 0, completion: 0 };
 
-  const activeSession = sessions[activeSessionId];
-  const messages = activeSession.aiMessages;
-  const tokenUsage = activeSession.aiTokenUsage;
-  const widgets = activeSession.widgets || [];
+const AIAssistantContent: React.FC = () => {
+  // Granular selectors — only re-render when AI-specific state changes, not on every serial frame
+  const messages = useStore(
+    (s) => s.sessions[s.activeSessionId]?.aiMessages ?? [],
+  );
+  const tokenUsage = useStore(
+    (s) => s.sessions[s.activeSessionId]?.aiTokenUsage ?? EMPTY_TOKEN_USAGE,
+  );
+  const setAiMessages = useStore((s) => s.setAiMessages);
 
   const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -38,6 +35,10 @@ const AIAssistantContent: React.FC = () => {
   useEffect(() => {
     const initChat = async () => {
       try {
+        // Read project data from store snapshot — only needed at init, no subscription needed
+        const state = useStore.getState();
+        const { commands, sequences, presets } = state;
+        const widgets = state.sessions[state.activeSessionId]?.widgets || [];
         chatSessionRef.current = await createChatSession({
           commands,
           sequences,

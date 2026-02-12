@@ -25,7 +25,6 @@ interface ActiveValidation {
  */
 export function useValidation() {
   const activeValidationsRef = useRef<Map<string, ActiveValidation>>(new Map());
-  const { addToast, addSystemLog, updateLog, setVariable } = useStore();
 
   /**
    * Register a validation for a command response
@@ -52,7 +51,7 @@ export function useValidation() {
       const timer = setTimeout(() => {
         activeValidationsRef.current.delete(validationId);
         const errMsg = `Command "${cmdName}" validation timeout (${timeout}ms)`;
-        addSystemLog("ERROR", "VALIDATION", errMsg);
+        useStore.getState().addSystemLog("ERROR", "VALIDATION", errMsg);
         if (onError) onError(new Error(errMsg));
         reject(new Error(errMsg));
       }, timeout);
@@ -92,11 +91,13 @@ export function useValidation() {
     activeValidationsRef.current.delete(key);
 
     if (!val.resolve) {
-      addToast(
-        "success",
-        "Passed",
-        `Command "${val.cmdName}" response received.`,
-      );
+      useStore
+        .getState()
+        .addToast(
+          "success",
+          "Passed",
+          `Command "${val.cmdName}" response received.`,
+        );
     }
 
     // Execute transform script if present
@@ -104,13 +105,19 @@ export function useValidation() {
       try {
         const capturedVars: Record<string, unknown> = {};
 
+        const store = useStore.getState();
+
         // Inject setVar for telemetry and log for debugging
         const setVar = (name: string, value: unknown) => {
-          setVariable(name, value as TelemetryVariableValue, sessionId);
+          useStore
+            .getState()
+            .setVariable(name, value as TelemetryVariableValue, sessionId);
           capturedVars[name] = value;
         };
         const log = (msg: string) => {
-          addSystemLog("INFO", "SCRIPT", `[${val.cmdName}] Log: ${msg}`);
+          useStore
+            .getState()
+            .addSystemLog("INFO", "SCRIPT", `[${val.cmdName}] Log: ${msg}`);
         };
 
         const scriptArgs = {
@@ -125,10 +132,10 @@ export function useValidation() {
 
         // If logId exists and we captured vars, update the log entry
         if (logId && Object.keys(capturedVars).length > 0) {
-          updateLog(logId, { extractedVars: capturedVars }, sessionId);
+          store.updateLog(logId, { extractedVars: capturedVars }, sessionId);
         }
 
-        addSystemLog(
+        store.addSystemLog(
           "SUCCESS",
           "SCRIPT",
           `Executed post-response script for ${val.cmdName}`,
@@ -144,15 +151,17 @@ export function useValidation() {
         );
       } catch (err: unknown) {
         const errorMsg = getErrorMessage(err);
-        addToast("error", "Transformation Error", errorMsg);
-        addSystemLog(
-          "ERROR",
-          "SCRIPT",
-          `Post-response script error in ${val.cmdName}: ${errorMsg}`,
-          {
-            arguments: { data: textData },
-          },
-        );
+        useStore.getState().addToast("error", "Transformation Error", errorMsg);
+        useStore
+          .getState()
+          .addSystemLog(
+            "ERROR",
+            "SCRIPT",
+            `Post-response script error in ${val.cmdName}: ${errorMsg}`,
+            {
+              arguments: { data: textData },
+            },
+          );
       }
     }
 

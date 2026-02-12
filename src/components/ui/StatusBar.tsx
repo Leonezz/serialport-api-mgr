@@ -1,9 +1,13 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { ConnectionStatus, ConnectionState } from "./ConnectionStatus";
+import { useStore } from "../../lib/store";
 
 /**
  * StatusBar Component
+ *
+ * Reads connection state and byte counters directly from the store
+ * to avoid re-rendering MainWorkspace on every incoming frame.
  *
  * Design System Specifications (FIGMA-DESIGN.md 8.7):
  * - Height: 24px
@@ -14,16 +18,6 @@ import { ConnectionStatus, ConnectionState } from "./ConnectionStatus";
  */
 
 export interface StatusBarProps {
-  /** Connection state */
-  connectionState: ConnectionState;
-  /** Port name (e.g., COM3, /dev/ttyUSB0) */
-  portName?: string;
-  /** Serial config string (e.g., "115200 8N1") */
-  serialConfig?: string;
-  /** Bytes received */
-  bytesReceived?: number;
-  /** Bytes transmitted */
-  bytesTransmitted?: number;
   /** Show timestamp */
   showTimestamp?: boolean;
   /** Additional status items */
@@ -39,15 +33,40 @@ const formatBytes = (bytes: number): string => {
 };
 
 const StatusBar: React.FC<StatusBarProps> = ({
-  connectionState,
-  portName,
-  serialConfig,
-  bytesReceived = 0,
-  bytesTransmitted = 0,
   showTimestamp = true,
   additionalItems,
   className,
 }) => {
+  // Read directly from store — only StatusBar re-renders on byte counter changes,
+  // not MainWorkspace and its entire subtree.
+  const bytesReceived = useStore(
+    (state) => state.sessions[state.activeSessionId]?.bytesReceived || 0,
+  );
+  const bytesTransmitted = useStore(
+    (state) => state.sessions[state.activeSessionId]?.bytesTransmitted || 0,
+  );
+  const isConnected = useStore(
+    (state) => state.sessions[state.activeSessionId]?.isConnected || false,
+  );
+  const portName = useStore(
+    (state) => state.sessions[state.activeSessionId]?.portName,
+  );
+  const connectionType = useStore(
+    (state) =>
+      state.sessions[state.activeSessionId]?.connectionType || "SERIAL",
+  );
+  const config = useStore(
+    (state) => state.sessions[state.activeSessionId]?.config,
+  );
+
+  const connectionState: ConnectionState = isConnected
+    ? "connected"
+    : "disconnected";
+  const serialConfig =
+    connectionType === "SERIAL" && config
+      ? `${config.baudRate} ${config.dataBits}${config.parity.charAt(0).toUpperCase()}${config.stopBits}`
+      : undefined;
+
   const [currentTime, setCurrentTime] = React.useState<string>("");
 
   React.useEffect(() => {

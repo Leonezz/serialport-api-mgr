@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Zap, AlertCircle } from "lucide-react";
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "../../../lib/utils";
-import { TelemetryVariable } from "@/types";
-import { WidgetConfig } from "@/types";
+import { TelemetryVariable, WidgetConfig } from "@/types";
+import { useEChart } from "../../../hooks/useEChart";
+import { echarts } from "../../../lib/charts/echartsSetup";
+import { CHART_COLORS } from "../../../lib/charts/constants";
 
 interface Props {
   variable: TelemetryVariable;
@@ -12,6 +13,61 @@ interface Props {
   isMaximized: boolean;
   syncId: string;
 }
+
+/** Minimal sparkline chart — separate component for proper hook lifecycle */
+const SparklineChart: React.FC<{
+  data: Record<string, unknown>[];
+  syncId: string;
+}> = ({ data, syncId }) => {
+  const { containerRef, chartRef, setOption } = useEChart();
+  const groupRef = useRef(false);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.group = syncId;
+    if (!groupRef.current) {
+      echarts.connect(syncId);
+      groupRef.current = true;
+    }
+  }, [syncId, chartRef]);
+
+  useEffect(() => {
+    if (data.length <= 1) return;
+    setOption(
+      {
+        grid: { top: 0, right: 0, bottom: 0, left: 0 },
+        xAxis: { type: "time", show: false },
+        yAxis: { type: "value", show: false },
+        tooltip: {
+          trigger: "axis",
+          formatter: () => "",
+          axisPointer: {
+            type: "line",
+            lineStyle: { width: 1, opacity: 0.5 },
+          },
+        },
+        series: [
+          {
+            type: "line",
+            data: data
+              .filter((d) => d.val != null)
+              .map((d) => [d.time as number, d.val as number]),
+            color: CHART_COLORS[0],
+            areaStyle: { opacity: 0.3 },
+            lineStyle: { width: 2 },
+            showSymbol: false,
+            animation: false,
+            smooth: true,
+          },
+        ],
+      },
+      { notMerge: true },
+    );
+  }, [data, setOption]);
+
+  return <div ref={containerRef} className="w-full h-full" />;
+};
 
 const ValueCardWidget: React.FC<Props> = ({
   variable,
@@ -77,47 +133,7 @@ const ValueCardWidget: React.FC<Props> = ({
       {/* Mini Chart for Numbers */}
       {(isNum || isBool) && processedData.length > 1 && (
         <div className="h-1/3 w-full mt-auto opacity-60 hover:opacity-100 transition-opacity">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={processedData} syncId={syncId}>
-              <defs>
-                <linearGradient
-                  id={`grad-${variable.name}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="5%"
-                    stopColor="hsl(var(--primary))"
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="hsl(var(--primary))"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
-              <Tooltip
-                content={<></>}
-                cursor={{
-                  stroke: "hsl(var(--primary))",
-                  strokeWidth: 1,
-                  strokeOpacity: 0.5,
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="val"
-                stroke="hsl(var(--primary))"
-                fill={`url(#grad-${variable.name})`}
-                strokeWidth={2}
-                isAnimationActive={false}
-                connectNulls={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <SparklineChart data={processedData} syncId={syncId} />
         </div>
       )}
 

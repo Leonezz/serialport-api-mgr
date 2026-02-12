@@ -15,11 +15,10 @@ export function useFraming() {
   // Timer for framing override expiration safety
   const overrideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { addLog, addSystemLog, setFramingOverride, addPlotterData } =
-    useStore();
-
   /**
    * Process a single frame of data
+   * Uses batched processSerialFrame to combine addLog + addPlotterData + addSystemLog
+   * into a single store update (1 React re-render instead of 3).
    */
   const processFrame = (
     data: Uint8Array,
@@ -27,25 +26,15 @@ export function useFraming() {
     sessionId: string,
     onValidate?: (data: Uint8Array, sessionId: string, logId: string) => void,
   ) => {
-    // Add Log (Console) - Use the actual frame timestamp
-    const logId = addLog(data, "RX", undefined, sessionId);
-
-    // Plotter Support
-    const session = useStore.getState().sessions[sessionId];
+    // Prepare plotter point (if plotter is enabled)
+    const state = useStore.getState();
+    const session = state.sessions[sessionId];
     const plotterConfig = session?.plotter?.config;
-    if (plotterConfig?.enabled) {
-      const point = parsePlotterData(data, plotterConfig);
-      if (point) {
-        addPlotterData(point);
-      }
-    }
+    const plotterPoint = plotterConfig?.enabled
+      ? parsePlotterData(data, plotterConfig)
+      : null;
 
-    // Validate (if callback provided)
-    if (onValidate) {
-      onValidate(data, sessionId, logId);
-    }
-
-    // System Log (Operation History)
+    // Prepare system log details
     let preview = "";
     try {
       const text = new TextDecoder().decode(data);
@@ -63,23 +52,25 @@ export function useFraming() {
         .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
         .join(" ") + (data.length > 10 ? "..." : "");
 
-    addSystemLog(
-      "INFO",
-      "COMMAND",
+    // Single batched store update: addLog + addPlotterData + addSystemLog
+    const logId = state.processSerialFrame(
+      data,
+      sessionId,
       `RX Frame ${data.length}B: ${displayPreview}`,
-      {
-        sessionId,
-        hex: hexPreview,
-        data: Array.from(data),
-        timestamp,
-      },
+      { sessionId, hex: hexPreview, data: Array.from(data), timestamp },
+      plotterPoint,
     );
+
+    // Validate (if callback provided)
+    if (onValidate) {
+      onValidate(data, sessionId, logId);
+    }
 
     // --- Override Auto-Revert Logic ---
     const currentSessionState = useStore.getState().sessions[sessionId];
     if (currentSessionState && currentSessionState.framingOverride) {
       // Clear override in Store
-      setFramingOverride(undefined);
+      useStore.getState().setFramingOverride(undefined);
 
       // Clear safety timer
       if (overrideTimerRef.current) {

@@ -31,12 +31,11 @@ import { ErrorFallback } from "./ErrorFallback";
 // Starting index for virtuoso to handle prepended history logs
 const INITIAL_INDEX = 1_000_000;
 
+// Module-level constant to avoid creating new reference on every render
+const EMPTY_LOGS: LogEntry[] = [];
+
 const ConsoleViewer: React.FC = () => {
-  // Optimized Selectors: Only subscribe to activeSessionId and logs.
   const activeSessionId = useStore((state) => state.activeSessionId);
-  const activeSession = useStore((state) => state.sessions[activeSessionId]);
-  const logs = useMemo(() => activeSession.logs || [], [activeSession.logs]);
-  const portName = activeSession.portName;
   const clearLogs = useStore((state) => state.clearLogs);
   const addToast = useStore((state) => state.addToast);
 
@@ -44,6 +43,25 @@ const ConsoleViewer: React.FC = () => {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [view, setView] = useState<ConsoleView>("list");
+
+  // View-aware logs subscription: when plotter/dashboard is active, these panels
+  // read their own data from the store — ConsoleViewer doesn't need logs at all.
+  // Returning EMPTY_LOGS (constant reference) means zustand won't trigger
+  // re-renders on log changes, preventing the entire ConsoleViewer subtree
+  // from re-rendering ~100x/sec during streaming.
+  const needsLogs =
+    view !== "plotter" &&
+    view !== "dashboard" &&
+    view !== "logic" &&
+    view !== "stream";
+  const logs = useStore((state) =>
+    needsLogs
+      ? (state.sessions[activeSessionId]?.logs ?? EMPTY_LOGS)
+      : EMPTY_LOGS,
+  );
+  const portName = useStore(
+    (state) => state.sessions[activeSessionId]?.portName,
+  );
   const [displayMode, setDisplayMode] = useState<DisplayMode>("text");
   const [enableAnsi, setEnableAnsi] = useState(true);
 
@@ -238,9 +256,9 @@ const ConsoleViewer: React.FC = () => {
         <div className="flex-1 p-4 min-h-0 overflow-hidden">
           <ErrorBoundary
             FallbackComponent={ErrorFallback}
-            resetKeys={[activeSessionId, logs.length]}
+            resetKeys={[activeSessionId]}
           >
-            <LogicAnalyzerPanel logs={logs} />
+            <LogicAnalyzerPanel />
           </ErrorBoundary>
         </div>
       ) : view === "stream" ? (
@@ -249,22 +267,20 @@ const ConsoleViewer: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-4 h-full w-full md:w-fit mx-auto">
             <ErrorBoundary
               FallbackComponent={ErrorFallback}
-              resetKeys={[activeSessionId, logs.length]}
+              resetKeys={[activeSessionId]}
             >
               <StreamPanel
                 title="TX STREAM (Transmitted)"
-                logs={logs}
                 direction="TX"
                 className="w-full md:w-fit shrink-0 min-w-[320px]"
               />
             </ErrorBoundary>
             <ErrorBoundary
               FallbackComponent={ErrorFallback}
-              resetKeys={[activeSessionId, logs.length]}
+              resetKeys={[activeSessionId]}
             >
               <StreamPanel
                 title="RX STREAM (Received)"
-                logs={logs}
                 direction="RX"
                 className="w-full md:w-fit shrink-0 min-w-[320px]"
               />

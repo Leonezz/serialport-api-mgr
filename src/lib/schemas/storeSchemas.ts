@@ -95,7 +95,7 @@ export const PlotterConfigSchema = z.object({
   enabled: z.boolean(),
   parser: PlotterParserTypeSchema,
   regexString: z.string().optional(),
-  bufferSize: z.number().int().positive(),
+  bufferSize: z.number().int().nonnegative(), // 0 = unlimited
   autoDiscover: z.boolean(),
 });
 
@@ -161,6 +161,8 @@ export const SessionSchema = z.object({
   isConnected: z.boolean(),
   portName: z.string().optional(),
   logs: z.array(LogEntrySchema),
+  bytesReceived: z.number().optional().default(0),
+  bytesTransmitted: z.number().optional().default(0),
   variables: z.record(z.string(), TelemetryVariableSchema),
   widgets: z.array(DashboardWidgetSchema),
   plotter: PlotterStateSchema,
