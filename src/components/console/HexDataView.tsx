@@ -48,6 +48,10 @@ const getByteColorClass = (byte: number, isSelected: boolean): string => {
   return "text-text-muted hover:text-text-primary hover:bg-bg-hover";
 };
 
+// Row virtualization constants
+const ROW_HEIGHT = 18;
+const VIRTUALIZE_OVERSCAN = 10;
+
 interface HexDataViewProps {
   data: Uint8Array;
   selection: { start: number; end: number } | null;
@@ -60,6 +64,8 @@ interface HexDataViewProps {
   showInspector?: boolean;
   stickyHeader?: boolean;
   disableXScroll?: boolean;
+  /** When provided, enables row virtualization — only visible rows are rendered */
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 interface InspectorResult {
@@ -88,6 +94,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
     showInspector = true,
     stickyHeader = false,
     disableXScroll = false,
+    scrollContainerRef,
   }) => {
     const [isSelecting, setIsSelecting] = useState(false);
     const [littleEndian, setLittleEndian] = useState(true);
@@ -135,6 +142,49 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
       [selection],
     );
 
+    // Row virtualization — only render visible rows when scroll container ref is provided
+    const rowCount = Math.ceil(data.length / bytesPerRow);
+    const [visibleRange, setVisibleRange] = useState({ start: 0, end: 100 });
+
+    useEffect(() => {
+      const container = scrollContainerRef?.current;
+      if (!container) return;
+
+      let rafId = 0;
+      const updateVisibleRange = () => {
+        const { scrollTop, clientHeight } = container;
+        const first = Math.max(
+          0,
+          Math.floor(scrollTop / ROW_HEIGHT) - VIRTUALIZE_OVERSCAN,
+        );
+        const last = Math.min(
+          rowCount - 1,
+          Math.floor((scrollTop + clientHeight) / ROW_HEIGHT) +
+            VIRTUALIZE_OVERSCAN,
+        );
+        setVisibleRange((prev) => {
+          if (prev.start === first && prev.end === last) return prev;
+          return { start: first, end: last };
+        });
+      };
+
+      const onScrollOrResize = () => {
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(updateVisibleRange);
+      };
+
+      updateVisibleRange();
+      container.addEventListener("scroll", onScrollOrResize, { passive: true });
+      const ro = new ResizeObserver(onScrollOrResize);
+      ro.observe(container);
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        container.removeEventListener("scroll", onScrollOrResize);
+        ro.disconnect();
+      };
+    }, [scrollContainerRef, rowCount]);
+
     // Inspector Data Calculation
     const inspectorData = useMemo(() => {
       if (!selection || !showInspector) return null;
@@ -177,9 +227,6 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
       return res;
     }, [selection, data, littleEndian, showInspector]);
 
-    // Render Rows
-    const rowCount = Math.ceil(data.length / bytesPerRow);
-
     // Fixed Column Widths for Alignment
     const OFFSET_WIDTH = 60;
 
@@ -213,7 +260,7 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
       return (
         <tr
           key={rowIndex}
-          className="group hover:bg-bg-hover/50 transition-colors"
+          className="group hover:bg-bg-hover/50 transition-colors [content-visibility:auto] [contain-intrinsic-block-size:auto_18px]"
         >
           {/* Offset - Sticky Left */}
           <td
@@ -383,9 +430,55 @@ const HexDataView: React.FC<HexDataViewProps> = React.memo(
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: rowCount }).map((_: unknown, i: number) =>
-                renderRow(i),
-              )}
+              {(() => {
+                const isVirtualized = !!scrollContainerRef;
+                const renderStart = isVirtualized
+                  ? Math.max(0, visibleRange.start)
+                  : 0;
+                const renderEnd = isVirtualized
+                  ? Math.min(rowCount - 1, visibleRange.end)
+                  : rowCount - 1;
+                const colSpan = hideBinary ? 3 : 4;
+                const topPad = renderStart * ROW_HEIGHT;
+                const bottomPad = Math.max(
+                  0,
+                  (rowCount - 1 - renderEnd) * ROW_HEIGHT,
+                );
+                return (
+                  <>
+                    {isVirtualized && topPad > 0 && (
+                      <tr>
+                        <td
+                          colSpan={colSpan}
+                          style={{
+                            height: topPad,
+                            padding: 0,
+                            border: "none",
+                          }}
+                        />
+                      </tr>
+                    )}
+                    {renderEnd >= renderStart &&
+                      Array.from({
+                        length: renderEnd - renderStart + 1,
+                      }).map((_: unknown, i: number) =>
+                        renderRow(renderStart + i),
+                      )}
+                    {isVirtualized && bottomPad > 0 && (
+                      <tr>
+                        <td
+                          colSpan={colSpan}
+                          style={{
+                            height: bottomPad,
+                            padding: 0,
+                            border: "none",
+                          }}
+                        />
+                      </tr>
+                    )}
+                  </>
+                );
+              })()}
             </tbody>
           </table>
         </div>

@@ -123,6 +123,12 @@ export const useStoreActions = () =>
       setFramingOverride: state.setFramingOverride,
       setContexts: state.setContexts,
       applyPresetLayout: state.applyPresetLayout,
+
+      // Batched serial frame processing (Phase 0 perf optimization)
+      processSerialFrame: state.processSerialFrame,
+
+      // Port name
+      setPortName: state.setPortName,
     })),
   );
 

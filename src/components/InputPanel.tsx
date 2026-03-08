@@ -17,6 +17,7 @@ import {
 import { cn } from "../lib/utils";
 import { appendLineEnding } from "../lib/utils/dataUtils";
 import { useStore } from "../lib/store";
+import { useShallow } from "zustand/react/shallow";
 
 interface Props {
   onSend: (data: string) => void;
@@ -33,18 +34,29 @@ const InputPanel: React.FC<Props> = ({
   onToggleSignal,
   isConnected,
 }) => {
-  const {
-    sessions,
-    activeSessionId,
-    setConfig,
-    setSendMode,
-    setEncoding,
-    setChecksum,
-    setInputBuffer,
-  } = useStore();
+  const { config, sendMode, encoding, checksum, inputBuffer } = useStore(
+    useShallow((state) => {
+      const session = state.sessions[state.activeSessionId];
+      return {
+        config: session?.config,
+        sendMode: session?.sendMode,
+        encoding: session?.encoding,
+        checksum: session?.checksum,
+        inputBuffer: session?.inputBuffer ?? "",
+      };
+    }),
+  );
 
-  const activeSession = sessions[activeSessionId];
-  const { config, sendMode, encoding, checksum, inputBuffer } = activeSession;
+  const { setConfig, setSendMode, setEncoding, setChecksum, setInputBuffer } =
+    useStore(
+      useShallow((state) => ({
+        setConfig: state.setConfig,
+        setSendMode: state.setSendMode,
+        setEncoding: state.setEncoding,
+        setChecksum: state.setChecksum,
+        setInputBuffer: state.setInputBuffer,
+      })),
+    );
 
   // Custom Resize Logic
   const [textareaHeight, setTextareaHeight] = useState(80);

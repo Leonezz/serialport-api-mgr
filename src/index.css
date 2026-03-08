@@ -1094,21 +1094,3 @@
     transition-timing-function: var(--ease-smooth);
   }
 }
-
-/* ===== Recharts Brush Theming ===== */
-/* Style brush traveller handles to respect light/dark mode */
-.recharts-brush-themed .recharts-brush-traveller rect {
-  fill: var(--color-bg-surface);
-  stroke: var(--color-accent-primary);
-  stroke-width: 1.5;
-}
-
-.recharts-brush-themed .recharts-brush-traveller line {
-  stroke: var(--color-text-muted);
-}
-
-/* Brush slide area */
-.recharts-brush-themed .recharts-brush-slide {
-  fill: var(--color-accent-primary);
-  fill-opacity: 0.2;
-}

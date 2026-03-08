@@ -109,20 +109,8 @@ export function useCommandExecution(
     typeof setTimeout
   > | null>,
 ) {
-  const {
-    sessions,
-    setConfig,
-    setFramingOverride,
-    addLog,
-    addSystemLog,
-    addToast,
-    commands,
-    protocols,
-    setActiveSequenceId,
-  } = useStore();
-
-  const activeSession = sessions[activeSessionId];
-  const { config, isConnected: sessionIsConnected } = activeSession;
+  // Read state on-demand inside callbacks via useStore.getState() to avoid
+  // subscribing MainWorkspace to the entire store (perf optimization).
 
   /**
    * Send data to the active session
@@ -132,14 +120,16 @@ export function useCommandExecution(
     cmdInfo?: SavedCommand,
     params: Record<string, unknown> = {},
   ): Promise<void> => {
+    const store = useStore.getState();
     console.group(
       `Command Execution: ${cmdInfo?.name || "Manual Input"} [Session: ${activeSessionId}]`,
     );
 
     // Check session connection state from STORE
+    const sessionIsConnected = store.sessions[activeSessionId]?.isConnected;
     if (!sessionIsConnected) {
-      addToast("error", "Send Failed", "Port not connected");
-      addSystemLog(
+      store.addToast("error", "Send Failed", "Port not connected");
+      store.addSystemLog(
         "ERROR",
         "COMMAND",
         "Attempted to send data while disconnected.",
@@ -154,7 +144,7 @@ export function useCommandExecution(
     // For commands synced from protocols, we use binary message building
     // =========================================================================
     if (cmdInfo?.source === "PROTOCOL" && cmdInfo.protocolLayer?.protocolId) {
-      const effectiveCmd = getEffectiveCommand(cmdInfo, protocols);
+      const effectiveCmd = getEffectiveCommand(cmdInfo, store.protocols);
 
       // Check if this is a STRUCTURED command (binary protocol)
       if (
@@ -163,13 +153,13 @@ export function useCommandExecution(
         effectiveCmd.type === "STRUCTURED" &&
         effectiveCmd.messageStructureId
       ) {
-        const protocol = protocols.find(
+        const protocol = store.protocols.find(
           (p) => p.id === cmdInfo.protocolLayer!.protocolId,
         );
         if (!protocol) {
           const errorMsg = `Protocol "${cmdInfo.protocolLayer.protocolId}" not found`;
-          addToast("error", "Protocol Error", errorMsg);
-          addSystemLog("ERROR", "COMMAND", errorMsg);
+          store.addToast("error", "Protocol Error", errorMsg);
+          store.addSystemLog("ERROR", "COMMAND", errorMsg);
           console.groupEnd();
           throw new Error(errorMsg);
         }
@@ -182,7 +172,7 @@ export function useCommandExecution(
             params,
           );
 
-          addSystemLog(
+          store.addSystemLog(
             "INFO",
             "COMMAND",
             `Built STRUCTURED message for "${cmdInfo.name}"`,
@@ -196,7 +186,7 @@ export function useCommandExecution(
 
           // Write directly - STRUCTURED commands bypass text encoding
           await write(activeSessionId, binaryMessage);
-          addLog(
+          store.addLog(
             binaryMessage,
             "TX",
             cmdInfo.contextIds,
@@ -204,7 +194,7 @@ export function useCommandExecution(
             params,
           );
 
-          addSystemLog(
+          store.addSystemLog(
             "INFO",
             "COMMAND",
             `Sent: ${cmdInfo.name} (STRUCTURED)`,
@@ -219,8 +209,8 @@ export function useCommandExecution(
           return; // Early return - STRUCTURED commands don't use validation/scripting (yet)
         } catch (e: unknown) {
           const errorMsg = getErrorMessage(e);
-          addToast("error", "Protocol Build Error", errorMsg);
-          addSystemLog(
+          store.addToast("error", "Protocol Build Error", errorMsg);
+          store.addSystemLog(
             "ERROR",
             "COMMAND",
             `Failed to build STRUCTURED message for "${cmdInfo.name}"`,
@@ -241,7 +231,7 @@ export function useCommandExecution(
     if (cmdInfo && Object.keys(params).length > 0) {
       processedData = await applyParameters(data, params, cmdInfo);
       if (processedData !== data) {
-        addSystemLog("INFO", "COMMAND", `Applied parameters to payload`, {
+        store.addSystemLog("INFO", "COMMAND", `Applied parameters to payload`, {
           original: data,
           processed: processedData,
           params,
@@ -257,11 +247,13 @@ export function useCommandExecution(
       try {
         // Inject logging for pre-request scripts
         const log = (msg: string) => {
-          addSystemLog(
-            "INFO",
-            "SCRIPT",
-            `[${cmdInfo.name} Pre-Req] Log: ${msg}`,
-          );
+          useStore
+            .getState()
+            .addSystemLog(
+              "INFO",
+              "SCRIPT",
+              `[${cmdInfo.name} Pre-Req] Log: ${msg}`,
+            );
         };
         const scriptArgs = { payload: processedData, params, log };
         const result = await executeUserScript(
@@ -277,7 +269,7 @@ export function useCommandExecution(
           isRawBytes = true;
         }
 
-        addSystemLog(
+        store.addSystemLog(
           "SUCCESS",
           "SCRIPT",
           `Executed pre-request script for ${cmdInfo.name}`,
@@ -288,8 +280,8 @@ export function useCommandExecution(
         );
       } catch (e: unknown) {
         const errorMsg = getErrorMessage(e);
-        addToast("error", "Script Execution Failed", errorMsg);
-        addSystemLog(
+        store.addToast("error", "Script Execution Failed", errorMsg);
+        store.addSystemLog(
           "ERROR",
           "SCRIPT",
           `Pre-request script failed for ${cmdInfo.name}`,
@@ -310,26 +302,29 @@ export function useCommandExecution(
     ) {
       if (cmdInfo.framingPersistence === "PERSISTENT") {
         // Permanent Switch: Update Session Config
-        setConfig((prev) => ({ ...prev, framing: cmdInfo.responseFraming! }));
-        addSystemLog(
+        store.setConfig((prev) => ({
+          ...prev,
+          framing: cmdInfo.responseFraming!,
+        }));
+        store.addSystemLog(
           "INFO",
           "SYSTEM",
           `Switched Framing Strategy to ${cmdInfo.responseFraming.strategy} (Persistent)`,
         );
 
         // Ensure any temporary override is cleared so the new global takes effect
-        setFramingOverride(undefined);
+        store.setFramingOverride(undefined);
         if (overrideTimerRef.current) {
           clearTimeout(overrideTimerRef.current);
           overrideTimerRef.current = null;
         }
       } else {
         // Transient (One-Shot) Override
-        setFramingOverride(cmdInfo.responseFraming);
+        store.setFramingOverride(cmdInfo.responseFraming);
         // Safety timeout to clear override if no response comes (prevent sticking in wrong mode)
         if (overrideTimerRef.current) clearTimeout(overrideTimerRef.current);
         overrideTimerRef.current = setTimeout(() => {
-          setFramingOverride(undefined);
+          useStore.getState().setFramingOverride(undefined);
           overrideTimerRef.current = null;
         }, TIMING.FRAMING_OVERRIDE_TIMEOUT_MS);
       }
@@ -357,9 +352,6 @@ export function useCommandExecution(
         const timer = setTimeout(() => {
           if (activeValidationsRef.current.has(validationKey)) {
             activeValidationsRef.current.delete(validationKey);
-            // If strictly validating, timeout is an error.
-            // If just scripting (implicitly waiting), maybe just log a warning?
-            // For consistency, we reject both, but sequences can choose to ignore error.
             reject(
               new Error(
                 `Timeout waiting for response to "${cmdInfo?.name || "Command"}"`,
@@ -386,8 +378,6 @@ export function useCommandExecution(
           matchType: isValidationEnabled
             ? cmdInfo!.validation!.matchType
             : undefined,
-          // Fix: 'valScript' is derived from postResponseScript when mode is SCRIPT.
-          // 'validation.script' does not exist on CommandValidation type.
           valScript:
             mode === "SCRIPT"
               ? cmdInfo!.scripting!.postResponseScript
@@ -395,7 +385,7 @@ export function useCommandExecution(
           transformScript: isPostScriptEnabled
             ? cmdInfo!.scripting!.postResponseScript
             : undefined,
-          params, // Store request params to pass to post-response script
+          params,
           timer,
           cmdName: cmdInfo?.name || "Command",
           resolve: () => resolve(),
@@ -443,7 +433,7 @@ export function useCommandExecution(
         const positionParams = await collectPositionParameters(params, cmdInfo);
         if (positionParams.length > 0) {
           dataBytes = applyPositionParameters(dataBytes, positionParams);
-          addSystemLog(
+          store.addSystemLog(
             "INFO",
             "COMMAND",
             `Applied ${positionParams.length} position parameter(s) to binary payload`,
@@ -467,7 +457,13 @@ export function useCommandExecution(
 
       // Log TX before write to ensure correct chronological ordering
       // (echo devices respond immediately, RX would appear before TX otherwise)
-      addLog(dataBytes, "TX", cmdInfo?.contextIds, activeSessionId, params);
+      store.addLog(
+        dataBytes,
+        "TX",
+        cmdInfo?.contextIds,
+        activeSessionId,
+        params,
+      );
       await write(activeSessionId, dataBytes);
 
       // System Log
@@ -478,7 +474,7 @@ export function useCommandExecution(
             ? "[Binary Data]"
             : payloadToProcess;
 
-      addSystemLog(
+      store.addSystemLog(
         "INFO",
         "COMMAND",
         `Sent: ${cmdInfo?.name || "Manual Data"}`,
@@ -495,8 +491,8 @@ export function useCommandExecution(
     } catch (e: unknown) {
       const errorMsg = getErrorMessage(e);
       console.error("Transmission Error:", e);
-      addToast("error", "Error", "Send failed: " + errorMsg);
-      addSystemLog("ERROR", "COMMAND", `Send failed: ${errorMsg}`, {
+      store.addToast("error", "Error", "Send failed: " + errorMsg);
+      store.addSystemLog("ERROR", "COMMAND", `Send failed: ${errorMsg}`, {
         error: String(e),
       });
       console.groupEnd();
@@ -521,26 +517,32 @@ export function useCommandExecution(
     if (hasLegacyParams || hasProtocolParams) {
       onShowParamModal(cmd);
     } else {
+      const store = useStore.getState();
+      const config = store.sessions[activeSessionId]?.config;
       // Use effective mode/payload which handles both CUSTOM and PROTOCOL commands
       const effectiveMode = getEffectiveMode(cmd);
       let finalData = getEffectivePayload(cmd);
 
-      if (effectiveMode === "TEXT") {
+      if (effectiveMode === "TEXT" && config) {
         finalData = appendLineEnding(finalData, config.lineEnding);
       }
       if (effectiveMode !== sendMode) setSendMode(effectiveMode);
       if (cmd.encoding && cmd.encoding !== encoding) setEncoding(cmd.encoding);
       sendData(finalData, cmd).catch((error) => {
-        addSystemLog(
-          "ERROR",
-          "COMMAND",
-          `Failed to send "${cmd.name}": ${error instanceof Error ? error.message : String(error)}`,
-        );
-        addToast(
-          "error",
-          "Send Failed",
-          error instanceof Error ? error.message : "Command failed to send",
-        );
+        useStore
+          .getState()
+          .addSystemLog(
+            "ERROR",
+            "COMMAND",
+            `Failed to send "${cmd.name}": ${error instanceof Error ? error.message : String(error)}`,
+          );
+        useStore
+          .getState()
+          .addToast(
+            "error",
+            "Send Failed",
+            error instanceof Error ? error.message : "Command failed to send",
+          );
       });
     }
   };
@@ -549,17 +551,25 @@ export function useCommandExecution(
    * Run a sequence of commands
    */
   const handleRunSequence = async (seq: SerialSequence) => {
+    const store = useStore.getState();
+    const sessionIsConnected = store.sessions[activeSessionId]?.isConnected;
     if (!sessionIsConnected) {
-      addToast("error", "Cannot Run Sequence", "Not connected to a port.");
+      store.addToast(
+        "error",
+        "Cannot Run Sequence",
+        "Not connected to a port.",
+      );
       return;
     }
-    setActiveSequenceId(seq.id);
-    addToast("info", "Sequence Started", `Running "${seq.name}"...`);
-    addSystemLog("INFO", "COMMAND", `Started Sequence: ${seq.name}`);
+    store.setActiveSequenceId(seq.id);
+    store.addToast("info", "Sequence Started", `Running "${seq.name}"...`);
+    store.addSystemLog("INFO", "COMMAND", `Started Sequence: ${seq.name}`);
 
     for (let i = 0; i < seq.steps.length; i++) {
       const step = seq.steps[i];
-      const cmd = commands.find((c) => c.id === step.commandId);
+      // Re-read commands from store at each step (may have been updated)
+      const currentCommands = useStore.getState().commands;
+      const cmd = currentCommands.find((c) => c.id === step.commandId);
       if (!cmd) continue;
 
       // Check for parameters in both legacy and protocol layer
@@ -570,46 +580,58 @@ export function useCommandExecution(
         cmd.protocolLayer.parameters.length > 0;
 
       if (hasLegacyParams || hasProtocolParams) {
-        addToast(
-          "warning",
-          "Sequence Warning",
-          `Step ${i + 1} has parameters. Using defaults.`,
-        );
+        useStore
+          .getState()
+          .addToast(
+            "warning",
+            "Sequence Warning",
+            `Step ${i + 1} has parameters. Using defaults.`,
+          );
       }
       try {
         // Use effective mode/payload which handles both CUSTOM and PROTOCOL commands
         const effectiveMode = getEffectiveMode(cmd);
         let finalData = getEffectivePayload(cmd);
+        const currentConfig =
+          useStore.getState().sessions[activeSessionId]?.config;
 
-        if (effectiveMode === "TEXT") {
-          finalData = appendLineEnding(finalData, config.lineEnding);
+        if (effectiveMode === "TEXT" && currentConfig) {
+          finalData = appendLineEnding(finalData, currentConfig.lineEnding);
         }
         await sendData(finalData, cmd);
         if (step.delay > 0) await new Promise((r) => setTimeout(r, step.delay));
       } catch (e: unknown) {
         const errorMsg = getErrorMessage(e);
-        addToast(
-          "error",
-          "Sequence Step Failed",
-          `Step ${i + 1} (${cmd.name}): ${errorMsg}`,
-        );
-        addSystemLog(
-          "ERROR",
-          "COMMAND",
-          `Sequence ${seq.name} failed at step ${i + 1}`,
-          {
-            error: errorMsg,
-          },
-        );
+        useStore
+          .getState()
+          .addToast(
+            "error",
+            "Sequence Step Failed",
+            `Step ${i + 1} (${cmd.name}): ${errorMsg}`,
+          );
+        useStore
+          .getState()
+          .addSystemLog(
+            "ERROR",
+            "COMMAND",
+            `Sequence ${seq.name} failed at step ${i + 1}`,
+            {
+              error: errorMsg,
+            },
+          );
         if (step.stopOnError) {
-          setActiveSequenceId(null);
+          useStore.getState().setActiveSequenceId(null);
           return;
         }
       }
     }
-    setActiveSequenceId(null);
-    addToast("success", "Sequence Complete", `"${seq.name}" finished.`);
-    addSystemLog("SUCCESS", "COMMAND", `Sequence ${seq.name} completed.`);
+    useStore.getState().setActiveSequenceId(null);
+    useStore
+      .getState()
+      .addToast("success", "Sequence Complete", `"${seq.name}" finished.`);
+    useStore
+      .getState()
+      .addSystemLog("SUCCESS", "COMMAND", `Sequence ${seq.name} completed.`);
   };
 
   return {

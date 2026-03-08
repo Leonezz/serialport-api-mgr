@@ -1,7 +1,9 @@
 import { StateCreator } from "zustand";
 import { generateId } from "../utils";
+import { getBytes } from "../utils";
 import { DEFAULT_CONFIG, DEFAULT_NETWORK_CONFIG } from "../defaults";
 import { ProjectSlice } from "./projectSlice"; // Used for types or cross-slice logic if needed
+import type { UISliceState } from "./uiSlice";
 import type {
   Session,
   SerialConfig,
@@ -10,6 +12,8 @@ import type {
   TextEncoding,
   ChecksumAlgorithm,
   LogEntry,
+  LogLevel,
+  LogCategory,
   TelemetryVariable,
   ChatMessage,
   WidgetConfig,
@@ -64,6 +68,8 @@ const createSession = (name: string): Session => ({
   networkConfig: { ...DEFAULT_NETWORK_CONFIG },
   isConnected: false,
   logs: [],
+  bytesReceived: 0,
+  bytesTransmitted: 0,
   variables: {},
   widgets: [], // Decoupled Widgets
   plotter: { ...DEFAULT_PLOTTER_STATE },
@@ -172,17 +178,27 @@ export interface SessionSliceActions {
   // Protocol Integration
   setProtocolFramingEnabled: (enabled: boolean) => void;
   setActiveProtocolId: (protocolId: string | undefined) => void;
+
+  // Batched action: combines addLog + addPlotterData + addSystemLog in one set()
+  processSerialFrame: (
+    data: Uint8Array,
+    sessionId: string,
+    systemLogMessage: string,
+    systemLogDetails: Record<string, unknown>,
+    plotterPoint?: PlotterDataPoint | null,
+  ) => string;
 }
 
 // Complete slice: State & Actions
 export type SessionSlice = SessionSliceState & SessionSliceActions;
 
 // We need a combined type to access other slices via get()
-type StoreState = SessionSlice & ProjectSlice;
+// Include UISliceState so processSerialFrame can batch-update systemLogs
+type StoreState = SessionSlice & ProjectSlice & UISliceState;
 
 export const createSessionSlice: StateCreator<
   StoreState,
-  [],
+  [["zustand/immer", never]],
   [],
   SessionSlice
 > = (set, _get) => ({
@@ -325,10 +341,23 @@ export const createSessionSlice: StateCreator<
       const newLogs = [...session.logs, entry].slice(
         -session.config.bufferSize,
       );
+
+      // Incremental byte counter update
+      const byteCount = getBytes(data).length;
+      const bytesReceived =
+        (session.bytesReceived || 0) + (direction === "RX" ? byteCount : 0);
+      const bytesTransmitted =
+        (session.bytesTransmitted || 0) + (direction === "TX" ? byteCount : 0);
+
       return {
         sessions: {
           ...state.sessions,
-          [targetId]: { ...session, logs: newLogs },
+          [targetId]: {
+            ...session,
+            logs: newLogs,
+            bytesReceived,
+            bytesTransmitted,
+          },
         },
       };
     });
@@ -359,6 +388,8 @@ export const createSessionSlice: StateCreator<
         [state.activeSessionId]: {
           ...state.sessions[state.activeSessionId],
           logs: [],
+          bytesReceived: 0,
+          bytesTransmitted: 0,
         },
       },
     })),
@@ -604,9 +635,11 @@ export const createSessionSlice: StateCreator<
         // Else: Ignore new key if limit reached
       });
 
-      const newData = [...currentPlotter.data, filteredPoint].slice(
-        -currentPlotter.config.bufferSize,
-      );
+      const combined = [...currentPlotter.data, filteredPoint];
+      const newData =
+        currentPlotter.config.bufferSize > 0
+          ? combined.slice(-currentPlotter.config.bufferSize)
+          : combined;
 
       return {
         sessions: {
@@ -703,4 +736,85 @@ export const createSessionSlice: StateCreator<
     set((state) =>
       updateActiveSession(state, { activeProtocolId: protocolId }),
     ),
+
+  // Batched action: addLog + addPlotterData + addSystemLog in one set() call.
+  // Uses immer draft mutations (no return) for O(1) push instead of O(n) array spread.
+  // The store wraps slices with immer middleware — mutating the draft without
+  // returning lets immer produce the immutable update with structural sharing.
+  processSerialFrame: (
+    data,
+    sessionId,
+    systemLogMessage,
+    systemLogDetails,
+    plotterPoint,
+  ) => {
+    const id = generateId();
+    const now = Date.now();
+    set((state) => {
+      const session = state.sessions[sessionId];
+      if (!session) return;
+
+      // 1. Add log entry (immer draft mutation — no array copy)
+      const entry: LogEntry = {
+        id,
+        timestamp: now,
+        direction: "RX",
+        data: new Uint8Array(data),
+        format: "HEX",
+      };
+      session.logs.push(entry);
+      const excess = session.logs.length - session.config.bufferSize;
+      if (excess > 0) {
+        session.logs.splice(0, excess);
+      }
+
+      // 2. Update byte counter
+      session.bytesReceived = (session.bytesReceived || 0) + data.length;
+
+      // 3. Add plotter data (if applicable)
+      if (!session.plotter) {
+        session.plotter = { ...DEFAULT_PLOTTER_STATE };
+      }
+      if (plotterPoint && session.plotter.config.enabled) {
+        const seriesSet = new Set(session.plotter.series);
+        const filteredPoint: PlotterDataPoint = { time: plotterPoint.time };
+
+        Object.keys(plotterPoint).forEach((key) => {
+          if (key === "time") return;
+          if (seriesSet.has(key)) {
+            filteredPoint[key] = plotterPoint[key];
+          } else if (seriesSet.size < MAX_PLOTTER_SERIES) {
+            seriesSet.add(key);
+            filteredPoint[key] = plotterPoint[key];
+          }
+        });
+
+        session.plotter.data.push(filteredPoint);
+        if (session.plotter.config.bufferSize > 0) {
+          const plotterExcess =
+            session.plotter.data.length - session.plotter.config.bufferSize;
+          if (plotterExcess > 0) {
+            session.plotter.data.splice(0, plotterExcess);
+          }
+        }
+        session.plotter.series = Array.from(seriesSet);
+      }
+
+      // 4. Add system log entry
+      const uiState = state as unknown as UISliceState;
+      uiState.systemLogs.unshift({
+        id: generateId(),
+        timestamp: now,
+        level: "INFO" as LogLevel,
+        category: "COMMAND" as LogCategory,
+        message: systemLogMessage,
+        details: systemLogDetails,
+      });
+      if (uiState.systemLogs.length > 1000) {
+        uiState.systemLogs.length = 1000;
+      }
+      // No return — immer produces the immutable update from draft mutations
+    });
+    return id;
+  },
 });
