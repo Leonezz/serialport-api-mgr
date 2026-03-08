@@ -92,7 +92,8 @@ describe("NetworkPort", () => {
 
       const result = await reader.read();
       expect(result.done).toBe(false);
-      expect(Array.from(result.value as Uint8Array)).toEqual([1, 2, 3, 4, 5]);
+      expect(Array.from(result.value!.data)).toEqual([1, 2, 3, 4, 5]);
+      expect(typeof result.value!.timestampMs).toBe("number");
 
       reader.releaseLock();
     });
@@ -112,9 +113,8 @@ describe("NetworkPort", () => {
 
       const result = await reader.read();
       expect(result.done).toBe(false);
-      expect(Array.from(result.value as Uint8Array)).toEqual([
-        72, 101, 108, 108, 111,
-      ]); // "Hello"
+      expect(Array.from(result.value!.data)).toEqual([72, 101, 108, 108, 111]); // "Hello"
+      expect(typeof result.value!.timestampMs).toBe("number");
 
       reader.releaseLock();
     });
@@ -294,7 +294,7 @@ describe("NetworkPort", () => {
       }
 
       const result = await reader.read();
-      expect(Array.from(result.value as Uint8Array)).toEqual([4, 5, 6]);
+      expect(Array.from(result.value!.data)).toEqual([4, 5, 6]);
 
       // Clean up
       reader.releaseLock();

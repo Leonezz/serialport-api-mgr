@@ -63,7 +63,7 @@ describe("useFraming", () => {
       const testData = new Uint8Array([65, 66, 67]); // "ABC"
 
       await act(async () => {
-        handler(testData);
+        handler(testData, Date.now());
         // Wait for async composeFrames to complete
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
@@ -83,7 +83,7 @@ describe("useFraming", () => {
       const testData = new Uint8Array([65, 66, 67]); // "ABC"
 
       await act(async () => {
-        handler(testData);
+        handler(testData, Date.now());
         // Wait for async composeFrames to complete
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
@@ -107,7 +107,7 @@ describe("useFraming", () => {
       // Should not throw
       expect(() => {
         act(() => {
-          handler(emptyData);
+          handler(emptyData, Date.now());
         });
       }).not.toThrow();
     });
@@ -122,7 +122,7 @@ describe("useFraming", () => {
       const binaryData = new Uint8Array([0x00, 0x01, 0x02, 0xff, 0xfe]);
 
       await act(async () => {
-        handler(binaryData);
+        handler(binaryData, Date.now());
         // Wait for async composeFrames to complete
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
@@ -140,7 +140,7 @@ describe("useFraming", () => {
       const testData = new Uint8Array([65]);
 
       act(() => {
-        handler(testData);
+        handler(testData, Date.now());
       });
 
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -160,7 +160,7 @@ describe("useFraming", () => {
       // Create framer by handling data
       const handler = result.current.handleDataReceived(sessionId);
       act(() => {
-        handler(new Uint8Array([65, 66, 67]));
+        handler(new Uint8Array([65, 66, 67]), Date.now());
       });
 
       // Cleanup should not throw
@@ -206,7 +206,7 @@ describe("useFraming", () => {
       const testData = new Uint8Array([65, 66, 10]); // "AB\n"
 
       await act(async () => {
-        handler(testData);
+        handler(testData, Date.now());
         // Wait for async composeFrames to complete
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
@@ -238,7 +238,7 @@ describe("useFraming", () => {
       const handler = result.current.handleDataReceived(sessionId);
 
       await act(async () => {
-        handler(new Uint8Array([65, 66, 67]));
+        handler(new Uint8Array([65, 66, 67]), Date.now());
         // Wait for async composeFrames to complete
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
@@ -277,8 +277,8 @@ describe("useFraming", () => {
       const handler2 = result.current.handleDataReceived(session2);
 
       await act(async () => {
-        handler1(new Uint8Array([65])); // A
-        handler2(new Uint8Array([66])); // B
+        handler1(new Uint8Array([65]), Date.now()); // A
+        handler2(new Uint8Array([66]), Date.now()); // B
         // Wait for async composeFrames to complete
         await new Promise((resolve) => setTimeout(resolve, 10));
       });
@@ -302,7 +302,7 @@ describe("useFraming", () => {
       const testData = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
 
       act(() => {
-        handler(testData);
+        handler(testData, Date.now());
       });
 
       const systemLogs = useStore.getState().systemLogs;
@@ -323,7 +323,7 @@ describe("useFraming", () => {
       const longData = new Uint8Array(100).fill(65); // 100 'A' characters
 
       act(() => {
-        handler(longData);
+        handler(longData, Date.now());
       });
 
       const systemLogs = useStore.getState().systemLogs;

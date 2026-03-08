@@ -48,6 +48,7 @@ fn setup_port_task(
                 match message {
                     SerialEvent::Message(message) => {
                         let len = message.data.len();
+                        let ts = message.timestamp_ms as i64;
                         if let Err(err) = app_for_read.emit(event_names::PORT_READ, message.clone())
                         {
                             tracing::error!("emit port read failed: {}", err);
@@ -64,6 +65,7 @@ fn setup_port_task(
                                 &port_name_for_read,
                                 "RX",
                                 message.data.as_slice(),
+                                Some(ts),
                             )
                             .await
                             .map_err(|e| tracing::error!("Failed to log read: {}", e));
@@ -170,6 +172,7 @@ fn setup_port_task(
                         &port_name_for_write,
                         "TX",
                         &msg,
+                        None,
                     )
                     .await
                     .map_err(|e| tracing::error!("Failed to log write: {}", e));

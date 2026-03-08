@@ -148,13 +148,13 @@ const MainWorkspace: React.FC = () => {
   // Connection Hook
   const { connect, disconnect, write, toggleSignal, isWebSerialSupported } =
     useSerialConnection(
-      (chunk: Uint8Array, sessionId: string) => {
+      (chunk, sessionId: string) => {
         // Use framing hook to handle incoming data
         const handleData = framing.handleDataReceived(
           sessionId,
           validation.checkValidation,
         );
-        handleData(chunk);
+        handleData(chunk.data, chunk.timestampMs);
       },
       (sessionId) => {
         // onDisconnect - always update the specific session's connection state

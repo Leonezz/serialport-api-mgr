@@ -183,6 +183,7 @@ export interface SessionSliceActions {
   processSerialFrame: (
     data: Uint8Array,
     sessionId: string,
+    timestamp: number,
     systemLogMessage: string,
     systemLogDetails: Record<string, unknown>,
     plotterPoint?: PlotterDataPoint | null,
@@ -744,12 +745,12 @@ export const createSessionSlice: StateCreator<
   processSerialFrame: (
     data,
     sessionId,
+    timestamp,
     systemLogMessage,
     systemLogDetails,
     plotterPoint,
   ) => {
     const id = generateId();
-    const now = Date.now();
     set((state) => {
       const session = state.sessions[sessionId];
       if (!session) return;
@@ -757,7 +758,7 @@ export const createSessionSlice: StateCreator<
       // 1. Add log entry (immer draft mutation — no array copy)
       const entry: LogEntry = {
         id,
-        timestamp: now,
+        timestamp,
         direction: "RX",
         data: new Uint8Array(data),
         format: "HEX",
@@ -804,7 +805,7 @@ export const createSessionSlice: StateCreator<
       const uiState = state as unknown as UISliceState;
       uiState.systemLogs.unshift({
         id: generateId(),
-        timestamp: now,
+        timestamp,
         level: "INFO" as LogLevel,
         category: "COMMAND" as LogCategory,
         message: systemLogMessage,

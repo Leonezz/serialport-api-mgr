@@ -56,6 +56,7 @@ export function useFraming() {
     const logId = state.processSerialFrame(
       data,
       sessionId,
+      timestamp,
       `RX Frame ${data.length}B: ${displayPreview}`,
       { sessionId, hex: hexPreview, data: Array.from(data), timestamp },
       plotterPoint,
@@ -100,7 +101,7 @@ export function useFraming() {
     sessionId: string,
     onValidate?: (data: Uint8Array, sessionId: string, logId: string) => void,
   ) => {
-    return (chunk: Uint8Array) => {
+    return (chunk: Uint8Array, timestampMs: number) => {
       let framer = framersRef.current.get(sessionId);
 
       const session = useStore.getState().sessions[sessionId];
@@ -134,8 +135,8 @@ export function useFraming() {
         framer.setConfig(effectiveConfig);
       }
 
-      // Push with current timestamp
-      framer.push({ data: chunk, timestamp: Date.now() });
+      // Push with backend timestamp (from when data was actually read from port)
+      framer.push({ data: chunk, timestamp: timestampMs });
     };
   };
 
