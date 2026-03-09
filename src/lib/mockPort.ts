@@ -1,4 +1,4 @@
-import { GenericPort } from "./connection";
+import { GenericPort, TimestampedChunk } from "./connection";
 
 export type MockPortType =
   | "mock-echo"
@@ -9,12 +9,19 @@ export type MockPortType =
   | "mock-sine-wave";
 
 export class MockPort implements GenericPort {
-  readable: ReadableStream<Uint8Array>;
+  readable: ReadableStream<TimestampedChunk>;
   writable: WritableStream<Uint8Array>;
-  private controller?: ReadableStreamDefaultController<Uint8Array>;
+  private controller?: ReadableStreamDefaultController<TimestampedChunk>;
   private active: boolean = true;
   // Fix: Use any instead of NodeJS.Timeout to avoid namespace errors in pure browser environments
   private interval?: ReturnType<typeof setInterval>;
+
+  /** Enqueue data with current timestamp */
+  private emit(data: Uint8Array) {
+    if (this.controller) {
+      this.controller.enqueue({ data, timestampMs: Date.now() });
+    }
+  }
 
   constructor(public readonly type: string) {
     this.readable = new ReadableStream({
@@ -34,8 +41,8 @@ export class MockPort implements GenericPort {
         if (this.type === "mock-echo") {
           // Echo back with slight delay
           await new Promise((r) => setTimeout(r, 10));
-          if (this.active && this.controller) {
-            this.controller.enqueue(chunk);
+          if (this.active) {
+            this.emit(chunk);
           }
         }
         // Other mocks could respond to specific commands here if needed
@@ -54,21 +61,20 @@ export class MockPort implements GenericPort {
 
         if (mode < 0.4) {
           const msg = `{"id":${counter},"val":${(Math.random() * 100).toFixed(1)}}\n`;
-          this.controller.enqueue(new TextEncoder().encode(msg));
+          this.emit(new TextEncoder().encode(msg));
         } else if (mode < 0.7) {
           const msg = `{"id":${counter},"type":"frag","val":${(Math.random() * 100).toFixed(1)}}\n`;
           const bytes = new TextEncoder().encode(msg);
           const split = Math.floor(bytes.length / 2);
-          this.controller.enqueue(bytes.slice(0, split));
+          this.emit(bytes.slice(0, split));
           setTimeout(() => {
-            if (this.active && this.controller)
-              this.controller.enqueue(bytes.slice(split));
+            if (this.active) this.emit(bytes.slice(split));
           }, 20);
         } else {
           const msg1 = `{"id":${counter},"t":"burst1"}\n`;
           const msg2 = `{"id":${counter + 1},"t":"burst2"}\n`;
           counter++;
-          this.controller.enqueue(new TextEncoder().encode(msg1 + msg2));
+          this.emit(new TextEncoder().encode(msg1 + msg2));
         }
       }, 800);
     } else if (this.type === "mock-timeout-stream") {
@@ -77,22 +83,13 @@ export class MockPort implements GenericPort {
       const loop = async () => {
         while (this.active) {
           counter = (counter + 1) % 100;
-          if (this.controller)
-            this.controller.enqueue(
-              new TextEncoder().encode(`{"seq":${counter},"part":1}`),
-            );
+          this.emit(new TextEncoder().encode(`{"seq":${counter},"part":1}`));
           await new Promise((r) => setTimeout(r, 20));
           if (!this.active) break;
-          if (this.controller)
-            this.controller.enqueue(
-              new TextEncoder().encode(`{"seq":${counter},"part":2}`),
-            );
+          this.emit(new TextEncoder().encode(`{"seq":${counter},"part":2}`));
           await new Promise((r) => setTimeout(r, 20));
           if (!this.active) break;
-          if (this.controller)
-            this.controller.enqueue(
-              new TextEncoder().encode(`{"seq":${counter},"part":3}`),
-            );
+          this.emit(new TextEncoder().encode(`{"seq":${counter},"part":3}`));
           await new Promise((r) => setTimeout(r, 1000));
         }
       };
@@ -128,30 +125,29 @@ export class MockPort implements GenericPort {
             );
             fullPacket.set(header);
             fullPacket.set(payloadBytes, 2);
-            if (this.controller) this.controller.enqueue(fullPacket);
+            this.emit(fullPacket);
           } else if (mode < 0.7) {
             // Split Header
-            if (this.controller) this.controller.enqueue(header.slice(0, 1));
+            this.emit(header.slice(0, 1));
             await new Promise((r) => setTimeout(r, 15)); // Short lag
             if (!this.active) break;
 
             const rest = new Uint8Array(1 + payloadBytes.length);
             rest.set(header.slice(1), 0);
             rest.set(payloadBytes, 1);
-            if (this.controller) this.controller.enqueue(rest);
+            this.emit(rest);
           } else {
             // Split Body
             const splitIdx = Math.floor(payloadBytes.length / 2);
             const firstPart = new Uint8Array(2 + splitIdx);
             firstPart.set(header);
             firstPart.set(payloadBytes.slice(0, splitIdx), 2);
-            if (this.controller) this.controller.enqueue(firstPart);
+            this.emit(firstPart);
 
             await new Promise((r) => setTimeout(r, 20)); // Lag
             if (!this.active) break;
 
-            if (this.controller)
-              this.controller.enqueue(payloadBytes.slice(splitIdx));
+            this.emit(payloadBytes.slice(splitIdx));
           }
 
           await new Promise((r) => setTimeout(r, 800));
@@ -170,7 +166,7 @@ export class MockPort implements GenericPort {
 
         // Format: sin, cos, noise
         const msg = `${sin}, ${cos}, ${noise}\n`;
-        this.controller.enqueue(new TextEncoder().encode(msg));
+        this.emit(new TextEncoder().encode(msg));
       }, 20); // 50Hz
     }
   }

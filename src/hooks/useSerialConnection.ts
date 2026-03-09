@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { GenericPort, NetworkPort } from "../lib/connection";
+import { GenericPort, NetworkPort, TimestampedChunk } from "../lib/connection";
 import { serialService, ISerialPort } from "../lib/serialService";
 import { MockPort } from "../lib/mockPort";
 import { SerialConfig, NetworkConfig, SerialOutputSignals } from "../types";
@@ -31,14 +31,14 @@ async function openSerialPort(
 }
 
 export const useSerialConnection = (
-  onDataReceived: (data: Uint8Array, sessionId: string) => void,
+  onDataReceived: (chunk: TimestampedChunk, sessionId: string) => void,
   onDisconnectCallback: (sessionId: string) => void,
 ) => {
   // Map SessionID -> Port Instance
   const portsRef = useRef<Map<string, GenericPort>>(new Map());
   // Map SessionID -> Reader (to cancel on disconnect)
   const readersRef = useRef<
-    Map<string, ReadableStreamDefaultReader<Uint8Array>>
+    Map<string, ReadableStreamDefaultReader<TimestampedChunk>>
   >(new Map());
   // Map SessionID -> KeepReading Flag
   const keepReadingRef = useRef<Map<string, boolean>>(new Map());

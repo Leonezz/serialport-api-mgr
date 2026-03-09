@@ -4,7 +4,7 @@ import {
   SerialInputSignals,
   SerialOutputSignals,
 } from "../types";
-import { GenericPort } from "./connection";
+import { GenericPort, TimestampedChunk } from "./connection";
 import { TauriSerialAPI, TauriEventNames, listenToTauriEvent } from "./tauri";
 import { UnlistenFn } from "@tauri-apps/api/event";
 import { IS_TAURI } from "./tauriEnv";
@@ -70,9 +70,9 @@ class WebSerialProvider implements ISerialProvider {
 // Tauri Port Implementation - Bridges Tauri commands to stream-based interface
 class TauriPort implements ISerialPort {
   portName: string;
-  readable: ReadableStream<Uint8Array> | null = null;
+  readable: ReadableStream<TimestampedChunk> | null = null;
   writable: WritableStream<Uint8Array> | null = null;
-  private readController: ReadableStreamDefaultController<Uint8Array> | null =
+  private readController: ReadableStreamDefaultController<TimestampedChunk> | null =
     null;
   private unlistenRead: UnlistenFn | null = null;
   private signals: SerialInputSignals = {
@@ -106,7 +106,7 @@ class TauriPort implements ISerialPort {
     });
 
     // Create readable stream that listens to Tauri events
-    this.readable = new ReadableStream<Uint8Array>({
+    this.readable = new ReadableStream<TimestampedChunk>({
       start: async (controller) => {
         this.readController = controller;
         // Listen for data from Tauri backend with type safety
@@ -115,8 +115,10 @@ class TauriPort implements ISerialPort {
           (event) => {
             // Only process data for this port
             if (event.payload.portName === this.portName) {
-              const data = new Uint8Array(event.payload.data);
-              controller.enqueue(data);
+              controller.enqueue({
+                data: new Uint8Array(event.payload.data),
+                timestampMs: event.payload.timestampMs,
+              });
             }
           },
         );

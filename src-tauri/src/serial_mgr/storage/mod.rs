@@ -95,11 +95,14 @@ impl Storage {
         port_name: &str,
         direction: &str,
         data: &[u8],
+        timestamp_ms: Option<i64>,
     ) -> Result<i64, String> {
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as i64;
+        let timestamp = timestamp_ms.unwrap_or_else(|| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as i64
+        });
 
         let model = entity::ActiveModel {
             id: sea_orm::ActiveValue::NotSet,

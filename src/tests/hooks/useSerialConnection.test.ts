@@ -3,9 +3,12 @@ import type { Mock } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useSerialConnection } from "@/hooks/useSerialConnection";
 import { NetworkConfig, SerialConfig } from "@/types";
+import type { TimestampedChunk } from "@/lib/connection";
 
 describe("useSerialConnection", () => {
-  let onDataReceived: Mock<(data: Uint8Array, sessionId: string) => void>;
+  let onDataReceived: Mock<
+    (chunk: TimestampedChunk, sessionId: string) => void
+  >;
   let onDisconnect: Mock<(sessionId: string) => void>;
   let defaultConfig: SerialConfig;
   let defaultNetworkConfig: NetworkConfig;
@@ -200,9 +203,10 @@ describe("useSerialConnection", () => {
         { timeout: 100 },
       );
 
-      // Verify the echoed data
-      const receivedData = onDataReceived.mock.calls[0][0];
-      expect(Array.from(receivedData)).toEqual(Array.from(testData));
+      // Verify the echoed data (now wrapped in TimestampedChunk)
+      const receivedChunk = onDataReceived.mock.calls[0][0];
+      expect(Array.from(receivedChunk.data)).toEqual(Array.from(testData));
+      expect(typeof receivedChunk.timestampMs).toBe("number");
       expect(onDataReceived.mock.calls[0][1]).toBe("session-1");
     });
 
@@ -287,7 +291,10 @@ describe("useSerialConnection", () => {
       await waitFor(
         () => {
           expect(onDataReceived).toHaveBeenCalledWith(
-            expect.any(Uint8Array),
+            expect.objectContaining({
+              data: expect.any(Uint8Array),
+              timestampMs: expect.any(Number),
+            }),
             "session-1",
           );
         },
